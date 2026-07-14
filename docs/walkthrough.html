@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Detective — How It Works</title>
+<style>
+  :root {
+    --ink:        #0e1013;
+    --ground:     #f6f4f0;
+    --surface:    #ffffff;
+    --surface-2:  #ece8e1;
+    --line:       #d6d0c6;
+    --text:       #1b1e22;
+    --text-dim:   #5c6069;
+    --amber:      #a56412;
+    --amber-soft: #f2e3cb;
+    --alert:      #b3261e;
+    --alert-soft: #f7dedc;
+    --ai:         #1c6b84;
+    --ai-soft:    #d9ecf2;
+    --ok:         #2f6b41;
+
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ground:     #0e1013;
+      --surface:    #16191d;
+      --surface-2:  #1d2126;
+      --line:       #2c3138;
+      --text:       #e6e3dd;
+      --text-dim:   #939aa4;
+      --amber:      #e0a049;
+      --amber-soft: #33270f;
+      --alert:      #ef6a63;
+      --alert-soft: #3a1a18;
+      --ai:         #6fc4dd;
+      --ai-soft:    #102a33;
+      --ok:         #6ec48a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e1013; --surface:#16191d; --surface-2:#1d2126; --line:#2c3138;
+    --text:#e6e3dd; --text-dim:#939aa4; --amber:#e0a049; --amber-soft:#33270f;
+    --alert:#ef6a63; --alert-soft:#3a1a18; --ai:#6fc4dd; --ai-soft:#102a33; --ok:#6ec48a;
+  }
+  :root[data-theme="light"] {
+    --ground:#f6f4f0; --surface:#ffffff; --surface-2:#ece8e1; --line:#d6d0c6;
+    --text:#1b1e22; --text-dim:#5c6069; --amber:#a56412; --amber-soft:#f2e3cb;
+    --alert:#b3261e; --alert-soft:#f7dedc; --ai:#1c6b84; --ai-soft:#d9ecf2; --ok:#2f6b41;
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 74ch; margin: 0 auto; padding: 4rem 1.5rem 8rem; }
+
+  /* ---- masthead ---- */
+  .mast { border-bottom: 3px solid var(--text); padding-bottom: 1.25rem; margin-bottom: 3rem; }
+  .mast .file-no {
+    font-family: var(--mono); font-size: .72rem; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--amber); margin-bottom: .75rem;
+  }
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 3rem); line-height: 1.05; letter-spacing: -.02em;
+    font-weight: 700; text-wrap: balance; margin-bottom: .6rem;
+  }
+  .mast .sub { color: var(--text-dim); font-size: 1.05rem; }
+
+  h2 {
+    font-size: 1.45rem; letter-spacing: -.01em; font-weight: 680;
+    margin: 3.5rem 0 .4rem; text-wrap: balance;
+    padding-top: 1.25rem; border-top: 1px solid var(--line);
+  }
+  h2 .n {
+    font-family: var(--mono); font-size: .72rem; color: var(--amber);
+    letter-spacing: .12em; display: block; margin-bottom: .5rem; font-weight: 500;
+  }
+  h3 { font-size: 1.02rem; font-weight: 660; margin: 2rem 0 .35rem; }
+
+  p, ul, ol { margin-bottom: 1rem; }
+  ul, ol { padding-left: 1.2rem; }
+  li { margin-bottom: .35rem; }
+  strong { font-weight: 660; }
+  code {
+    font-family: var(--mono); font-size: .86em;
+    background: var(--surface-2); padding: .12em .38em; border-radius: 3px;
+  }
+  a { color: var(--ai); text-underline-offset: 2px; }
+  a:focus-visible, summary:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
+
+  /* ---- terminal / trace block ---- */
+  .term {
+    background: #0e1013; color: #d9d5cd; border: 1px solid var(--line);
+    border-radius: 5px; font-family: var(--mono); font-size: .82rem; line-height: 1.75;
+    padding: 1.15rem 1.25rem; margin: 1.25rem 0; overflow-x: auto;
+  }
+  .term .ok    { color: #6ec48a; }
+  .term .miss  { color: #ef6a63; font-weight: 700; }
+  .term .dim   { color: #7c828c; }
+  .term .ai    { color: #6fc4dd; }
+  .term .amb   { color: #e0a049; }
+
+  pre.code {
+    background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--amber);
+    border-radius: 4px; padding: 1rem 1.15rem; margin: 1.15rem 0;
+    font-family: var(--mono); font-size: .8rem; line-height: 1.7; overflow-x: auto;
+  }
+
+  /* ---- callouts ---- */
+  .note {
+    border-left: 3px solid var(--amber); background: var(--amber-soft);
+    padding: .9rem 1.1rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+  }
+  .note.warn { border-left-color: var(--alert); background: var(--alert-soft); }
+  .note .lbl {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .14em;
+    text-transform: uppercase; display: block; margin-bottom: .35rem; font-weight: 600;
+    color: var(--amber);
+  }
+  .note.warn .lbl { color: var(--alert); }
+  .note p:last-child { margin-bottom: 0; }
+
+  /* ---- tables ---- */
+  .scroll { overflow-x: auto; margin: 1.25rem 0; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; }
+  th, td { text-align: left; padding: .6rem .7rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-dim); font-weight: 600;
+    border-bottom: 1px solid var(--text);
+  }
+  td code { background: none; padding: 0; color: var(--amber); }
+
+  .diff { font-family: var(--mono); font-size: .8rem; }
+
+  /* ---- flow diagram ---- */
+  .flow {
+    display: grid; gap: .5rem; margin: 1.5rem 0;
+    font-family: var(--mono); font-size: .78rem;
+  }
+  .step {
+    display: grid; grid-template-columns: 2.4rem 1fr; gap: .85rem; align-items: start;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 4px; padding: .7rem .85rem;
+  }
+  .step .k {
+    color: var(--amber); font-weight: 700; letter-spacing: .06em;
+  }
+  .step .v { color: var(--text); line-height: 1.6; }
+  .step .v em { color: var(--text-dim); font-style: normal; }
+  .step.hot { border-color: var(--alert); background: var(--alert-soft); }
+  .step.hot .k { color: var(--alert); }
+
+  details {
+    border: 1px solid var(--line); border-radius: 4px; padding: .75rem 1rem;
+    margin: 1.25rem 0; background: var(--surface);
+  }
+  summary { cursor: pointer; font-weight: 620; font-size: .95rem; }
+  details[open] summary { margin-bottom: .75rem; }
+
+  .foot {
+    margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--line);
+    font-size: .85rem; color: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+
+  <header class="mast">
+    <div class="file-no">Case File · Internal Walkthrough · Draft</div>
+    <h1>AI Detective</h1>
+    <p class="sub">How the workshop app works, what the “RAG” actually does, and where to change things. For the MADT Expo team.</p>
+  </header>
+
+  <p>Players take the role of an <strong>AI Detective</strong>. Each of five cases shows them a question, a set of retrieved evidence, and an AI’s answer — and asks them to decide whether the AI got it right or hallucinated. A projector shows the room’s live “% of you were fooled” stats, and the facilitator drives a reveal at the end.</p>
+
+  <p>The whole thing is one Next.js app served from a laptop. Players join over the venue wifi. No accounts, no database, no cloud.</p>
+
+  <h2><span class="n">01 — The thing your team will ask about</span>What the retrieval actually does</h2>
+
+  <p>Here is the moment the entire workshop is built around. On the player’s screen, documents resolve one by one:</p>
+
+  <div class="term">
+<span class="amb">🔍 กำลังค้นหาจากแฟ้มคดี…</span>
+   apollo_17_mission_record.pdf        <span class="ok">✓ พบเอกสาร</span>
+   iss_crew_rotations_1998_2025.csv    <span class="ok">✓ พบเอกสาร</span>
+   crewed_missions_2026.log            <span class="miss">✗ ไม่พบเอกสาร</span>
+
+<span class="ai">🤖 คำตอบของ AI</span>
+<span class="dim">   “ไม่มีครับ มนุษย์กลุ่มสุดท้ายที่เดินทางออกไปไกลกว่าวงโคจร
+    ระดับต่ำของโลกคือลูกเรือ Apollo 17 ในเดือนธันวาคม 1972…”</span>
+  </div>
+
+  <p>Two documents found. One missing — <em>the 2026 mission log</em>. And then the AI answers anyway, fluently and confidently, from what it already “knew.” It never says “I don’t have 2026 data.” It just fills the hole.</p>
+
+  <p>That’s the lesson, made visible: <strong>a hallucination is the shape of a missing document.</strong> Players don’t just learn <em>that</em> AI is sometimes wrong — they watch <em>why</em>.</p>
+
+  <h2><span class="n">02 — Be clear about this before the demo</span>The RAG is simulated, on purpose</h2>
+
+  <div class="note warn">
+    <span class="lbl">Read this first</span>
+    <p>There is <strong>no live model and no vector database</strong> in the app today. The retrieval UI is real and data-driven, but the AI’s answer is <strong>pre-written</strong> in the content file. Nothing queries an LLM at runtime.</p>
+  </div>
+
+  <p>This was a deliberate call, not a shortcut, and it’s worth defending to the team because it will come up:</p>
+
+  <ul>
+    <li><strong>The reveal is a group moment.</strong> The facilitator stands up and says “here is exactly what the AI got wrong.” If twenty players each got a slightly different generated answer, there is no “exactly.” The shared moment fractures.</li>
+    <li><strong>A live model might refuse to hallucinate.</strong> Modern models are increasingly willing to say “the case file doesn’t contain that.” Your carefully-built trap may simply <em>not spring</em> — in front of prospective students. A demo that no-shows is worse than no demo.</li>
+    <li><strong>Rigging a live model is worse than not using one.</strong> You could prompt a model to never admit ignorance. But a workshop about AI credibility cannot afford a rigged demo that leaks.</li>
+  </ul>
+
+  <p>So: the mechanism is honest and the lesson is real, but the answer is scripted. Say that out loud in the room if anyone asks — it costs nothing and it’s in keeping with the whole point of the exercise.</p>
+
+  <h3>What actually happens, step by step</h3>
+
+  <div class="flow">
+    <div class="step"><span class="k">1</span><span class="v"><code>content/cases.ts</code> holds the case, including a <code>docs[]</code> array — the “knowledge base.” <em>Each doc has a <code>found: true | false</code> flag.</em></span></div>
+    <div class="step"><span class="k">2</span><span class="v"><code>&lt;Retrieval&gt;</code> walks that array and reveals one doc every 600ms, printing <code>✓ retrieved</code> or <code>✗ NOT FOUND</code> from the flag. <em>This part is genuinely data-driven — flip a flag, the trace changes.</em></span></div>
+    <div class="step hot"><span class="k">3</span><span class="v">When the trace finishes, <code>getAIAnswer(caseId, lang)</code> is called. <em>Today it returns the <code>aiAnswer</code> string from the same content file. This is the only faked step.</em></span></div>
+    <div class="step"><span class="k">4</span><span class="v">The AI’s answer renders, then the Case File (found docs only), then the four verdict options.</span></div>
+    <div class="step"><span class="k">5</span><span class="v">The player commits. The answer is POSTed to the server, scored, and folded into the projector’s live stats.</span></div>
+  </div>
+
+  <p>Note step 4: <strong>a document with <code>found: false</code> renders nothing at all.</strong> You can’t show the contents of a document the AI failed to retrieve — that would give the game away.</p>
+
+  <h2><span class="n">03 — For whoever wants to make it real</span>The swap seam</h2>
+
+  <p>All the fakery is behind <em>one function</em>, in one file. It’s already <code>async</code> even though it does no I/O today — precisely so a real model call can drop in without touching any calling code.</p>
+
+  <pre class="code">// lib/ai-answer.ts
+
+export async function getAIAnswer(caseId: string, lang: Lang): Promise&lt;string&gt; {
+  const c = getCase(caseId)
+  if (!c) throw new Error(`unknown case: ${caseId}`)
+  return c.aiAnswer[lang]          // ← replace this line
+}</pre>
+
+  <p>To go live, you’d replace that return with a real call — embed the case’s <code>found: true</code> docs, retrieve top-k, stuff them into the prompt, and generate. The retrieval <em>gap</em> is what makes it hallucinate: you simply never index the missing document.</p>
+
+  <div class="note">
+    <span class="lbl">One catch, so nobody is surprised</span>
+    <p><code>getAIAnswer</code> is currently imported into a <strong>client component</strong>. A real model call needs an API key, which can’t ship to the browser — so going live also means adding a small server route (e.g. <code>/api/ai-answer</code>) and having the client fetch it. It’s still a contained change, but it’s two files, not one. Don’t let anyone promise the team it’s a one-liner.</p>
+  </div>
+
+  <p>If you do go live, you’ll want to keep a <strong>pre-written fallback</strong> for exactly the failure this design was avoiding: if the model declines to hallucinate on the day, you fall back to the scripted answer and the workshop still runs.</p>
+
+  <h2><span class="n">04 — Where the team will want to edit</span>Adjusting the cases</h2>
+
+  <p>Everything a non-engineer needs is in <strong>one file</strong>: <code>content/cases.ts</code>. Thai and English sit side by side. No code changes, no rebuild of anything else.</p>
+
+  <pre class="code">{
+  id: 'artemis',
+  order: 1,
+  difficulty: 'easy',
+  question:  { th: '…', en: 'Has any human traveled beyond low Earth orbit since 1972?' },
+  aiAnswer:  { th: '…', en: 'No. The last were Apollo 17, in December 1972…' },
+
+  docs: [
+    { filename: 'apollo_17_mission_record.pdf',
+      kind: 'excerpt', found: true,  fictional: false,
+      title: { th: '…', en: 'Apollo 17 mission record' },
+      body:  { th: '…', en: '…' },
+      sourceUrl: 'https://www.nasa.gov/mission/apollo-17/' },
+
+    { filename: 'crewed_missions_2026.log',
+      kind: 'excerpt', found: false,            // ← THE GAP
+      fictional: false,
+      title: { th: '…', en: 'Crewed mission log, 2026' } },
+  ],
+
+  options: [ /* exactly 4 — exactly one correct: true */ ],
+  failureMode: { th: '…', en: 'Stale knowledge' },
+  reveal:      { th: '…', en: 'The AI’s answer was true — until April 2026…' },
+}</pre>
+
+  <p>The test suite <em>enforces</em> the rules that matter, so a bad edit fails loudly instead of surfacing on the projector:</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th>Rule</th><th>Why it’s enforced</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Exactly 4 options, exactly one <code>correct: true</code></td><td>Every case must have one defensible answer. You’re revealing these on a projector — an arguable answer is the worst outcome.</td></tr>
+        <tr><td>Every <code>th</code> and <code>en</code> string non-empty</td><td>No half-translated case reaching a Thai-speaking room.</td></tr>
+        <tr><td>Real (non-fictional) docs must cite a <code>sourceUrl</code></td><td>Content integrity — see below.</td></tr>
+        <tr><td>Cases 1–3 have exactly one missing doc; cases 4–5 have none</td><td>That’s the teaching arc. See section 05.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Run <code>npx vitest run content/</code> after editing. If it’s green, the case is structurally sound.</p>
+
+  <h3>The content-integrity rule</h3>
+
+  <div class="note">
+    <span class="lbl">Non-negotiable</span>
+    <p><strong>Never fabricate evidence that imitates a real outlet.</strong> A mocked-up Bangkok Post headline gets photographed at a booth and shared out of context — and a workshop <em>about</em> misinformation loses its footing the moment its own evidence turns out to be fake. Real cases cite real URLs. Invented evidence (the NovaBrew case) is flagged <code>fictional: true</code> and renders a visible <strong>FICTIONAL</strong> badge.</p>
+  </div>
+
+  <p>Case 3 does contain a fabricated court citation — <em>Hendricks v. Meridian Logistics Corp.</em> — but it appears <strong>only as the AI’s output</strong>, never as evidence, and the reveal explicitly debunks it. That’s the lesson, not a leak.</p>
+
+  <h2><span class="n">05 — The design underneath the content</span>The five-case arc</h2>
+
+  <p>Each case teaches a <em>different</em> failure mode, so players leave with a checklist rather than a vague “AI is sometimes wrong.” The order is deliberate, and the back half deliberately breaks the habit the front half builds.</p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr><th></th><th>Case</th><th>Teaches</th><th>Retrieval</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>🟢</td><td><strong>Artemis II</strong></td><td>Stale knowledge — the answer <em>was</em> true</td><td class="diff">1 doc missing</td></tr>
+        <tr><td>🟡</td><td><strong>Milan-Cortina medals</strong></td><td>Fabricated specifics — right shape, invented numbers</td><td class="diff">1 doc missing</td></tr>
+        <tr><td>🟠</td><td><strong>The fake citation</strong></td><td>Right answer, invented source</td><td class="diff">1 doc missing</td></tr>
+        <tr><td>🔴</td><td><strong>NovaBrew</strong></td><td>Flawed reasoning — every number correct, conclusion wrong</td><td class="diff">nothing missing</td></tr>
+        <tr><td>⚫</td><td><strong>The goblin shark</strong></td><td><strong>The AI is right.</strong> Reflexive doubt is the trap.</td><td class="diff">nothing missing</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>By case 4, players have learned to hunt for the missing document — and that heuristic <strong>stops working</strong>. Case 4 retrieves cleanly and is still wrong, because the flaw is in the <em>reasoning</em>, not the retrieval. Then case 5 retrieves cleanly and <em>isn’t</em> wrong — and a room primed by four cases to distrust the machine will flag a true answer on reflex.</p>
+
+  <p>The arc reads: <strong>check the date → check the numbers → check the source → check the reasoning → and then check yourself.</strong> That last one is the closing line of the workshop.</p>
+
+  <h2><span class="n">06 — Running it</span>Three screens</h2>
+
+  <pre class="code">npm install
+npm run dev:lan            # binds 0.0.0.0 so other laptops can reach you
+ipconfig getifaddr en0     # your IP — players use this</pre>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>URL</th><th>Who</th><th>What</th></tr></thead>
+      <tbody>
+        <tr><td><code>/</code></td><td>Players</td><td>Codename → 5 cases → score. Thai/English toggle, top right.</td></tr>
+        <tr><td><code>/dashboard</code></td><td>Projector</td><td>Live stats. Press <code>L</code> to switch Stats Wall ↔ Leaderboard.</td></tr>
+        <tr><td><code>/reveal</code></td><td>Projector</td><td>Facilitator arrow-keys through the 5 reveals, each with the live “% of you believed the AI.”</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <details>
+    <summary>Design decisions the team may want to revisit</summary>
+    <ul>
+      <li><strong>Soft timer.</strong> The app <em>never</em> hard-cuts or auto-submits. A countdown creates tension but locks nobody out. A workshop teaching careful thinking must not punish it.</li>
+      <li><strong>Speed is a tiebreaker only.</strong> Scoring is capped so one extra <em>correct</em> answer always beats any speed advantage. Rewarding snap judgments would be a strange thing for <em>this</em> workshop to do.</li>
+      <li><strong>Codenames, not names or emails.</strong> No lead capture — it adds friction and a salesy smell at a welcoming booth.</li>
+      <li><strong>Answers survive a wifi blip.</strong> A failed submit is queued in the browser and retried. The player is never blocked by the network.</li>
+    </ul>
+  </details>
+
+  <h2><span class="n">07 — Honest status</span>What’s not done</h2>
+
+  <ul>
+    <li><strong>Someone needs to click through <code>/dashboard</code> in a real browser.</strong> The panels and the <code>L</code> toggle are unit-tested but have never been eyeballed. Two minutes; do it before the day.</li>
+    <li><strong>Fact-check the Case File summaries.</strong> The underlying facts were researched with live search, but a few documents paraphrase real articles (NBC, ABA, NPR). Confirm each summary matches what that specific article actually says. In a workshop about fabricated sources, our own evidence has to be airtight.</li>
+    <li><strong>Test the venue wifi with two laptops.</strong> The real risk isn’t the code — it’s <em>client isolation</em>, where the network gives every laptop internet but blocks laptop-to-laptop traffic. Your server becomes invisible and there is no fix on the day. Keep a phone hotspot as fallback.</li>
+    <li><strong>The cases are a draft.</strong> They’re sourced and structurally valid, but they’re meant to be argued with. That’s what this document is for.</li>
+  </ul>
+
+  <p class="foot">
+    <strong>Think with AI, not just trust AI.</strong><br>
+    Repo: <code>QuadrupleBeansStars/madt-expo-workshop-2026</code> · branch <code>build-ai-detective</code> · 142 tests passing.
+  </p>
+
+</div>
+
+</body>
+</html>
