@@ -26,7 +26,11 @@ export const MAX_SPEED_BONUS = 15
 const SPEED_TARGET_MS = 90_000
 
 export function speedBonus(elapsedMs: number): number {
-  const remaining = SPEED_TARGET_MS - elapsedMs
+  // elapsedMs is client-reported (untrusted): clock skew, replays, and tampering
+  // can all send negative values. Clamp the input so the bonus is always
+  // within [0, MAX_SPEED_BONUS], which THE INVARIANT depends on.
+  const clampedElapsedMs = Math.max(0, elapsedMs)
+  const remaining = SPEED_TARGET_MS - clampedElapsedMs
   if (remaining <= 0) return 0
   return Math.round(MAX_SPEED_BONUS * (remaining / SPEED_TARGET_MS))
 }
@@ -36,8 +40,15 @@ export function scoreAnswer(difficulty: Difficulty, correct: boolean, elapsedMs:
   return BASE_POINTS[difficulty] + speedBonus(elapsedMs)
 }
 
+/** Keep only the last answer per caseId (last-write-wins, matching the store's playerId:caseId keying). */
+function dedupeByCase(answers: Answer[]): Answer[] {
+  const lastByCaseId = new Map<string, Answer>()
+  for (const a of answers) lastByCaseId.set(a.caseId, a)
+  return [...lastByCaseId.values()]
+}
+
 export function totalScore(answers: Answer[]): number {
-  return answers.reduce((sum, a) => {
+  return dedupeByCase(answers).reduce((sum, a) => {
     const c = getCase(a.caseId)
     if (!c) return sum
     const correct = c.options.some((o) => o.id === a.optionId && o.correct)

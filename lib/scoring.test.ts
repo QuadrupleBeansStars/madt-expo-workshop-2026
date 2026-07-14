@@ -13,6 +13,17 @@ describe('speedBonus', () => {
   it('never returns a negative bonus', () => {
     expect(speedBonus(10_000_000)).toBeGreaterThanOrEqual(0)
   })
+  it('clamps a large negative elapsedMs (clock skew / tampering) to exactly MAX_SPEED_BONUS', () => {
+    expect(speedBonus(-900_000)).toBe(MAX_SPEED_BONUS)
+  })
+  it('is always within [0, MAX_SPEED_BONUS] across a spread of inputs', () => {
+    const inputs = [-10_000_000, -900_000, -1, 0, 1, 45_000, 89_999, 90_000, 90_001, 500_000, 10_000_000]
+    for (const ms of inputs) {
+      const bonus = speedBonus(ms)
+      expect(bonus).toBeGreaterThanOrEqual(0)
+      expect(bonus).toBeLessThanOrEqual(MAX_SPEED_BONUS)
+    }
+  })
 })
 
 describe('scoreAnswer', () => {
@@ -22,8 +33,11 @@ describe('scoreAnswer', () => {
   it('awards base + bonus for a correct answer', () => {
     expect(scoreAnswer('easy', true, 0)).toBe(BASE_POINTS.easy + MAX_SPEED_BONUS)
   })
-  it('awards harder cases more base points', () => {
-    expect(BASE_POINTS.final).toBeGreaterThan(BASE_POINTS.easy)
+  it('awards harder cases more base points, strictly increasing easy < medium < hard < expert < final', () => {
+    expect(BASE_POINTS.easy).toBeLessThan(BASE_POINTS.medium)
+    expect(BASE_POINTS.medium).toBeLessThan(BASE_POINTS.hard)
+    expect(BASE_POINTS.hard).toBeLessThan(BASE_POINTS.expert)
+    expect(BASE_POINTS.expert).toBeLessThan(BASE_POINTS.final)
   })
 })
 
@@ -56,5 +70,19 @@ describe('totalScore', () => {
       { playerId: 'p1', caseId: 'ghost', optionId: 'x', elapsedMs: 0 },             // unknown case
     ]
     expect(totalScore(answers)).toBe(BASE_POINTS.easy + MAX_SPEED_BONUS)
+  })
+
+  it('scores a case only once even if answered twice, and the LAST answer wins', () => {
+    const first: Answer[] = [
+      { playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 0 }, // correct
+      { playerId: 'p1', caseId: 'artemis', optionId: 'ai-correct', elapsedMs: 0 }, // wrong, overwrites
+    ]
+    expect(totalScore(first)).toBe(0)
+
+    const second: Answer[] = [
+      { playerId: 'p1', caseId: 'artemis', optionId: 'ai-correct', elapsedMs: 0 }, // wrong
+      { playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 0 }, // correct, overwrites
+    ]
+    expect(totalScore(second)).toBe(BASE_POINTS.easy + MAX_SPEED_BONUS)
   })
 })
