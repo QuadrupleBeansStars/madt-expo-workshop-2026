@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { Answer, Player } from './types'
 
 export interface RoomStore {
@@ -33,8 +33,8 @@ export class MemoryRoomStore implements RoomStore {
     this.persist()
   }
 
-  getPlayers(): Player[] { return [...this.players] }
-  getAnswers(): Answer[] { return [...this.answers.values()] }
+  getPlayers(): Player[] { return this.players.map((p) => ({ ...p })) }
+  getAnswers(): Answer[] { return [...this.answers.values()].map((a) => ({ ...a })) }
 
   reset(): void {
     this.players = []
@@ -46,19 +46,30 @@ export class MemoryRoomStore implements RoomStore {
     if (!this.persistPath) return
     const snap: Snapshot = { players: this.players, answers: this.getAnswers() }
     try {
-      writeFileSync(this.persistPath, JSON.stringify(snap), 'utf8')
-    } catch {
+      const tmpPath = `${this.persistPath}.${randomUUID()}.tmp`
+      writeFileSync(tmpPath, JSON.stringify(snap), 'utf8')
+      renameSync(tmpPath, this.persistPath)
+    } catch (err) {
       // Persistence is a safety net, not a requirement. Never take the room down over it.
+      console.error('[store] persist() failed — room state may not survive a restart:', err)
     }
   }
 
   private load(): void {
     try {
       const snap = JSON.parse(readFileSync(this.persistPath!, 'utf8')) as Snapshot
-      this.players = snap.players ?? []
-      for (const a of snap.answers ?? []) this.answers.set(`${a.playerId}:${a.caseId}`, a)
+      if (!Array.isArray(snap.players) || !Array.isArray(snap.answers)) {
+        throw new Error('persisted snapshot has an unexpected shape')
+      }
+      this.players = snap.players
+      for (const a of snap.answers) {
+        if (!a || typeof a !== 'object' || !a.playerId || !a.caseId) continue
+        this.answers.set(`${a.playerId}:${a.caseId}`, a)
+      }
     } catch {
-      // No prior state (first run) — start empty.
+      // No prior state, or the file is corrupt/wrong-shaped — start empty rather than wedge the room.
+      this.players = []
+      this.answers.clear()
     }
   }
 }
