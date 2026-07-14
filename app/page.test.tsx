@@ -407,6 +407,30 @@ describe('PlayerPage', () => {
     expect(screen.queryByText('เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่')).not.toBeInTheDocument()
   }, 15000)
 
+  // ── Finding: a restart control on the case screen must confirm before wiping a run ──
+
+  it('the case-screen restart control requires confirmation before clearing the run', async () => {
+    global.fetch = mockFetchImpl() as unknown as typeof fetch
+    render(<PlayerPage />)
+    await joinAndReachCase()
+
+    // Select an option to prove there's real mid-case progress at stake.
+    fireEvent.click(screen.getByText(artemis.options[0].label.th))
+
+    fireEvent.click(screen.getByText('เริ่มใหม่'))
+
+    // Not yet cleared — still mid-case, only the confirmation prompt shown.
+    expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument()
+    expect(localStorage.getItem('aidet.run')).not.toBeNull()
+
+    fireEvent.click(screen.getByText('ใช่ เริ่มใหม่'))
+
+    // Now cleared and back on the codename screen.
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+    expect(localStorage.getItem('aidet.run')).toBeNull()
+    expect(localStorage.getItem('aidet.pending')).toBeNull()
+  }, 15000)
+
   // ── Finding: a failed join must give the player visible, bilingual feedback ──
 
   it('a failing POST /api/join shows a bilingual error and leaves the player able to retry', async () => {

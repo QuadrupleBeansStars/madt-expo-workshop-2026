@@ -297,7 +297,7 @@ export default function PlayerPage() {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-950">
+    <main className="min-h-screen bg-ground">
       <LangToggle lang={lang} onChange={changeLang} />
       {!playerId ? (
         <CodenameScreen
@@ -306,7 +306,7 @@ export default function PlayerPage() {
           message={joinError ? t('joinFailed', lang) : sessionWasReset ? t('sessionReset', lang) : undefined}
         />
       ) : index < CASES.length ? (
-        <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} />
+        <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} onRestart={handleNewDetective} />
       ) : (
         <ResultScreen answers={answers} lang={lang} onNewDetective={handleNewDetective} />
       )}

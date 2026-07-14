@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* MAD+ brand palette — light, high-contrast. Everything in the app is
+     driven from these tokens; do not scatter raw hex or ad-hoc Tailwind
+     palette colours through components. */
+  --brand-navy: #2B3A8C;       /* primary — headings, chrome, the AI */
+  --brand-navy-deep: #1C2760;  /* hover/pressed, strong text */
+  --brand-navy-soft: #E8EBF7;  /* tinted panels */
+  --brand-orange: #F07F27;     /* accent — CTAs, the detective/case-file world */
+  --brand-orange-deep: #C25F13;
+  --brand-orange-soft: #FDF0E4;
+  --alert: #D92D20;            /* NOT FOUND, % fooled — must shout */
+  --alert-soft: #FDECEA;
+  --ok: #1F7A46;
+  --ground: #F7F8FB;           /* page background */
+  --surface: #FFFFFF;
+  --line: #DCE0EA;
+  --text: #171B26;
+  --text-dim: #5A6172;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-deep: var(--brand-navy-deep);
+  --color-brand-navy-soft: var(--brand-navy-soft);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-deep: var(--brand-orange-deep);
+  --color-brand-orange-soft: var(--brand-orange-soft);
+  --color-alert: var(--alert);
+  --color-alert-soft: var(--alert-soft);
+  --color-ok: var(--ok);
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-text: var(--text);
+  --color-text-dim: var(--text-dim);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Visible keyboard focus everywhere — required for a room full of laptops
+   and a projector where a mouse hover state is meaningless. */
+:focus-visible {
+  outline: 2px solid var(--brand-navy);
+  outline-offset: 2px;
 }

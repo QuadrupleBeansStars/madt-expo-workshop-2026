@@ -41,16 +41,16 @@ export function Retrieval({
   }, [revealed, docs.length])
 
   return (
-    <div className="font-mono text-sm bg-black/60 border border-amber-900/40 rounded-lg p-4">
-      <div className="text-amber-400 mb-3">🔍 {t('retrieving', lang)}</div>
+    <div className="font-mono text-sm bg-surface border-2 border-brand-navy rounded-lg p-4 shadow-sm">
+      <div className="text-brand-navy mb-3 font-semibold">🔍 {t('retrieving', lang)}</div>
       <ul className="space-y-1">
         {docs.slice(0, revealed).map((doc) => (
           <li key={doc.filename} className="flex items-center justify-between gap-4">
-            <span className="text-neutral-300">{doc.filename}</span>
+            <span className="text-text-dim">{doc.filename}</span>
             {doc.found ? (
-              <span className="text-emerald-400">✓ {t('retrieved', lang)}</span>
+              <span className="text-ok font-semibold">✓ {t('retrieved', lang)}</span>
             ) : (
-              <span className="text-red-500 font-bold animate-pulse">✗ {t('notFound', lang)}</span>
+              <span className="text-alert font-bold animate-pulse">✗ {t('notFound', lang)}</span>
             )}
           </li>
         ))}

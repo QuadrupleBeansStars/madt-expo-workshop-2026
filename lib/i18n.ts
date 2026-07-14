@@ -31,6 +31,10 @@ const STRINGS = {
   changeCaseHint: { th: 'เปลี่ยนคดี', en: 'change case' },
   newDetective:  { th: 'เริ่มใหม่ (นักสืบคนใหม่)', en: 'New detective' },
   joinFailed:    { th: 'เข้าร่วมไม่สำเร็จ กรุณาลองอีกครั้ง', en: 'Could not join — please try again' },
+  restart:       { th: 'เริ่มใหม่', en: 'Restart' },
+  restartConfirm: { th: 'ยืนยันเริ่มใหม่? คุณจะเสียความคืบหน้าในคดีนี้', en: 'Are you sure? You will lose progress on this case.' },
+  restartConfirmYes: { th: 'ใช่ เริ่มใหม่', en: 'Yes, restart' },
+  restartCancel: { th: 'ยกเลิก', en: 'Cancel' },
 } as const
 
 export type UIKey = keyof typeof STRINGS
