@@ -26,6 +26,7 @@ const STRINGS = {
   toggleHint:    { th: 'กด [L] เพื่อสลับมุมมอง', en: 'Press [L] to switch panels' },
   caseLabel:     { th: 'คดี', en: 'Case' },
   sessionReset:  { th: 'เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่', en: 'The session was reset — please start again' },
+  waitingForDetectives: { th: 'รอนักสืบเข้าร่วม…', en: 'Waiting for detectives…' },
 } as const
 
 export type UIKey = keyof typeof STRINGS
