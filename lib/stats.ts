@@ -26,27 +26,27 @@ function isCorrect(a: Answer): boolean {
 
 /**
  * Dedupe answers by `playerId:caseId` (last-write-wins, mirroring the store's
- * keying and `dedupeByCase` in lib/scoring.ts), and drop answers referencing
- * a caseId that isn't a known case. Every downstream number is derived from
- * this single deduped, validated set so counts never disagree with each other.
+ * keying and `dedupeByCase` in lib/scoring.ts), drop answers referencing a
+ * caseId that isn't a known case, and drop answers whose playerId matches no
+ * known Player (a stale client posting after a room reset). Every downstream
+ * number — caseStats, finished, leaderboard.correct, and score — is derived
+ * from this single deduped, validated set so counts never disagree with each
+ * other.
  */
-function dedupeAndValidate(answers: Answer[]): Answer[] {
+function dedupeAndValidate(players: Player[], answers: Answer[]): Answer[] {
   const knownCaseIds = new Set(CASES.map((c) => c.id))
+  const knownPlayerIds = new Set(players.map((p) => p.id))
   const lastByKey = new Map<string, Answer>()
   for (const a of answers) {
     if (!knownCaseIds.has(a.caseId)) continue
+    if (!knownPlayerIds.has(a.playerId)) continue
     lastByKey.set(`${a.playerId}:${a.caseId}`, a)
   }
   return [...lastByKey.values()]
 }
 
-/**
- * Answers whose playerId matches no known Player are intentionally ignored —
- * this is the expected outcome when a stale client posts after a room reset,
- * not an error condition.
- */
 export function computeStats(players: Player[], answers: Answer[]): RoomStats {
-  const clean = dedupeAndValidate(answers)
+  const clean = dedupeAndValidate(players, answers)
 
   const caseStats: CaseStat[] = [...CASES]
     .sort((a, b) => a.order - b.order)
