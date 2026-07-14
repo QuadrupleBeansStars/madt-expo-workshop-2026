@@ -47,7 +47,22 @@ function dedupeByCase(answers: Answer[]): Answer[] {
   return [...lastByCaseId.values()]
 }
 
+/**
+ * Total score for ONE player's answers.
+ *
+ * Precondition: every answer belongs to the same player — caseId is deduped
+ * without regard to playerId, so a mixed-player array would silently collapse
+ * different players' answers to the same case. Callers must filter by player first.
+ *
+ * @throws Error if answers contain more than one distinct playerId
+ */
 export function totalScore(answers: Answer[]): number {
+  // Validate precondition: all answers must belong to the same player
+  const playerIds = new Set(answers.map((a) => a.playerId))
+  if (playerIds.size > 1) {
+    throw new Error(`totalScore requires all answers to belong to a single player, but got ${playerIds.size} distinct players`)
+  }
+
   return dedupeByCase(answers).reduce((sum, a) => {
     const c = getCase(a.caseId)
     if (!c) return sum

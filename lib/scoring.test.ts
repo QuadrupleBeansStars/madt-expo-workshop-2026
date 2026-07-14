@@ -85,4 +85,20 @@ describe('totalScore', () => {
     ]
     expect(totalScore(second)).toBe(BASE_POINTS.easy + MAX_SPEED_BONUS)
   })
+
+  it('throws an error when answers contain different playerIds', () => {
+    const mixedAnswers: Answer[] = [
+      { playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 0 },
+      { playerId: 'p2', caseId: 'olymp', optionId: 'ai-correct', elapsedMs: 0 },
+    ]
+    expect(() => totalScore(mixedAnswers)).toThrow(/single player/)
+  })
+
+  it('works correctly for a single player with multiple answers', () => {
+    const answers: Answer[] = [
+      { playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 0 },
+      { playerId: 'p1', caseId: 'olymp', optionId: 'ai-correct', elapsedMs: 0 },
+    ]
+    expect(totalScore(answers)).toBe(BASE_POINTS.easy + MAX_SPEED_BONUS)
+  })
 })
