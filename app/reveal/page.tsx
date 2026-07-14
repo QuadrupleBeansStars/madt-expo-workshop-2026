@@ -101,13 +101,13 @@ export default function RevealPage() {
 
         <section className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-6">
           <div className="mb-3 text-sm uppercase tracking-widest text-amber-400">
-            {lang === 'th' ? '🎯 เฉลย' : '🎯 Reveal'}
+            {t('reveal', lang)}
           </div>
           <p className="whitespace-pre-wrap text-lg leading-relaxed text-neutral-200">{c.reveal[lang]}</p>
         </section>
 
         <div className="mt-10 text-center text-sm text-neutral-600">
-          ← → {lang === 'th' ? 'เปลี่ยนคดี' : 'change case'}
+          ← → {t('changeCaseHint', lang)}
         </div>
       </div>
     </main>
