@@ -79,9 +79,10 @@ export class MemoryRoomStore implements RoomStore {
  * stash it on globalThis to keep the room alive across reloads.
  */
 const globalForStore = globalThis as unknown as { __roomStore?: RoomStore }
+const isTestEnv = process.env.NODE_ENV === 'test' || !!process.env.VITEST
 export function getStore(): RoomStore {
   if (!globalForStore.__roomStore) {
-    globalForStore.__roomStore = new MemoryRoomStore('.room-state.json')
+    globalForStore.__roomStore = isTestEnv ? new MemoryRoomStore() : new MemoryRoomStore('.room-state.json')
   }
   return globalForStore.__roomStore
 }
