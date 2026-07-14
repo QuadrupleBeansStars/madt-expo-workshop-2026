@@ -24,11 +24,34 @@ function isCorrect(a: Answer): boolean {
   return !!c && c.options.some((o) => o.id === a.optionId && o.correct)
 }
 
+/**
+ * Dedupe answers by `playerId:caseId` (last-write-wins, mirroring the store's
+ * keying and `dedupeByCase` in lib/scoring.ts), and drop answers referencing
+ * a caseId that isn't a known case. Every downstream number is derived from
+ * this single deduped, validated set so counts never disagree with each other.
+ */
+function dedupeAndValidate(answers: Answer[]): Answer[] {
+  const knownCaseIds = new Set(CASES.map((c) => c.id))
+  const lastByKey = new Map<string, Answer>()
+  for (const a of answers) {
+    if (!knownCaseIds.has(a.caseId)) continue
+    lastByKey.set(`${a.playerId}:${a.caseId}`, a)
+  }
+  return [...lastByKey.values()]
+}
+
+/**
+ * Answers whose playerId matches no known Player are intentionally ignored —
+ * this is the expected outcome when a stale client posts after a room reset,
+ * not an error condition.
+ */
 export function computeStats(players: Player[], answers: Answer[]): RoomStats {
+  const clean = dedupeAndValidate(answers)
+
   const caseStats: CaseStat[] = [...CASES]
     .sort((a, b) => a.order - b.order)
     .map((c) => {
-      const forCase = answers.filter((a) => a.caseId === c.id)
+      const forCase = clean.filter((a) => a.caseId === c.id)
       const fooled = forCase.filter((a) => !isCorrect(a)).length
       return {
         caseId: c.id,
@@ -41,7 +64,7 @@ export function computeStats(players: Player[], answers: Answer[]): RoomStats {
 
   const leaderboard: LeaderboardRow[] = players
     .map((p) => {
-      const mine = answers.filter((a) => a.playerId === p.id)
+      const mine = clean.filter((a) => a.playerId === p.id)
       return {
         codename: p.codename,
         score: totalScore(mine),
@@ -51,7 +74,7 @@ export function computeStats(players: Player[], answers: Answer[]): RoomStats {
     .sort((a, b) => b.score - a.score)
 
   const finished = players.filter(
-    (p) => answers.filter((a) => a.playerId === p.id).length >= CASES.length,
+    (p) => clean.filter((a) => a.playerId === p.id).length >= CASES.length,
   ).length
 
   return { detectives: players.length, finished, caseStats, leaderboard }
