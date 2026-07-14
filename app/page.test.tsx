@@ -231,6 +231,93 @@ describe('PlayerPage', () => {
     )
   }, 12000)
 
+  // ── Room reset while a stale run is held: 400 must be treated as permanent ──
+
+  it('a 400 from POST /api/answer clears the stale run and returns to the codename screen', async () => {
+    global.fetch = mockFetchImpl({
+      onAnswer: () => new Response(JSON.stringify({ error: 'unknown player' }), { status: 400 }),
+    }) as unknown as typeof fetch
+
+    render(<PlayerPage />)
+    await joinAndReachCase()
+
+    fireEvent.click(screen.getByText(artemis.options[0].label.th))
+    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
+
+    // The rejected answer must NOT be queued for retry — the room was reset,
+    // retrying forever would just 400 forever while silently dropping every answer.
+    await waitFor(() => {
+      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
+      expect(pending).toEqual([])
+    })
+
+    // The stale run is cleared and the player is dropped back to the codename screen.
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+    expect(localStorage.getItem('aidet.run')).toBeNull()
+
+    // A bilingual reset message is shown.
+    expect(screen.getByText('เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่')).toBeInTheDocument()
+  }, 15000)
+
+  it('a 500 from POST /api/answer still queues the answer and does not kick the player back (wifi-blip path)', async () => {
+    global.fetch = mockFetchImpl({
+      onAnswer: () => new Response(JSON.stringify({ error: 'server error' }), { status: 500 }),
+    }) as unknown as typeof fetch
+
+    render(<PlayerPage />)
+    await joinAndReachCase()
+
+    fireEvent.click(screen.getByText(artemis.options[0].label.th))
+    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
+
+    // The player is never blocked and advances to case 2.
+    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
+
+    // The failed answer is queued for retry (transient failure, not a permanent rejection).
+    await waitFor(() => {
+      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
+      expect(pending).toEqual([
+        expect.objectContaining({ playerId: 'p1', caseId: artemis.id, optionId: artemis.options[0].id }),
+      ])
+    })
+
+    // The player was NOT kicked back to the codename screen.
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+  }, 15000)
+
+  it('a queued answer that later 400s during flushPending is dropped from the queue, not retried forever', async () => {
+    const queued: Answer = { playerId: 'stale-p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 1234 }
+    localStorage.setItem('aidet.pending', JSON.stringify([queued]))
+    localStorage.setItem(
+      'aidet.run',
+      JSON.stringify({ playerId: 'stale-p1', codename: 'Detective Test', answers: [], index: 0 }),
+    )
+
+    let attempts = 0
+    global.fetch = mockFetchImpl({
+      onAnswer: () => {
+        attempts += 1
+        return new Response(JSON.stringify({ error: 'unknown player' }), { status: 400 })
+      },
+    }) as unknown as typeof fetch
+
+    render(<PlayerPage />)
+
+    await waitFor(() => {
+      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
+      expect(pending).toEqual([])
+    })
+    expect(attempts).toBe(1)
+
+    // Not retried forever: give the mount-time flush effect a further tick and confirm
+    // no additional attempt was made.
+    await new Promise((r) => setTimeout(r, 50))
+    expect(attempts).toBe(1)
+
+    // The stale run tied to the reset room is also cleared.
+    expect(localStorage.getItem('aidet.run')).toBeNull()
+  }, 15000)
+
   it('serialises concurrent flushes so an in-flight retry is not clobbered and nothing is dropped', async () => {
     let releaseStale: (() => void) | undefined
     const staleGate = new Promise<void>((resolve) => { releaseStale = resolve })

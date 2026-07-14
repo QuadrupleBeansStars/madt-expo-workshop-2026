@@ -6,6 +6,7 @@ import { CodenameScreen } from '@/components/CodenameScreen'
 import { CaseScreen } from '@/components/CaseScreen'
 import { ResultScreen } from '@/components/ResultScreen'
 import { LangToggle } from '@/components/LangToggle'
+import { t } from '@/lib/i18n'
 
 const PENDING_KEY = 'aidet.pending'
 const LANG_KEY = 'aidet.lang'
@@ -115,6 +116,9 @@ export default function PlayerPage() {
   const [codename, setCodename] = useState<string>('')
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState<Answer[]>([])
+  // Set when the server rejects an answer as belonging to an unknown player —
+  // i.e. the facilitator reset the room while this laptop still held an old run.
+  const [sessionWasReset, setSessionWasReset] = useState(false)
   // Serialises all queue mutations (queueAnswer + flushPending) so overlapping
   // calls never interleave their read-modify-write of localStorage.
   const pendingLockRef = useRef<Promise<void>>(Promise.resolve())
@@ -139,6 +143,30 @@ export default function PlayerPage() {
     setLang(l)
     localStorage.setItem(LANG_KEY, l)
   }
+
+  /**
+   * The server told us this player doesn't exist (HTTP 400 on /api/answer) — the room
+   * was reset. This is permanent, not a network blip: requeuing would just 400 forever
+   * while silently dropping every answer. Wipe the stale run and drop back to the
+   * codename screen so the player can rejoin fresh.
+   */
+  const handleSessionReset = useCallback(() => {
+    try {
+      localStorage.removeItem(RUN_KEY)
+    } catch {
+      // Best effort.
+    }
+    try {
+      localStorage.removeItem(PENDING_KEY)
+    } catch {
+      // Best effort.
+    }
+    setPlayerId(null)
+    setCodename('')
+    setAnswers([])
+    setIndex(0)
+    setSessionWasReset(true)
+  }, [])
 
   const withPendingLock = useCallback((fn: () => void | Promise<void>): Promise<void> => {
     const next = pendingLockRef.current.then(fn, fn)
@@ -165,6 +193,7 @@ export default function PlayerPage() {
         const pending = readPending()
         if (pending.length === 0) return
         const stillPending: Answer[] = []
+        let permanentlyRejected = false
         for (const a of pending) {
           try {
             const res = await fetchWithTimeout('/api/answer', {
@@ -172,6 +201,11 @@ export default function PlayerPage() {
               headers: { 'content-type': 'application/json' },
               body: JSON.stringify(a),
             })
+            if (res.status === 400) {
+              // Permanent: the server doesn't know this player. Drop it, don't retry.
+              permanentlyRejected = true
+              continue
+            }
             if (!res.ok) stillPending.push(a)
           } catch {
             stillPending.push(a)
@@ -180,8 +214,9 @@ export default function PlayerPage() {
         // Safe to overwrite (not just merge) — the in-flight lock guarantees nothing
         // else mutated the queue while this flush was running.
         writePending(stillPending)
+        if (permanentlyRejected) handleSessionReset()
       }),
-    [withPendingLock],
+    [withPendingLock, handleSessionReset],
   )
 
   // Retry on mount (e.g. a page reload after the wifi came back).
@@ -197,6 +232,7 @@ export default function PlayerPage() {
     const resolvedCodename: string = player.codename ?? codenameInput
     setPlayerId(player.id)
     setCodename(resolvedCodename)
+    setSessionWasReset(false)
     saveRun({ playerId: player.id, codename: resolvedCodename, answers: [], index: 0 })
   }
 
@@ -214,6 +250,12 @@ export default function PlayerPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(answer),
       })
+      if (res.status === 400) {
+        // Permanent: the server doesn't know this player — the room was reset.
+        // Requeuing would just 400 forever while silently dropping every answer.
+        handleSessionReset()
+        return
+      }
       if (!res.ok) throw new Error('bad status')
     } catch {
       await queueAnswer(answer)
@@ -226,7 +268,7 @@ export default function PlayerPage() {
     <main className="min-h-screen bg-neutral-950">
       <LangToggle lang={lang} onChange={changeLang} />
       {!playerId ? (
-        <CodenameScreen lang={lang} onJoin={join} />
+        <CodenameScreen lang={lang} onJoin={join} message={sessionWasReset ? t('sessionReset', lang) : undefined} />
       ) : index < CASES.length ? (
         <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} />
       ) : (

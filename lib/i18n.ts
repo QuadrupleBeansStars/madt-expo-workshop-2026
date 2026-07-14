@@ -25,6 +25,7 @@ const STRINGS = {
   statsWall:     { th: 'สถิติห้อง', en: 'Stats Wall' },
   toggleHint:    { th: 'กด [L] เพื่อสลับมุมมอง', en: 'Press [L] to switch panels' },
   caseLabel:     { th: 'คดี', en: 'Case' },
+  sessionReset:  { th: 'เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่', en: 'The session was reset — please start again' },
 } as const
 
 export type UIKey = keyof typeof STRINGS

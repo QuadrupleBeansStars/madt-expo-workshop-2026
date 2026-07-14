@@ -4,7 +4,15 @@ import type { Lang } from '@/lib/types'
 import { t } from '@/lib/i18n'
 import { randomCodename } from '@/lib/codenames'
 
-export function CodenameScreen({ lang, onJoin }: { lang: Lang; onJoin: (codename: string) => void }) {
+export function CodenameScreen({
+  lang,
+  onJoin,
+  message,
+}: {
+  lang: Lang
+  onJoin: (codename: string) => void
+  message?: string
+}) {
   const [name, setName] = useState('')
 
   return (
@@ -13,6 +21,12 @@ export function CodenameScreen({ lang, onJoin }: { lang: Lang; onJoin: (codename
         <h1 className="text-4xl font-bold text-amber-300">{t('appTitle', lang)}</h1>
         <p className="mt-2 text-neutral-400">{t('tagline', lang)}</p>
       </div>
+
+      {message && (
+        <p className="rounded-md border border-amber-800/50 bg-amber-950/30 px-4 py-2 text-sm text-amber-300">
+          {message}
+        </p>
+      )}
 
       <label className="block text-sm text-neutral-300">{t('enterCodename', lang)}</label>
       <input
