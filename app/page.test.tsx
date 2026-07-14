@@ -376,4 +376,60 @@ describe('PlayerPage', () => {
     })
     expect(staleAttempts).toBe(1)
   }, 20000)
+
+  // ── Finding: a finished player must have an escape hatch back to the codename screen ──
+
+  it('clicking "New detective" from the result screen clears the run and returns to the codename screen', async () => {
+    global.fetch = mockFetchImpl() as unknown as typeof fetch
+    // Seed a completed run (index === CASES.length) so mount lands directly on ResultScreen.
+    const completedAnswers: Answer[] = CASES.map((c) => ({
+      playerId: 'p1',
+      caseId: c.id,
+      optionId: c.options[0].id,
+      elapsedMs: 100,
+    }))
+    localStorage.setItem(
+      'aidet.run',
+      JSON.stringify({ playerId: 'p1', codename: 'Detective Test', answers: completedAnswers, index: CASES.length }),
+    )
+    localStorage.setItem('aidet.pending', JSON.stringify([{ playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 1 }]))
+
+    render(<PlayerPage />)
+
+    await waitFor(() => expect(screen.getByText('เริ่มใหม่ (นักสืบคนใหม่)')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByText('เริ่มใหม่ (นักสืบคนใหม่)'))
+
+    // Back on the codename screen, storage cleared, no "session was reset" banner.
+    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
+    expect(localStorage.getItem('aidet.run')).toBeNull()
+    expect(localStorage.getItem('aidet.pending')).toBeNull()
+    expect(screen.queryByText('เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่')).not.toBeInTheDocument()
+  }, 15000)
+
+  // ── Finding: a failed join must give the player visible, bilingual feedback ──
+
+  it('a failing POST /api/join shows a bilingual error and leaves the player able to retry', async () => {
+    let joinAttempts = 0
+    global.fetch = vi.fn(async (url: string) => {
+      if (url === '/api/join') {
+        joinAttempts += 1
+        if (joinAttempts === 1) return new Response(JSON.stringify({ error: 'boom' }), { status: 500 })
+        return new Response(JSON.stringify({ player: { id: 'p1', codename: 'Detective Test' } }), { status: 200 })
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    }) as unknown as typeof fetch
+
+    render(<PlayerPage />)
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Detective Test' } })
+    fireEvent.click(screen.getByRole('button', { name: 'เริ่มภารกิจ' }))
+
+    await waitFor(() => expect(screen.getByText('เข้าร่วมไม่สำเร็จ กรุณาลองอีกครั้ง')).toBeInTheDocument())
+    // Still on the codename screen, able to retry.
+    expect(screen.getByRole('textbox')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'เริ่มภารกิจ' }))
+    await waitFor(() => expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument())
+  }, 15000)
 })

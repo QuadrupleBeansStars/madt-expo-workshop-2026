@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RoomStats } from '@/lib/stats'
 import { t } from '@/lib/i18n'
+import { CASES } from '@/content/cases'
 
 const POLL_MS = 2500
 
@@ -91,11 +92,11 @@ export default function DashboardPage() {
                 <div className="h-10 flex-1 overflow-hidden rounded bg-neutral-800">
                   <div
                     className="h-full bg-gradient-to-r from-amber-600 to-red-600 transition-all duration-700"
-                    style={{ width: `${c.fooledPct}%` }}
+                    style={{ width: `${c.answered > 0 ? c.fooledPct : 0}%` }}
                   />
                 </div>
                 <span className="w-48 shrink-0 text-right text-8xl font-black leading-none text-red-400">
-                  {c.fooledPct}%
+                  {c.answered > 0 ? `${c.fooledPct}%` : '—'}
                 </span>
               </div>
             ))}
@@ -109,7 +110,7 @@ export default function DashboardPage() {
               <li key={row.codename} className="flex items-center gap-6 rounded-lg border border-neutral-800 p-4">
                 <span className="w-12 text-2xl font-bold text-neutral-600">{i + 1}</span>
                 <span className="flex-1 text-2xl text-neutral-100">{row.codename}</span>
-                <span className="text-sm text-neutral-500">{row.correct}/5</span>
+                <span className="text-sm text-neutral-500">{row.correct}/{CASES.length}</span>
                 <span className="w-28 text-right text-3xl font-bold text-amber-300">{row.score}</span>
               </li>
             ))}

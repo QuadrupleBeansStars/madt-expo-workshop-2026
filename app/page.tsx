@@ -119,6 +119,9 @@ export default function PlayerPage() {
   // Set when the server rejects an answer as belonging to an unknown player —
   // i.e. the facilitator reset the room while this laptop still held an old run.
   const [sessionWasReset, setSessionWasReset] = useState(false)
+  // Set when POST /api/join fails (bad status, network error, or timeout) —
+  // distinct from sessionWasReset so we don't show the wrong bilingual message.
+  const [joinError, setJoinError] = useState(false)
   // Serialises all queue mutations (queueAnswer + flushPending) so overlapping
   // calls never interleave their read-modify-write of localStorage.
   const pendingLockRef = useRef<Promise<void>>(Promise.resolve())
@@ -145,12 +148,11 @@ export default function PlayerPage() {
   }
 
   /**
-   * The server told us this player doesn't exist (HTTP 400 on /api/answer) — the room
-   * was reset. This is permanent, not a network blip: requeuing would just 400 forever
-   * while silently dropping every answer. Wipe the stale run and drop back to the
-   * codename screen so the player can rejoin fresh.
+   * Wipe the stored run + pending queue and drop back to the codename screen.
+   * Shared by the permanent-rejection path (session reset) and the deliberate
+   * "New detective" escape hatch — they differ only in whether the reset banner shows.
    */
-  const handleSessionReset = useCallback(() => {
+  const clearRunAndReturnToCodename = useCallback(() => {
     try {
       localStorage.removeItem(RUN_KEY)
     } catch {
@@ -165,8 +167,29 @@ export default function PlayerPage() {
     setCodename('')
     setAnswers([])
     setIndex(0)
-    setSessionWasReset(true)
   }, [])
+
+  /**
+   * The server told us this player doesn't exist (HTTP 400 on /api/answer) — the room
+   * was reset. This is permanent, not a network blip: requeuing would just 400 forever
+   * while silently dropping every answer. Wipe the stale run and drop back to the
+   * codename screen so the player can rejoin fresh.
+   */
+  const handleSessionReset = useCallback(() => {
+    clearRunAndReturnToCodename()
+    setSessionWasReset(true)
+  }, [clearRunAndReturnToCodename])
+
+  /**
+   * Universal escape hatch: a player who finished (or a stuck laptop being handed
+   * to the next student between expo sessions) taps this to clear the run and
+   * return to the codename screen, without the "session was reset" banner.
+   */
+  const handleNewDetective = useCallback(() => {
+    clearRunAndReturnToCodename()
+    setSessionWasReset(false)
+    setJoinError(false)
+  }, [clearRunAndReturnToCodename])
 
   const withPendingLock = useCallback((fn: () => void | Promise<void>): Promise<void> => {
     const next = pendingLockRef.current.then(fn, fn)
@@ -223,17 +246,26 @@ export default function PlayerPage() {
   useEffect(() => { void flushPending() }, [flushPending])
 
   const join = async (codenameInput: string) => {
-    const res = await fetchWithTimeout('/api/join', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ codename: codenameInput }),
-    })
-    const { player } = await res.json()
-    const resolvedCodename: string = player.codename ?? codenameInput
-    setPlayerId(player.id)
-    setCodename(resolvedCodename)
-    setSessionWasReset(false)
-    saveRun({ playerId: player.id, codename: resolvedCodename, answers: [], index: 0 })
+    try {
+      const res = await fetchWithTimeout('/api/join', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ codename: codenameInput }),
+      })
+      if (!res.ok) throw new Error('bad status')
+      const { player } = await res.json()
+      const resolvedCodename: string = player.codename ?? codenameInput
+      setPlayerId(player.id)
+      setCodename(resolvedCodename)
+      setSessionWasReset(false)
+      setJoinError(false)
+      saveRun({ playerId: player.id, codename: resolvedCodename, answers: [], index: 0 })
+    } catch {
+      // 4xx/5xx, a network error, or a timed-out request (e.g. 20 laptops hitting
+      // venue wifi at once). The player must see this — "Begin the mission" doing
+      // nothing looks like a broken app, and they stay on the codename screen to retry.
+      setJoinError(true)
+    }
   }
 
   const commit = async (optionId: string, elapsedMs: number) => {
@@ -268,11 +300,15 @@ export default function PlayerPage() {
     <main className="min-h-screen bg-neutral-950">
       <LangToggle lang={lang} onChange={changeLang} />
       {!playerId ? (
-        <CodenameScreen lang={lang} onJoin={join} message={sessionWasReset ? t('sessionReset', lang) : undefined} />
+        <CodenameScreen
+          lang={lang}
+          onJoin={join}
+          message={joinError ? t('joinFailed', lang) : sessionWasReset ? t('sessionReset', lang) : undefined}
+        />
       ) : index < CASES.length ? (
         <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} />
       ) : (
-        <ResultScreen answers={answers} lang={lang} />
+        <ResultScreen answers={answers} lang={lang} onNewDetective={handleNewDetective} />
       )}
     </main>
   )

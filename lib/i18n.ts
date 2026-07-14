@@ -29,6 +29,8 @@ const STRINGS = {
   waitingForDetectives: { th: 'รอนักสืบเข้าร่วม…', en: 'Waiting for detectives…' },
   reveal:        { th: '🎯 เฉลย', en: '🎯 Reveal' },
   changeCaseHint: { th: 'เปลี่ยนคดี', en: 'change case' },
+  newDetective:  { th: 'เริ่มใหม่ (นักสืบคนใหม่)', en: 'New detective' },
+  joinFailed:    { th: 'เข้าร่วมไม่สำเร็จ กรุณาลองอีกครั้ง', en: 'Could not join — please try again' },
 } as const
 
 export type UIKey = keyof typeof STRINGS

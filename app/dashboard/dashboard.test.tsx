@@ -32,6 +32,20 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(screen.getByText('70%')).toBeInTheDocument())
   })
 
+  it('shows an em dash instead of "0%" for a case nobody has answered yet', async () => {
+    const statsWithUnanswered = {
+      ...STATS,
+      caseStats: [
+        ...STATS.caseStats,
+        { caseId: 'goblinshark', order: 5, answered: 0, fooled: 0, fooledPct: 0 },
+      ],
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => statsWithUnanswered })))
+    render(<DashboardPage />)
+    await waitFor(() => expect(screen.getByText('—')).toBeInTheDocument())
+    expect(screen.queryByText('0%')).not.toBeInTheDocument()
+  })
+
   it('switches to the leaderboard when L is pressed', async () => {
     render(<DashboardPage />)
     await waitFor(() => expect(screen.getByText('12')).toBeInTheDocument())

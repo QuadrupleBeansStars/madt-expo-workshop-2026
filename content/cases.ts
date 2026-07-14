@@ -50,25 +50,34 @@ export const CASES: DetectiveCase[] = [
     options: [
       {
         id: 'ai-correct',
-        label: { th: 'AI ตอบถูก — ยังไม่มีใครไปไกลกว่านั้นเลยตั้งแต่ปี 1972', en: 'The AI is correct — nobody has, since 1972' },
+        label: {
+          th: 'AI ตอบถูก — ยังไม่มีใครไปไกลกว่านั้นเลยตั้งแต่ปี 1972 ภารกิจ Artemis รุ่นใหม่ยังอยู่ในวงโคจรโลกรอการรับรอง',
+          en: 'The AI is correct — nobody has, since 1972. Newer Artemis missions have so far stayed within Earth orbit.',
+        },
         correct: false,
       },
       {
         id: 'stale',
         label: {
-          th: 'AI ตอบถูก "เมื่อปีที่แล้ว" — แต่มันไม่เคยดึงข้อมูลปี 2026 มาเลย ภารกิจ Artemis II ทำสำเร็จไปแล้ว',
-          en: 'The AI was right last year — but it never retrieved anything from 2026. Artemis II already flew.',
+          th: 'AI ตอบถูก "เมื่อปีที่แล้ว" — แต่มันไม่เคยดึงข้อมูลปี 2026 มาเลย ภารกิจ Artemis II ทำสำเร็จไปแล้ว พร้อมลูกเรือ Wiseman, Glover, Koch และ Hansen',
+          en: 'The AI was right last year — but it never retrieved anything from 2026. Artemis II already flew, crewed by Wiseman, Glover, Koch, and Hansen.',
         },
         correct: true,
       },
       {
         id: 'apollo-wrong',
-        label: { th: 'AI จำผิด — ภารกิจสุดท้ายคือ Apollo 11 ไม่ใช่ Apollo 17', en: 'The AI misremembered — the last mission was Apollo 11, not Apollo 17' },
+        label: {
+          th: 'AI จำผิด — ภารกิจสุดท้ายคือ Apollo 11 ไม่ใช่ Apollo 17 เพราะ Apollo 11 ปี 1969 คือภารกิจดวงจันทร์ครั้งสุดท้าย',
+          en: 'The AI misremembered — the last mission was Apollo 11, not Apollo 17. Apollo 11 in 1969 was the final lunar landing.',
+        },
         correct: false,
       },
       {
         id: 'never-happened',
-        label: { th: 'AI แต่งเรื่องขึ้นมา — มนุษย์ไม่เคยออกไปไกลกว่าวงโคจรระดับต่ำเลย', en: 'The AI fabricated it — humans have never left low Earth orbit at all' },
+        label: {
+          th: 'AI แต่งเรื่องขึ้นมา — มนุษย์ไม่เคยออกไปไกลกว่าวงโคจรระดับต่ำเลย ภารกิจ Apollo ทั้งหกครั้งถูกจัดขึ้นในวงโคจรโลกเท่านั้น',
+          en: 'The AI fabricated it — humans have never left low Earth orbit. All six crewed Apollo missions stayed in Earth orbit, not the Moon.',
+        },
         correct: false,
       },
     ],
@@ -126,23 +135,36 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     options: [
-      { id: 'ai-correct', label: { th: 'AI ตอบถูกทั้งหมด', en: 'The AI is entirely correct' }, correct: false },
+      {
+        id: 'ai-correct',
+        label: {
+          th: 'AI ตอบถูกทั้งหมด — ตัวเลขทอง 16 รวม 38 เหรียญตรงกับประกาศอย่างเป็นทางการของคณะกรรมการโอลิมปิกสากลในพิธีปิด',
+          en: 'The AI is entirely correct — the 16-gold, 38-medal total matches the IOC\'s official closing-ceremony announcement.',
+        },
+        correct: false,
+      },
       {
         id: 'wrong-country',
-        label: { th: 'ผิดประเทศ — นอร์เวย์ไม่ได้อันดับหนึ่ง', en: 'Wrong country — Norway did not top the table' },
+        label: {
+          th: 'ผิดประเทศ — นอร์เวย์ไม่ได้อันดับหนึ่ง แชมป์เหรียญรวมที่แท้จริงคือสหรัฐอเมริกา ซึ่งครองอันดับหนึ่งในสเก็ตความเร็วเกือบทุกรายการ',
+          en: 'Wrong country — Norway did not top the table. The real leader was the United States, which swept nearly every speed-skating event.',
+        },
         correct: false,
       },
       {
         id: 'invented-numbers',
         label: {
-          th: 'ถูกประเทศ — แต่ตัวเลขถูกแต่งขึ้น ของจริงคือทอง 18 รวม 41 เหรียญ',
-          en: 'Right country — but the numbers are invented. It was 18 gold, 41 total.',
+          th: 'ถูกประเทศ — แต่ตัวเลขถูกแต่งขึ้น ของจริงคือทอง 18 เหรียญ รวม 41 เหรียญ ซึ่งเป็นสถิติใหม่ และอันดับสามคืออิตาลี ไม่ใช่เยอรมนี',
+          en: 'Right country — but the numbers are invented. It was actually 18 gold and 41 medals total, a new record, and third place was Italy, not Germany.',
         },
         correct: true,
       },
       {
         id: 'not-happened',
-        label: { th: 'โอลิมปิกครั้งนี้ยังไม่เกิดขึ้น', en: 'These Olympics have not happened yet' },
+        label: {
+          th: 'โอลิมปิกครั้งนี้ยังไม่เกิดขึ้น — Milan-Cortina 2026 ถูกเลื่อนไปปี 2027 เพราะสนามแข่งขันที่ Cortina d\'Ampezzo สร้างไม่ทัน',
+          en: 'These Olympics have not happened yet — Milan-Cortina 2026 was postponed to 2027 after venue construction fell behind schedule.',
+        },
         correct: false,
       },
     ],
@@ -172,7 +194,7 @@ export const CASES: DetectiveCase[] = [
         kind: 'headline',
         found: true,
         fictional: false,
-        title: { th: 'ABA Litigation News: "คดีปลอม บทลงโทษจริง — อันตรายของ AI"', en: 'ABA Litigation News: "Fake Cases, Real Sanctions: The Dangers of AI"' },
+        title: { th: 'ABA Litigation News: รายงานเรื่องบทลงโทษจากการอ้างอิงคดีปลอมที่สร้างโดย AI', en: 'ABA Litigation News: coverage of sanctions over AI-fabricated case citations' },
         body: {
           th: 'ศาลอุทธรณ์เขต 6 ลงโทษทนายความสองคนในคดี Whiting v. City of Athens โดยปรับคนละ 15,000 ดอลลาร์ จากการอ้างอิงคดีปลอมกว่า 24 รายการ',
           en: 'The Sixth Circuit sanctioned two attorneys in Whiting v. City of Athens, ordering $15,000 each in punitive sanctions over 24+ fake citations.',
@@ -184,7 +206,7 @@ export const CASES: DetectiveCase[] = [
         kind: 'excerpt',
         found: true,
         fictional: false,
-        title: { th: 'NPR: บทลงโทษเพิ่มขึ้นเรื่อย ๆ ขณะที่ AI แพร่เข้าสู่ระบบกฎหมาย', en: 'NPR: Penalties stack up as AI spreads through the legal system' },
+        title: { th: 'NPR: รายงานแนวโน้มบทลงโทษจากการใช้ AI ในวงการกฎหมาย', en: 'NPR: coverage of the growing trend of AI-related legal penalties' },
         body: {
           th: 'นักวิจัยที่ติดตามเรื่องนี้พบกรณีมากกว่า 1,200 รายการ โดยราว 800 รายการมาจากศาลในสหรัฐฯ ศาลลงโทษปรับรวมราว 145,000 ดอลลาร์ในไตรมาสแรกของปี 2026',
           en: 'A researcher tracking instances has found more than 1,200 to date, about 800 of them from U.S. courts. Courts levied roughly $145,000 in penalties in Q1 2026 alone.',
@@ -212,23 +234,36 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     options: [
-      { id: 'ai-correct', label: { th: 'AI ตอบถูกทั้งหมด', en: 'The AI is entirely correct' }, correct: false },
+      {
+        id: 'ai-correct',
+        label: {
+          th: 'AI ตอบถูกทั้งหมด — คดี Hendricks v. Meridian Logistics Corp. เลขคดี 24-CV-8871 มีบันทึกอยู่จริงในระบบศาลแขวงแคลิฟอร์เนียเหนือ',
+          en: 'The AI is entirely correct — the case, docket number, and court are all on file in the Northern District of California.',
+        },
+        correct: false,
+      },
       {
         id: 'claim-false',
-        label: { th: 'ข้ออ้างเป็นเท็จ — ไม่เคยมีทนายความถูกลงโทษจริง', en: 'The claim is false — no lawyer has actually been punished' },
+        label: {
+          th: 'ข้ออ้างเป็นเท็จ — ไม่เคยมีทนายความถูกลงโทษจริง ศาลเพียงตักเตือนด้วยวาจาหรือสั่งแก้ไขคำร้องใหม่เท่านั้น',
+          en: 'The claim is false — no lawyer has actually been punished. Courts have only issued verbal warnings or ordered refiling.',
+        },
         correct: false,
       },
       {
         id: 'invented-source',
         label: {
-          th: 'ข้ออ้าง "เป็นจริง" — แต่คดีที่ AI ยกมาอ้างนั้นไม่มีอยู่จริง มันแต่งแหล่งอ้างอิงขึ้นมาเอง',
-          en: 'The claim is TRUE — but the case the AI cites does not exist. It invented its own source.',
+          th: 'ข้ออ้าง "เป็นจริง" — แต่คดีที่ AI ยกมาอ้างนั้นไม่มีอยู่จริง มันแต่งแหล่งอ้างอิงขึ้นมาเอง แทนที่จะอ้างคดีจริงอย่าง Whiting v. City of Athens',
+          en: 'The claim is TRUE — but the case the AI cites does not exist. It invented its own source instead of the real Whiting v. City of Athens sanctions.',
         },
         correct: true,
       },
       {
         id: 'wrong-amount',
-        label: { th: 'AI ผิดแค่จำนวนเงินค่าปรับเท่านั้น', en: 'The AI only got the fine amount wrong' },
+        label: {
+          th: 'AI ผิดแค่จำนวนเงินค่าปรับ — ชื่อคดีและศาลถูกต้อง แต่ค่าปรับจริงคือ 12,000 ดอลลาร์ ไม่ใช่ 22,000',
+          en: 'The AI only got the fine amount wrong — the case name and court are accurate, but the real fine was $12,000, not $22,000.',
+        },
         correct: false,
       },
     ],
@@ -277,10 +312,20 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     options: [
-      { id: 'ai-correct', label: { th: 'AI สรุปถูกต้อง — ควรเร่งขยายสาขา', en: 'The AI is correct — accelerate the expansion' }, correct: false },
+      {
+        id: 'ai-correct',
+        label: {
+          th: 'AI สรุปถูกต้อง — ควรเร่งขยายสาขา เพราะรายได้รวมโตขึ้นทุกไตรมาสติดต่อกันมาสี่ไตรมาสแล้ว จึงไม่มีเหตุผลให้เปลี่ยนทิศทาง',
+          en: 'The AI is correct — accelerate the expansion. Total revenue has grown for four straight quarters, so there is no reason to change course.',
+        },
+        correct: false,
+      },
       {
         id: 'numbers-wrong',
-        label: { th: 'AI อ้างตัวเลขผิด — รายได้ไม่ได้โต 12.5%', en: 'The AI misquoted the numbers — revenue did not grow 12.5%' },
+        label: {
+          th: 'AI อ้างตัวเลขผิด — รายได้ไม่ได้โต 12.5% รายงานภายในจริง ๆ แสดงการเติบโตเพียง 8% เพราะ AI ปัดเศษตัวเลขผิดพลาด',
+          en: 'The AI misquoted the numbers — revenue did not grow 12.5%. The internal report actually shows only 8% growth; the AI misread the figure.',
+        },
         correct: false,
       },
       {
@@ -293,7 +338,10 @@ export const CASES: DetectiveCase[] = [
       },
       {
         id: 'missing-doc',
-        label: { th: 'มีเอกสารสำคัญหายไปจากแฟ้มคดี', en: 'A key document is missing from the Case File' },
+        label: {
+          th: 'มีเอกสารสำคัญหายไปจากแฟ้มคดี — รายงานต้นทุนการเปิดสาขาใหม่ไม่ได้ถูกดึงมาด้วย ทำให้ประเมินกำไรจากการขยายสาขาไม่ได้',
+          en: 'A key document is missing from the Case File — the new-store cost report was never retrieved, so profitability cannot be assessed.',
+        },
         correct: false,
       },
     ],
@@ -319,11 +367,14 @@ export const CASES: DetectiveCase[] = [
     },
     docs: [
       {
-        filename: 'journal_of_fish_biology_2026.pdf',
+        filename: 'physorg_goblin_shark_report.html',
         kind: 'excerpt',
         found: true,
         fictional: false,
-        title: { th: 'Journal of Fish Biology (2026) — งานวิจัยต้นฉบับ', en: 'Journal of Fish Biology (2026) — the original paper' },
+        title: {
+          th: 'phys.org: รายงานงานวิจัยที่ตีพิมพ์ใน Journal of Fish Biology',
+          en: 'phys.org — reporting on the study published in the Journal of Fish Biology',
+        },
         body: {
           th: 'ทีมวิจัยจาก University of Hawaiʻi at Mānoa รายงานการพบฉลามก็อบลินที่มีชีวิตสองตัวในธรรมชาติ การพบที่ Tonga Trench สร้างสถิติความลึกใหม่ของอันดับ Lamniformes ทั้งอันดับ',
           en: 'A University of Hawaiʻi at Mānoa team reports two healthy goblin sharks observed in the wild. The Tonga Trench sighting establishes a new depth record for the entire order Lamniformes.',
@@ -358,22 +409,34 @@ export const CASES: DetectiveCase[] = [
     options: [
       {
         id: 'ai-correct',
-        label: { th: '✅ AI ตอบถูกต้อง — เรื่องนี้เกิดขึ้นจริงทุกประการ', en: '✅ The AI is CORRECT — every part of this actually happened' },
+        label: {
+          th: 'AI ตอบถูกต้อง — เรื่องนี้เกิดขึ้นจริงทุกประการ ทั้งสัตว์ นักวิจัย สถานที่ที่ Jarvis Island และ Tonga Trench และงานตีพิมพ์',
+          en: 'The AI is CORRECT — every part of this actually happened: the animal, the researchers, the Jarvis Island and Tonga Trench locations, and the journal.',
+        },
         correct: true,
       },
       {
         id: 'invented-animal',
-        label: { th: 'AI แต่งขึ้น — "ฉลามก็อบลิน" ไม่ใช่สัตว์ที่มีอยู่จริง', en: 'The AI made it up — the "goblin shark" is not a real animal' },
+        label: {
+          th: 'AI แต่งขึ้น — "ฉลามก็อบลิน" ไม่ใช่สัตว์ที่มีอยู่จริง ชื่อนี้มาจากนิยายทะเลลึกที่ถูกผสมกับภาพ CGI จนดูสมจริง',
+          en: 'The AI made it up — the "goblin shark" is not real. The name comes from a deep-sea novel paired with realistic CGI images.',
+        },
         correct: false,
       },
       {
         id: 'invented-detail',
-        label: { th: 'สัตว์มีจริง แต่ AI แต่งรายละเอียดเรื่อง Tonga Trench ขึ้นมา', en: 'The animal is real, but the AI invented the Tonga Trench detail' },
+        label: {
+          th: 'สัตว์มีจริง แต่ AI แต่งรายละเอียดเรื่อง Tonga Trench ขึ้นมา ตัวที่พบจริงอยู่ใกล้ชายฝั่งญี่ปุ่นเท่านั้น ไม่มีสถิติความลึกใหม่',
+          en: 'The animal is real, but the AI invented the Tonga Trench detail. The real sightings were near Japan, with no new depth record.',
+        },
         correct: false,
       },
       {
         id: 'wrong-year',
-        label: { th: 'เรื่องนี้เกิดขึ้นจริง แต่ไม่ใช่ปี 2026', en: 'It really happened, but not in 2026' },
+        label: {
+          th: 'เรื่องนี้เกิดขึ้นจริง แต่ไม่ใช่ปี 2026 — วิดีโอฉลามก็อบลินตัวแรกในถิ่นอาศัยจริงถ่ายไว้ตั้งแต่ปี 2019 โดยทีมญี่ปุ่น',
+          en: 'It really happened, but not in 2026 — the first video of a living goblin shark in its habitat was actually filmed in 2019.',
+        },
         correct: false,
       },
     ],

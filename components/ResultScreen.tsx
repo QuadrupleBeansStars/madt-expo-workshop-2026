@@ -1,10 +1,17 @@
 'use client'
 import type { Answer, Lang } from '@/lib/types'
-import { CASES, getCase } from '@/content/cases'
 import { totalScore } from '@/lib/scoring'
 import { t } from '@/lib/i18n'
 
-export function ResultScreen({ answers, lang }: { answers: Answer[]; lang: Lang }) {
+export function ResultScreen({
+  answers,
+  lang,
+  onNewDetective,
+}: {
+  answers: Answer[]
+  lang: Lang
+  onNewDetective: () => void
+}) {
   const score = totalScore(answers)
 
   return (
@@ -13,20 +20,14 @@ export function ResultScreen({ answers, lang }: { answers: Answer[]; lang: Lang 
       <p className="mt-6 text-6xl font-bold text-amber-100">{score}</p>
       <p className="text-sm uppercase tracking-widest text-neutral-500">{t('yourScore', lang)}</p>
 
-      <ul className="mt-10 space-y-2 text-left">
-        {CASES.map((c) => {
-          const mine = answers.find((a) => a.caseId === c.id)
-          const correct = !!mine && getCase(c.id)!.options.some((o) => o.id === mine.optionId && o.correct)
-          return (
-            <li key={c.id} className="flex items-center gap-3 rounded-md border border-neutral-800 p-3">
-              <span>{correct ? '✅' : '❌'}</span>
-              <span className="text-neutral-300">{t('caseLabel', lang)} {c.order}</span>
-            </li>
-          )
-        })}
-      </ul>
-
       <p className="mt-10 text-neutral-400">{t('waitReveal', lang)}</p>
+
+      <button
+        onClick={onNewDetective}
+        className="mt-10 rounded-md border border-neutral-700 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-800"
+      >
+        {t('newDetective', lang)}
+      </button>
     </div>
   )
 }
