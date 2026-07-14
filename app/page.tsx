@@ -1,65 +1,97 @@
-import Image from "next/image";
+'use client'
+import { useCallback, useEffect, useState } from 'react'
+import type { Answer, Lang } from '@/lib/types'
+import { CASES } from '@/content/cases'
+import { CodenameScreen } from '@/components/CodenameScreen'
+import { CaseScreen } from '@/components/CaseScreen'
+import { ResultScreen } from '@/components/ResultScreen'
+import { LangToggle } from '@/components/LangToggle'
 
-export default function Home() {
+const PENDING_KEY = 'aidet.pending'
+const LANG_KEY = 'aidet.lang'
+const PLAYER_ID_KEY = 'aidet.playerId'
+
+export default function PlayerPage() {
+  const [lang, setLang] = useState<Lang>('th')
+  const [playerId, setPlayerId] = useState<string | null>(null)
+  const [index, setIndex] = useState(0)
+  const [answers, setAnswers] = useState<Answer[]>([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem(LANG_KEY) as Lang | null
+    if (saved) setLang(saved)
+  }, [])
+
+  const changeLang = (l: Lang) => {
+    setLang(l)
+    localStorage.setItem(LANG_KEY, l)
+  }
+
+  /** Retry any answers that failed to reach the server. A wifi blip must not lose a run. */
+  const flushPending = useCallback(async () => {
+    const pending: Answer[] = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')
+    if (pending.length === 0) return
+    const stillPending: Answer[] = []
+    for (const a of pending) {
+      try {
+        const res = await fetch('/api/answer', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(a),
+        })
+        if (!res.ok) stillPending.push(a)
+      } catch {
+        stillPending.push(a)
+      }
+    }
+    localStorage.setItem(PENDING_KEY, JSON.stringify(stillPending))
+  }, [])
+
+  // Retry on mount (e.g. a page reload after the wifi came back).
+  useEffect(() => { void flushPending() }, [flushPending])
+
+  const join = async (codename: string) => {
+    const res = await fetch('/api/join', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ codename }),
+    })
+    const { player } = await res.json()
+    setPlayerId(player.id)
+    localStorage.setItem(PLAYER_ID_KEY, player.id)
+  }
+
+  const commit = async (optionId: string, elapsedMs: number) => {
+    const answer: Answer = { playerId: playerId!, caseId: CASES[index].id, optionId, elapsedMs }
+    setAnswers((prev) => [...prev, answer])
+    setIndex((i) => i + 1) // advance immediately — the network must never block the player
+
+    try {
+      const res = await fetch('/api/answer', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(answer),
+      })
+      if (!res.ok) throw new Error('bad status')
+    } catch {
+      const pending: Answer[] = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')
+      pending.push(answer)
+      localStorage.setItem(PENDING_KEY, JSON.stringify(pending))
+    }
+    // Retry on the next commit too, in case earlier attempts also failed.
+    void flushPending()
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+    <main className="min-h-screen bg-neutral-950">
+      <LangToggle lang={lang} onChange={changeLang} />
+      {!playerId ? (
+        <CodenameScreen lang={lang} onJoin={join} />
+      ) : index < CASES.length ? (
+        <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} />
+      ) : (
+        <ResultScreen answers={answers} lang={lang} />
+      )}
+    </main>
+  )
 }
