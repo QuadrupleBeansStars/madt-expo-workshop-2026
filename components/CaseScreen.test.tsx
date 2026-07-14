@@ -45,4 +45,10 @@ describe('CaseScreen', () => {
     await waitFor(() => expect(screen.getByText(artemis.aiAnswer.en)).toBeInTheDocument(), { timeout: 6000 })
     expect(screen.getByText('Commit to your verdict')).toBeDisabled()
   }, 15000)
+
+  it('translates the case label in Thai mode instead of hard-coding English "Case"', () => {
+    render(<CaseScreen detectiveCase={artemis} lang="th" onCommit={() => {}} />)
+    expect(screen.getByText(/คดี 1 \/ 5/)).toBeInTheDocument()
+    expect(screen.queryByText(/Case 1 \/ 5/)).not.toBeInTheDocument()
+  })
 })

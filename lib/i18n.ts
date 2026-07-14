@@ -24,6 +24,7 @@ const STRINGS = {
   leaderboard:   { th: 'อันดับนักสืบ', en: 'Leaderboard' },
   statsWall:     { th: 'สถิติห้อง', en: 'Stats Wall' },
   toggleHint:    { th: 'กด [L] เพื่อสลับมุมมอง', en: 'Press [L] to switch panels' },
+  caseLabel:     { th: 'คดี', en: 'Case' },
 } as const
 
 export type UIKey = keyof typeof STRINGS

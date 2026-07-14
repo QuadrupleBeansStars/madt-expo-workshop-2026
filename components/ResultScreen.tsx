@@ -20,7 +20,7 @@ export function ResultScreen({ answers, lang }: { answers: Answer[]; lang: Lang 
           return (
             <li key={c.id} className="flex items-center gap-3 rounded-md border border-neutral-800 p-3">
               <span>{correct ? '✅' : '❌'}</span>
-              <span className="text-neutral-300">Case {c.order}</span>
+              <span className="text-neutral-300">{t('caseLabel', lang)} {c.order}</span>
             </li>
           )
         })}

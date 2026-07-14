@@ -51,7 +51,7 @@ export function CaseScreen({
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <div className="mb-2 text-sm uppercase tracking-widest text-amber-500">
-        {DIFFICULTY_DOT[detectiveCase.difficulty]} Case {detectiveCase.order} / 5
+        {DIFFICULTY_DOT[detectiveCase.difficulty]} {t('caseLabel', lang)} {detectiveCase.order} / 5
       </div>
       <h2 className="mb-6 text-2xl font-semibold text-neutral-100">{detectiveCase.question[lang]}</h2>
 
