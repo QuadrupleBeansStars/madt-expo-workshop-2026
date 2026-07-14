@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { POST as join } from './join/route'
 import { POST as answer } from './answer/route'
 import { GET as stats } from './stats/route'
@@ -6,7 +6,22 @@ import { POST as reset } from './reset/route'
 
 const post = (body: unknown) => new Request('http://x', { method: 'POST', body: JSON.stringify(body) })
 const postRaw = (body: string) => new Request('http://x', { method: 'POST', body })
-const resetLocal = () => reset(new Request('http://localhost:3000/api/reset', { method: 'POST' }))
+
+const TEST_FACILITATOR_TOKEN = 'test-token-suite'
+const resetWithToken = (token: string) =>
+  reset(
+    new Request('http://localhost:3000/api/reset', {
+      method: 'POST',
+      headers: { 'x-facilitator-token': token },
+    })
+  )
+// Isolates each test by resetting the room via the *authorized* path (matching
+// header + FACILITATOR_TOKEN). A bare "localhost" request is no longer
+// privileged -- see the "POST /api/reset protection" suite below.
+const resetLocal = () => {
+  process.env.FACILITATOR_TOKEN = TEST_FACILITATOR_TOKEN
+  return resetWithToken(TEST_FACILITATOR_TOKEN)
+}
 
 describe('API routes', () => {
   beforeEach(async () => { await resetLocal() })
@@ -143,38 +158,58 @@ describe('API routes', () => {
 
 describe('POST /api/reset protection', () => {
   const FACILITATOR_TOKEN = 'test-token-abc'
-  const remoteNoToken = () => new Request('http://192.168.1.50:3000/api/reset', { method: 'POST' })
-  const remoteWithToken = (token: string) =>
-    new Request('http://192.168.1.50:3000/api/reset', {
+  const originalToken = process.env.FACILITATOR_TOKEN
+
+  // requests carry no reliable origin signal (req.url is always "localhost"
+  // in route handlers), so every case here is exercised the same way: only
+  // the x-facilitator-token header can authorize a reset.
+  const noHeaderReq = () => new Request('http://localhost:3000/api/reset', { method: 'POST' })
+  const withHeaderReq = (token: string) =>
+    new Request('http://localhost:3000/api/reset', {
       method: 'POST',
       headers: { 'x-facilitator-token': token },
     })
-  const localhostReq = () => new Request('http://localhost:3000/api/reset', { method: 'POST' })
 
   beforeEach(async () => {
-    delete process.env.FACILITATOR_TOKEN
+    // Seed the room via the authorized path first, then set up the actual
+    // scenario for the test (each test manages FACILITATOR_TOKEN itself).
     await resetLocal()
     const { player } = await (await join(post({ codename: 'D' }))).json()
     await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale', elapsedMs: 500 }))
   })
 
-  it('rejects a non-localhost request without the token', async () => {
-    const res = await reset(remoteNoToken())
+  afterEach(() => {
+    if (originalToken === undefined) delete process.env.FACILITATOR_TOKEN
+    else process.env.FACILITATOR_TOKEN = originalToken
+  })
+
+  it('FACILITATOR_TOKEN unset -> 403, room is NOT cleared', async () => {
+    delete process.env.FACILITATOR_TOKEN
+    const res = await reset(withHeaderReq('anything'))
     expect(res.status).toBe(403)
     const body = await (await stats()).json()
     expect(body.detectives).toBe(1)
   })
 
-  it('accepts a non-localhost request with the correct token', async () => {
+  it('FACILITATOR_TOKEN set, no header -> 403, room is NOT cleared', async () => {
     process.env.FACILITATOR_TOKEN = FACILITATOR_TOKEN
-    const res = await reset(remoteWithToken(FACILITATOR_TOKEN))
-    expect(res.status).toBe(200)
+    const res = await reset(noHeaderReq())
+    expect(res.status).toBe(403)
     const body = await (await stats()).json()
-    expect(body.detectives).toBe(0)
+    expect(body.detectives).toBe(1)
   })
 
-  it('accepts a localhost request with no token', async () => {
-    const res = await reset(localhostReq())
+  it('FACILITATOR_TOKEN set, wrong header value -> 403, room is NOT cleared', async () => {
+    process.env.FACILITATOR_TOKEN = FACILITATOR_TOKEN
+    const res = await reset(withHeaderReq('wrong-token'))
+    expect(res.status).toBe(403)
+    const body = await (await stats()).json()
+    expect(body.detectives).toBe(1)
+  })
+
+  it('FACILITATOR_TOKEN set, correct header -> 200, room IS cleared', async () => {
+    process.env.FACILITATOR_TOKEN = FACILITATOR_TOKEN
+    const res = await reset(withHeaderReq(FACILITATOR_TOKEN))
     expect(res.status).toBe(200)
     const body = await (await stats()).json()
     expect(body.detectives).toBe(0)
