@@ -51,3 +51,107 @@ body {
   outline: 2px solid var(--brand-navy);
   outline-offset: 2px;
 }
+
+/* ── Retro / CRT detective theme (TV + phone game surfaces) ───────────────── */
+:root {
+  --rt-bg: #04050e;
+  --rt-panel: #0d1127;
+  --rt-border: #2b325c;
+  --rt-gold: #ffd700;
+  --rt-cyan: #00e5ff;
+  --rt-pink: #ff3366;
+  --rt-green: #39ff14;
+  --rt-paper: #fffbf2;
+  --rt-paper-text: #1e1713;
+  --rt-text: #f1f5f9;
+}
+
+@theme inline {
+  --color-rt-bg: var(--rt-bg);
+  --color-rt-panel: var(--rt-panel);
+  --color-rt-border: var(--rt-border);
+  --color-rt-gold: var(--rt-gold);
+  --color-rt-cyan: var(--rt-cyan);
+  --color-rt-pink: var(--rt-pink);
+  --color-rt-green: var(--rt-green);
+  --color-rt-paper: var(--rt-paper);
+  --color-rt-paper-text: var(--rt-paper-text);
+  --color-rt-text: var(--rt-text);
+  --font-pixel: var(--font-pixel);
+  --font-retro: var(--font-retro);
+  --font-thai: var(--font-thai);
+}
+
+.pixel-title {
+  font-family: var(--font-pixel), monospace;
+  color: var(--rt-gold);
+  text-shadow: 4px 4px 0 #705400, 0 0 20px rgba(255, 215, 0, 0.45);
+  letter-spacing: 2px;
+}
+
+.retro-panel {
+  background: var(--rt-panel);
+  border: 3px solid var(--rt-border);
+  border-radius: 14px;
+}
+
+/* CRT scanline overlay — apply to a full-bleed positioned wrapper. */
+.crt::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.02));
+  background-size: 100% 4px, 6px 100%;
+  z-index: 40;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .crt::after { background: none; }
+}
+
+.pixel-btn {
+  font-family: var(--font-pixel), monospace;
+  font-size: 13px;
+  padding: 14px 24px;
+  background: #290852;
+  color: #fff;
+  border: 4px solid #fff;
+  box-shadow: -4px 4px 0 #000;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.pixel-btn:hover { transform: translate(2px, -2px); box-shadow: -6px 6px 0 #000; }
+.pixel-btn:active { transform: translate(-2px, 2px); box-shadow: -2px 2px 0 #000; }
+.pixel-btn.gold { background: #b08200; border-color: #ffeb80; }
+.pixel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.dossier {
+  background: var(--rt-paper);
+  color: var(--rt-paper-text);
+  border: 4px solid #382c1f;
+  border-radius: 10px;
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.5);
+}
+
+.duck-bubble {
+  background: #ffeaa7;
+  color: #2d3436;
+  border: 3px solid #6b5300;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-weight: 700;
+}
+
+.answer-card {
+  background: #fff;
+  border: 3px solid #cbd5e1;
+  color: #1e293b;
+  border-radius: 12px;
+  box-shadow: -3px 3px 0 #cbd5e1;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.answer-card:hover:not(:disabled) { border-color: var(--rt-cyan); transform: translate(2px, -2px); box-shadow: -5px 5px 0 var(--rt-cyan); }
+.answer-card.selected-correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; box-shadow: -4px 4px 0 #22c55e; }
+.answer-card.selected-incorrect { border-color: #ef4444; background: #fef2f2; color: #b91c1c; box-shadow: -4px 4px 0 #ef4444; }
+.answer-card:disabled { cursor: not-allowed; }
