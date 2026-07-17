@@ -3,7 +3,7 @@ import { computeStats, isBelieveAiOption } from './stats'
 import { CASES } from '@/content/cases'
 import type { Player, Answer } from './types'
 
-const p = (id: string, codename: string): Player => ({ id, codename, joinedAt: 0 })
+const p = (id: string, codename: string): Player => ({ id, codename, joinedAt: 0, spectator: false })
 
 describe('computeStats', () => {
   it('counts detectives', () => {
