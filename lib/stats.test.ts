@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeStats } from './stats'
+import { computeStats, isBelieveAiOption } from './stats'
+import { CASES } from '@/content/cases'
 import type { Player, Answer } from './types'
 
 const p = (id: string, codename: string): Player => ({ id, codename, joinedAt: 0 })
@@ -137,5 +138,43 @@ describe('computeStats', () => {
     expect(Number.isInteger(stat.fooledPct)).toBe(true)
     expect(Number.isNaN(stat.fooledPct)).toBe(false)
     expect(stat.fooledPct).toBe(67)
+  })
+})
+
+const c0 = [...CASES].sort((a, b) => a.order - b.order)[0]
+const believeAiOpt = c0.options.find((o) => o.id === 'ai-correct')!.id
+
+function player(id: string, spectator = false): Player {
+  return { id, codename: id, joinedAt: 0, spectator }
+}
+
+describe('stats believedAi + spectators', () => {
+  it('isBelieveAiOption is true only for the ai-correct option', () => {
+    expect(isBelieveAiOption(c0.id, believeAiOpt)).toBe(true)
+    const other = c0.options.find((o) => o.id !== 'ai-correct')!.id
+    expect(isBelieveAiOption(c0.id, other)).toBe(false)
+  })
+
+  it('believedAi counts players who chose the ai-correct option', () => {
+    const players = [player('a'), player('b')]
+    const answers: Answer[] = [
+      { playerId: 'a', caseId: c0.id, optionId: believeAiOpt, elapsedMs: 0 },
+      { playerId: 'b', caseId: c0.id, optionId: c0.options.find((o) => o.id !== 'ai-correct')!.id, elapsedMs: 0 },
+    ]
+    const cs = computeStats(players, answers).caseStats.find((s) => s.caseId === c0.id)!
+    expect(cs.answered).toBe(2)
+    expect(cs.believedAi).toBe(1)
+    expect(cs.believedAiPct).toBe(50)
+  })
+
+  it('spectators are excluded from detectives, leaderboard, and answered counts', () => {
+    const players = [player('a'), player('spec', true)]
+    const answers: Answer[] = [
+      { playerId: 'spec', caseId: c0.id, optionId: believeAiOpt, elapsedMs: 0 },
+    ]
+    const stats = computeStats(players, answers)
+    expect(stats.detectives).toBe(1)
+    expect(stats.leaderboard.map((r) => r.codename)).toEqual(['a'])
+    expect(stats.caseStats.find((s) => s.caseId === c0.id)!.answered).toBe(0)
   })
 })

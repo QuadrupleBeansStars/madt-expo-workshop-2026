@@ -58,4 +58,11 @@ describe('CASES', () => {
     expect(getCase(CASES[0].id)!.order).toBe(1)
     expect(getCase('nope')).toBeUndefined()
   })
+
+  it('every case has exactly one option with id "ai-correct" (the "believe the AI" option)', () => {
+    for (const c of CASES) {
+      const believeAi = c.options.filter((o) => o.id === 'ai-correct')
+      expect(believeAi, `case ${c.id}`).toHaveLength(1)
+    }
+  })
 })
