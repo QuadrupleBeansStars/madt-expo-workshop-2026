@@ -44,5 +44,30 @@ export const DetectiveCaseSchema = z.object({
 )
 export type DetectiveCase = z.infer<typeof DetectiveCaseSchema>
 
-export type Player = { id: string; codename: string; joinedAt: number }
+export type Player = { id: string; codename: string; joinedAt: number; spectator: boolean }
 export type Answer = { playerId: string; caseId: string; optionId: string; elapsedMs: number }
+
+export type Phase = 'lobby' | 'investigate' | 'reveal' | 'final'
+
+/** Server-authoritative game state. `phaseStartedAt`/`phaseDurationMs` are the ONLY clock. */
+export type GameState = {
+  phase: Phase
+  /** 0-based index into game ROUNDS (cases sorted by order). Meaningful in investigate/reveal. */
+  roundIndex: number
+  /** Server epoch ms when the current phase began. */
+  phaseStartedAt: number
+  /** Duration of the current phase in ms; 0 for untimed phases (lobby, reveal, final). */
+  phaseDurationMs: number
+}
+
+/** What clients receive from /api/state. `remainingMs` is server-computed; clients never derive it. */
+export type PublicGameState = {
+  seq: number
+  phase: Phase
+  roundIndex: number
+  caseId: string | null
+  remainingMs: number
+  answeredCount: number
+  playerCount: number
+  youAnswered?: boolean
+}
