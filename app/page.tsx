@@ -1,110 +1,50 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Answer, Lang } from '@/lib/types'
-import { CASES } from '@/content/cases'
+import type { Lang, PublicGameState } from '@/lib/types'
+import { ROUNDS } from '@/lib/game'
 import { CodenameScreen } from '@/components/CodenameScreen'
-import { CaseScreen } from '@/components/CaseScreen'
-import { ResultScreen } from '@/components/ResultScreen'
 import { LangToggle } from '@/components/LangToggle'
+import { Countdown } from '@/components/game/Countdown'
+import { AnswerCards } from '@/components/game/AnswerCards'
+import { EvidenceList } from '@/components/game/EvidenceList'
+import { Duck } from '@/components/game/Duck'
 import { t } from '@/lib/i18n'
 
-const PENDING_KEY = 'aidet.pending'
+const RUN_KEY = 'aidet.run'   // identity ONLY: { playerId, codename }
 const LANG_KEY = 'aidet.lang'
-/** Everything needed to resume a run untouched after a reload, under one namespaced key. */
-const RUN_KEY = 'aidet.run'
-/** Venue APs commonly accept the TCP connection and then hang with no response. */
-const ANSWER_TIMEOUT_MS = 5000
+const PENDING_KEY = 'aidet.pending'
+const POLL_MS = 1200
+const REQ_TIMEOUT_MS = 5000
 
-type RunState = { playerId: string; codename: string; answers: Answer[]; index: number }
+type Identity = { playerId: string; codename: string }
+type QueuedAnswer = { playerId: string; caseId: string; optionId: string }
 
-function isFiniteNumber(n: unknown): n is number {
-  return typeof n === 'number' && Number.isFinite(n)
-}
-
-function isValidAnswer(a: unknown, playerId: string): a is Answer {
-  if (!a || typeof a !== 'object') return false
-  const rec = a as Record<string, unknown>
-  return (
-    rec.playerId === playerId &&
-    typeof rec.caseId === 'string' &&
-    CASES.some((c) => c.id === rec.caseId) &&
-    typeof rec.optionId === 'string' &&
-    isFiniteNumber(rec.elapsedMs)
-  )
-}
-
-/** Read + validate the stored run. Any malformed/corrupt/out-of-range blob → null (fresh start). */
-function loadRun(): RunState | null {
+function loadIdentity(): Identity | null {
   try {
     const raw = localStorage.getItem(RUN_KEY)
     if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<RunState> | null
-    if (!parsed || typeof parsed !== 'object') return null
-    if (typeof parsed.playerId !== 'string' || !parsed.playerId) return null
-    if (typeof parsed.codename !== 'string') return null
-    if (!Array.isArray(parsed.answers)) return null
-    if (typeof parsed.index !== 'number' || !Number.isInteger(parsed.index)) return null
-    if (parsed.index < 0 || parsed.index > CASES.length) return null
-    if (parsed.answers.length !== parsed.index) return null
-    for (const a of parsed.answers) {
-      if (!isValidAnswer(a, parsed.playerId)) return null
+    const p = JSON.parse(raw) as Partial<Identity>
+    if (typeof p?.playerId === 'string' && p.playerId && typeof p.codename === 'string') {
+      return { playerId: p.playerId, codename: p.codename }
     }
-    return { playerId: parsed.playerId, codename: parsed.codename, answers: parsed.answers as Answer[], index: parsed.index }
-  } catch {
-    return null
-  }
+  } catch { /* ignore */ }
+  return null
+}
+function saveIdentity(id: Identity | null) {
+  try { id ? localStorage.setItem(RUN_KEY, JSON.stringify(id)) : localStorage.removeItem(RUN_KEY) } catch { /* ignore */ }
+}
+function readPending(): QueuedAnswer[] {
+  try { const p = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]'); return Array.isArray(p) ? p : [] } catch { return [] }
+}
+function writePending(list: QueuedAnswer[]) {
+  try { localStorage.setItem(PENDING_KEY, JSON.stringify(list)) } catch { /* ignore */ }
 }
 
-function saveRun(run: RunState): void {
-  try {
-    localStorage.setItem(RUN_KEY, JSON.stringify(run))
-  } catch {
-    // Best effort — losing the resume checkpoint is better than crashing mid-run.
-  }
-}
-
-function readPending(): Answer[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function writePending(list: Answer[]): void {
-  try {
-    localStorage.setItem(PENDING_KEY, JSON.stringify(list))
-  } catch {
-    // Best effort.
-  }
-}
-
-function answerKey(a: Answer): string {
-  return `${a.playerId}:${a.caseId}`
-}
-
-/** Union keyed by `playerId:caseId`; later lists win on conflict. */
-function mergeAnswerLists(...lists: Answer[][]): Answer[] {
-  const map = new Map<string, Answer>()
-  for (const list of lists) {
-    for (const a of list) map.set(answerKey(a), a)
-  }
-  return [...map.values()]
-}
-
-/** A hanging request must fail fast so it gets queued instead of blocking forever. */
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = ANSWER_TIMEOUT_MS): Promise<Response> {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQ_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController()
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => {
-      controller.abort()
-      reject(new Error('request timed out'))
-    }, timeoutMs)
-  })
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   try {
-    return await Promise.race([fetch(url, { ...init, signal: controller.signal }), timeoutPromise])
+    return await fetch(url, { ...init, signal: controller.signal })
   } finally {
     clearTimeout(timer)
   }
@@ -112,204 +52,189 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = ANSW
 
 export default function PlayerPage() {
   const [lang, setLang] = useState<Lang>('th')
-  const [playerId, setPlayerId] = useState<string | null>(null)
-  const [codename, setCodename] = useState<string>('')
-  const [index, setIndex] = useState(0)
-  const [answers, setAnswers] = useState<Answer[]>([])
-  // Set when the server rejects an answer as belonging to an unknown player —
-  // i.e. the facilitator reset the room while this laptop still held an old run.
-  const [sessionWasReset, setSessionWasReset] = useState(false)
-  // Set when POST /api/join fails (bad status, network error, or timeout) —
-  // distinct from sessionWasReset so we don't show the wrong bilingual message.
+  const [identity, setIdentity] = useState<Identity | null>(null)
+  const [gameState, setGameState] = useState<PublicGameState | null>(null)
   const [joinError, setJoinError] = useState(false)
-  // Serialises all queue mutations (queueAnswer + flushPending) so overlapping
-  // calls never interleave their read-modify-write of localStorage.
-  const pendingLockRef = useRef<Promise<void>>(Promise.resolve())
+  const [sessionWasReset, setSessionWasReset] = useState(false)
+  // Ephemeral memory of my pick per caseId (for the reveal screen). NOT persisted.
+  const [picks, setPicks] = useState<Record<string, string>>({})
+  const lastSeqRef = useRef(-1)
 
   useEffect(() => {
-    const saved = localStorage.getItem(LANG_KEY) as Lang | null
-    if (saved) setLang(saved)
+    const savedLang = localStorage.getItem(LANG_KEY) as Lang | null
+    if (savedLang) setLang(savedLang)
+    setIdentity(loadIdentity())
   }, [])
 
-  // Resume an in-progress run after a reload (F5, sleep, crash). Never re-join.
+  const changeLang = (l: Lang) => { setLang(l); try { localStorage.setItem(LANG_KEY, l) } catch { /* ignore */ } }
+
+  const returnToCodename = useCallback((wasReset: boolean) => {
+    saveIdentity(null)
+    writePending([])
+    setIdentity(null)
+    setGameState(null)
+    setPicks({})
+    lastSeqRef.current = -1
+    setSessionWasReset(wasReset)
+  }, [])
+
+  // Poll the server heartbeat while we have an identity.
   useEffect(() => {
-    const run = loadRun()
-    if (run) {
-      setPlayerId(run.playerId)
-      setCodename(run.codename)
-      setAnswers(run.answers)
-      setIndex(run.index)
-    }
-  }, [])
-
-  const changeLang = (l: Lang) => {
-    setLang(l)
-    localStorage.setItem(LANG_KEY, l)
-  }
-
-  /**
-   * Wipe the stored run + pending queue and drop back to the codename screen.
-   * Shared by the permanent-rejection path (session reset) and the deliberate
-   * "New detective" escape hatch — they differ only in whether the reset banner shows.
-   */
-  const clearRunAndReturnToCodename = useCallback(() => {
-    try {
-      localStorage.removeItem(RUN_KEY)
-    } catch {
-      // Best effort.
-    }
-    try {
-      localStorage.removeItem(PENDING_KEY)
-    } catch {
-      // Best effort.
-    }
-    setPlayerId(null)
-    setCodename('')
-    setAnswers([])
-    setIndex(0)
-  }, [])
-
-  /**
-   * The server told us this player doesn't exist (HTTP 400 on /api/answer) — the room
-   * was reset. This is permanent, not a network blip: requeuing would just 400 forever
-   * while silently dropping every answer. Wipe the stale run and drop back to the
-   * codename screen so the player can rejoin fresh.
-   */
-  const handleSessionReset = useCallback(() => {
-    clearRunAndReturnToCodename()
-    setSessionWasReset(true)
-  }, [clearRunAndReturnToCodename])
-
-  /**
-   * Universal escape hatch: a player who finished (or a stuck laptop being handed
-   * to the next student between expo sessions) taps this to clear the run and
-   * return to the codename screen, without the "session was reset" banner.
-   */
-  const handleNewDetective = useCallback(() => {
-    clearRunAndReturnToCodename()
-    setSessionWasReset(false)
-    setJoinError(false)
-  }, [clearRunAndReturnToCodename])
-
-  const withPendingLock = useCallback((fn: () => void | Promise<void>): Promise<void> => {
-    const next = pendingLockRef.current.then(fn, fn)
-    pendingLockRef.current = next.then(
-      () => undefined,
-      () => undefined,
-    )
-    return next
-  }, [])
-
-  const queueAnswer = useCallback(
-    (answer: Answer) =>
-      withPendingLock(() => {
-        const pending = readPending()
-        writePending(mergeAnswerLists(pending, [answer]))
-      }),
-    [withPendingLock],
-  )
-
-  /** Retry any answers that failed to reach the server. A wifi blip must not lose a run. */
-  const flushPending = useCallback(
-    () =>
-      withPendingLock(async () => {
-        const pending = readPending()
-        if (pending.length === 0) return
-        const stillPending: Answer[] = []
-        let permanentlyRejected = false
-        for (const a of pending) {
-          try {
-            const res = await fetchWithTimeout('/api/answer', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify(a),
-            })
-            if (res.status === 400) {
-              // Permanent: the server doesn't know this player. Drop it, don't retry.
-              permanentlyRejected = true
-              continue
-            }
-            if (!res.ok) stillPending.push(a)
-          } catch {
-            stillPending.push(a)
-          }
+    if (!identity) return
+    let alive = true
+    const poll = async () => {
+      try {
+        const res = await fetchWithTimeout(`/api/state?playerId=${encodeURIComponent(identity.playerId)}`, { method: 'GET' })
+        if (!res.ok) return
+        const next = (await res.json()) as PublicGameState
+        if (!alive) return
+        if (typeof next.seq === 'number' && next.seq >= lastSeqRef.current) {
+          lastSeqRef.current = next.seq
+          setGameState(next)
         }
-        // Safe to overwrite (not just merge) — the in-flight lock guarantees nothing
-        // else mutated the queue while this flush was running.
-        writePending(stillPending)
-        if (permanentlyRejected) handleSessionReset()
-      }),
-    [withPendingLock, handleSessionReset],
-  )
-
-  // Retry on mount (e.g. a page reload after the wifi came back).
-  useEffect(() => { void flushPending() }, [flushPending])
+      } catch { /* transient — keep last good frame */ }
+    }
+    void poll()
+    const id = setInterval(poll, POLL_MS)
+    return () => { alive = false; clearInterval(id) }
+  }, [identity])
 
   const join = async (codenameInput: string) => {
     try {
       const res = await fetchWithTimeout('/api/join', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ codename: codenameInput }),
       })
       if (!res.ok) throw new Error('bad status')
       const { player } = await res.json()
-      const resolvedCodename: string = player.codename ?? codenameInput
-      setPlayerId(player.id)
-      setCodename(resolvedCodename)
-      setSessionWasReset(false)
+      const id: Identity = { playerId: player.id, codename: player.codename ?? codenameInput }
+      saveIdentity(id)
+      setIdentity(id)
       setJoinError(false)
-      saveRun({ playerId: player.id, codename: resolvedCodename, answers: [], index: 0 })
+      setSessionWasReset(false)
     } catch {
-      // 4xx/5xx, a network error, or a timed-out request (e.g. 20 laptops hitting
-      // venue wifi at once). The player must see this — "Begin the mission" doing
-      // nothing looks like a broken app, and they stay on the codename screen to retry.
       setJoinError(true)
     }
   }
 
-  const commit = async (optionId: string, elapsedMs: number) => {
-    const answer: Answer = { playerId: playerId!, caseId: CASES[index].id, optionId, elapsedMs }
-    const newAnswers = [...answers, answer]
-    const newIndex = index + 1
-    setAnswers(newAnswers)
-    setIndex(newIndex) // advance immediately — the network must never block the player
-    saveRun({ playerId: playerId!, codename, answers: newAnswers, index: newIndex })
+  const flushPending = useCallback(async () => {
+    const pending = readPending()
+    if (pending.length === 0) return
+    const still: QueuedAnswer[] = []
+    for (const a of pending) {
+      try {
+        const res = await fetchWithTimeout('/api/answer', {
+          method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(a),
+        })
+        if (res.status === 400) { returnToCodename(true); return }
+        if (res.status === 409) continue            // round closed — drop, never requeue
+        if (!res.ok) still.push(a)                   // transient
+      } catch { still.push(a) }
+    }
+    writePending(still)
+  }, [returnToCodename])
 
+  const commit = async (caseId: string, optionId: string) => {
+    if (!identity) return
+    setPicks((p) => ({ ...p, [caseId]: optionId }))   // optimistic lock
+    const answer: QueuedAnswer = { playerId: identity.playerId, caseId, optionId }
     try {
       const res = await fetchWithTimeout('/api/answer', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(answer),
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(answer),
       })
-      if (res.status === 400) {
-        // Permanent: the server doesn't know this player — the room was reset.
-        // Requeuing would just 400 forever while silently dropping every answer.
-        handleSessionReset()
-        return
-      }
+      if (res.status === 400) { returnToCodename(true); return }
+      if (res.status === 409) return                  // too late — locked, drop
       if (!res.ok) throw new Error('bad status')
     } catch {
-      await queueAnswer(answer)
+      writePending([...readPending().filter((a) => a.caseId !== caseId), answer])
     }
-    // Retry on the next commit too, in case earlier attempts also failed.
     void flushPending()
   }
 
+  const message = joinError ? t('joinFailed', lang) : sessionWasReset ? t('sessionReset', lang) : undefined
+
   return (
-    <main className="min-h-screen bg-ground">
+    <main className="crt relative min-h-screen" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
       <LangToggle lang={lang} onChange={changeLang} />
-      {!playerId ? (
-        <CodenameScreen
-          lang={lang}
-          onJoin={join}
-          message={joinError ? t('joinFailed', lang) : sessionWasReset ? t('sessionReset', lang) : undefined}
-        />
-      ) : index < CASES.length ? (
-        <CaseScreen detectiveCase={CASES[index]} lang={lang} onCommit={commit} onRestart={handleNewDetective} />
+      {!identity ? (
+        <CodenameScreen lang={lang} onJoin={join} message={message} />
       ) : (
-        <ResultScreen answers={answers} lang={lang} onNewDetective={handleNewDetective} />
+        <PhoneBody lang={lang} state={gameState} picks={picks} onCommit={commit} onNewDetective={() => returnToCodename(false)} />
       )}
     </main>
+  )
+}
+
+function PhoneBody({
+  lang, state, picks, onCommit, onNewDetective,
+}: {
+  lang: Lang
+  state: PublicGameState | null
+  picks: Record<string, string>
+  onCommit: (caseId: string, optionId: string) => void
+  onNewDetective: () => void
+}) {
+  if (!state || state.phase === 'lobby') {
+    return <Centered>{t('waitingToStart', lang)}</Centered>
+  }
+  if (state.phase === 'final') {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="pixel-title text-2xl">{t('finalTitle', lang)}</div>
+        <p style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('waitReveal', lang)}</p>
+        <button type="button" className="pixel-btn gold" onClick={onNewDetective}>{t('newDetective', lang)}</button>
+      </div>
+    )
+  }
+
+  const round = ROUNDS[state.roundIndex]
+  if (!round || state.caseId !== round.id) return <Centered>{t('waitingForOthers', lang)}</Centered>
+
+  const myPick = picks[round.id]
+  const locked = state.youAnswered === true || myPick !== undefined
+  const correctId = round.options.find((o) => o.correct)!.id
+
+  return (
+    <div className="mx-auto flex min-h-screen max-w-md flex-col gap-4 p-4">
+      <header className="flex items-center justify-between">
+        <span className="pixel-title text-sm">{t('caseLabel', lang)} {round.order}/5</span>
+        {state.phase === 'investigate' ? <Countdown remainingMs={state.remainingMs} /> : <span className="pixel-title text-sm">{t('reveal', lang)}</span>}
+      </header>
+
+      <div className="retro-panel p-3" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+        <div className="mb-1 font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
+        <Duck bubble={round.aiAnswer[lang]} size={48} />
+      </div>
+
+      <EvidenceList detectiveCase={round} lang={lang} />
+
+      <AnswerCards
+        options={round.options}
+        lang={lang}
+        disabled={state.phase === 'reveal' || locked}
+        selectedId={myPick}
+        correctId={state.phase === 'reveal' ? correctId : undefined}
+        onPick={(id) => onCommit(round.id, id)}
+      />
+
+      {state.phase === 'investigate' && locked ? (
+        <p className="text-center" style={{ color: 'var(--rt-gold)' }}>{t('answerLocked', lang)} — {t('waitingForOthers', lang)}</p>
+      ) : null}
+
+      {state.phase === 'reveal' ? (
+        <div className="retro-panel p-3" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+          <div className="font-bold">{myPick === correctId ? t('youWereRight', lang) : t('youWereFooled', lang)}</div>
+          <p className="mt-1 text-sm">{round.reveal[lang]}</p>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function Centered({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center p-6 text-center" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+      <p className="text-lg" style={{ color: 'var(--rt-gold)' }}>{children}</p>
+    </div>
   )
 }

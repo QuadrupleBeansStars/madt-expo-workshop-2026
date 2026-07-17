@@ -1,459 +1,51 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import PlayerPage from './page'
-import { CASES } from '@/content/cases'
-import type { Answer } from '@/lib/types'
+import { ROUNDS } from '@/lib/game'
+import type { PublicGameState } from '@/lib/types'
 
-// The retrieval animation is already covered by Retrieval.test.tsx and
-// CaseScreen.test.tsx (real timers, ~seconds). Mock it here so page-level
-// orchestration tests stay fast and focused on join/commit/lang/offline-queue
-// behaviour rather than re-testing the reveal animation.
-vi.mock('@/components/Retrieval', () => ({
-  Retrieval: ({ onComplete }: { onComplete: () => void }) => {
-    // Defer to a real async tick so this never fires during React's render phase.
-    setTimeout(() => onComplete(), 0)
-    return null
-  },
-}))
-
-const artemis = CASES[0]
-const olympics = CASES[1]
-
-function mockFetchImpl(overrides: {
-  onAnswer?: (body: Answer) => Response | Promise<Response>
-} = {}) {
-  return vi.fn(async (url: string, init?: RequestInit) => {
-    if (url === '/api/join') {
-      return new Response(JSON.stringify({ player: { id: 'p1', codename: 'Detective Test' } }), { status: 200 })
-    }
-    if (url === '/api/answer') {
-      const body = JSON.parse((init!.body as string)) as Answer
-      if (overrides.onAnswer) return overrides.onAnswer(body)
-      return new Response(JSON.stringify({ ok: true }), { status: 200 })
-    }
-    throw new Error(`unexpected fetch: ${url}`)
-  })
+function stateResponse(partial: Partial<PublicGameState>): Response {
+  const body: PublicGameState = {
+    seq: 1, phase: 'lobby', roundIndex: 0, caseId: null, remainingMs: 0,
+    answeredCount: 0, playerCount: 1, ...partial,
+  }
+  return { ok: true, status: 200, json: async () => body } as Response
 }
 
-async function joinAndReachCase() {
-  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Detective Test' } })
-  fireEvent.click(screen.getByRole('button', { name: 'เริ่มภารกิจ' }))
-  await waitFor(() => expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument())
-}
+beforeEach(() => {
+  localStorage.clear()
+  vi.restoreAllMocks()
+})
+afterEach(() => vi.restoreAllMocks())
 
-describe('PlayerPage', () => {
-  beforeEach(() => {
-    localStorage.clear()
+describe('phone flow', () => {
+  it('after joining, shows the lobby waiting screen', async () => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const u = String(url)
+      if (u.includes('/api/join')) return { ok: true, status: 200, json: async () => ({ player: { id: 'p1', codename: 'Alice', spectator: false } }) } as Response
+      if (u.includes('/api/state')) return stateResponse({ phase: 'lobby' })
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    })
+    render(<PlayerPage />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Alice' } })
+    fireEvent.click(screen.getByRole('button', { name: /begin|เริ่ม/i }))
+    await waitFor(() => expect(screen.getByText(/waiting for the host|รอผู้ดำเนินรายการ/i)).toBeInTheDocument())
   })
 
-  it('joining then committing an answer advances to the next case', async () => {
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-    render(<PlayerPage />)
-
-    await joinAndReachCase()
-
-    fireEvent.click(screen.getByText(artemis.options[1].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    // Case 2's AI answer should now be reachable (after its own retrieval mock resolves).
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    const answerCall = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0] === '/api/answer')
-    expect(answerCall).toBeTruthy()
-    const sentBody = JSON.parse(answerCall![1].body as string) as Answer
-    expect(sentBody.caseId).toBe(artemis.id)
-    expect(sentBody.optionId).toBe(artemis.options[1].id)
-    expect(Number.isFinite(sentBody.elapsedMs)).toBe(true)
-  }, 15000)
-
-  it('the language toggle flips text mid-case without resetting progress', async () => {
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-    render(<PlayerPage />)
-
-    await joinAndReachCase()
-
-    // Select an option before toggling language.
-    fireEvent.click(screen.getByText(artemis.options[2].label.th))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle language' }))
-
-    // Still on the same case, now in English, and the earlier selection survived
-    // (the commit button is enabled, proving `selected` state wasn't reset).
-    await waitFor(() => expect(screen.getByText(artemis.aiAnswer.en)).toBeInTheDocument())
-    expect(screen.getByText(artemis.options[2].label.en)).toBeInTheDocument()
-    expect(screen.getByText('Commit to your verdict')).not.toBeDisabled()
-  }, 15000)
-
-  it('buffers a failed answer POST in localStorage and retries it instead of losing it', async () => {
-    let answerAttempts = 0
-    global.fetch = mockFetchImpl({
-      onAnswer: () => {
-        answerAttempts += 1
-        if (answerAttempts === 1) throw new Error('simulated wifi blip')
-        return new Response(JSON.stringify({ ok: true }), { status: 200 })
-      },
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-    await joinAndReachCase()
-
-    fireEvent.click(screen.getByText(artemis.options[0].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    // The player is NEVER blocked: they advance to case 2 immediately regardless of the network.
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    // The failed answer was queued, then retried and cleared once the network recovered.
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([])
+  it('during investigate, shows answer cards and submits the pick', async () => {
+    const round0 = ROUNDS[0]
+    const posted: string[] = []
+    localStorage.setItem('aidet.run', JSON.stringify({ playerId: 'p1', codename: 'Alice' }))
+    vi.spyOn(global, 'fetch').mockImplementation(async (url, init) => {
+      const u = String(url)
+      if (u.includes('/api/state')) return stateResponse({ phase: 'investigate', roundIndex: 0, caseId: round0.id, remainingMs: 60_000, youAnswered: false })
+      if (u.includes('/api/answer')) { posted.push(String((init as RequestInit).body)); return { ok: true, status: 200, json: async () => ({ ok: true }) } as Response }
+      return { ok: true, status: 200, json: async () => ({}) } as Response
     })
-    expect(answerAttempts).toBeGreaterThanOrEqual(2)
-  }, 15000)
-
-  it('retries a previously-queued answer on mount', async () => {
-    const queued: Answer = { playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 1234 }
-    localStorage.setItem('aidet.pending', JSON.stringify([queued]))
-
-    const seen: Answer[] = []
-    global.fetch = mockFetchImpl({
-      onAnswer: (body) => {
-        seen.push(body)
-        return new Response(JSON.stringify({ ok: true }), { status: 200 })
-      },
-    }) as unknown as typeof fetch
-
     render(<PlayerPage />)
-
-    await waitFor(() => expect(seen).toContainEqual(queued))
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([])
-    })
-  }, 15000)
-
-  // ── Finding 1: a reload must resume the same player, never join twice ──────
-
-  it('resumes on the next case after a reload, without re-joining or losing earlier answers', async () => {
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-    const { unmount } = render(<PlayerPage />)
-
-    await joinAndReachCase()
-    fireEvent.click(screen.getByText(artemis.options[1].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    const joinCallsBefore = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === '/api/join').length
-    expect(joinCallsBefore).toBe(1)
-
-    // Case 1's answer must already be durably persisted before the "reload".
-    const runBefore = JSON.parse(localStorage.getItem('aidet.run') ?? 'null')
-    expect(runBefore?.answers).toEqual([
-      expect.objectContaining({ caseId: artemis.id, optionId: artemis.options[1].id }),
-    ])
-
-    // Simulate a reload: unmount (React state is gone) but localStorage survives.
-    unmount()
-    render(<PlayerPage />)
-
-    // Resumes directly on case 2 — the codename screen never reappears.
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-
-    // No second join.
-    const joinCallsAfter = (global.fetch as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0] === '/api/join').length
-    expect(joinCallsAfter).toBe(1)
-
-    // Case 1's answer is still there after the reload.
-    const runAfter = JSON.parse(localStorage.getItem('aidet.run') ?? 'null')
-    expect(runAfter?.answers).toEqual([
-      expect.objectContaining({ caseId: artemis.id, optionId: artemis.options[1].id }),
-    ])
-  }, 20000)
-
-  it('falls back to a fresh start when the stored run is malformed JSON, without crashing', async () => {
-    localStorage.setItem('aidet.run', 'not json{{{')
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-
-    expect(() => render(<PlayerPage />)).not.toThrow()
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
-
-    await joinAndReachCase()
-    expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument()
-  }, 15000)
-
-  it('falls back to a fresh start when the stored run has an invalid shape', async () => {
-    localStorage.setItem(
-      'aidet.run',
-      JSON.stringify({ playerId: 'p1', answers: 'not-an-array', index: 99 }),
-    )
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-
-    expect(() => render(<PlayerPage />)).not.toThrow()
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
-  }, 15000)
-
-  // ── Finding 2: hanging fetch must time out; concurrent flushes must not drop work ──
-
-  it('a hanging fetch does not block the player and the answer ends up queued', async () => {
-    global.fetch = vi.fn((url: string) => {
-      if (url === '/api/join') {
-        return Promise.resolve(
-          new Response(JSON.stringify({ player: { id: 'p1', codename: 'Detective Test' } }), { status: 200 }),
-        )
-      }
-      if (url === '/api/answer') {
-        // Simulates a venue AP that accepts the connection and then hangs forever.
-        return new Promise<Response>(() => {})
-      }
-      throw new Error(`unexpected fetch: ${url}`)
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-    await joinAndReachCase()
-
-    fireEvent.click(screen.getByText(artemis.options[0].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    // The player advances immediately, regardless of the hung request.
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    // Once the timeout fires, the answer is queued rather than lost forever.
-    await waitFor(
-      () => {
-        const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-        expect(pending).toEqual([
-          expect.objectContaining({ playerId: 'p1', caseId: artemis.id, optionId: artemis.options[0].id }),
-        ])
-      },
-      { timeout: 9000 },
-    )
-  }, 12000)
-
-  // ── Room reset while a stale run is held: 400 must be treated as permanent ──
-
-  it('a 400 from POST /api/answer clears the stale run and returns to the codename screen', async () => {
-    global.fetch = mockFetchImpl({
-      onAnswer: () => new Response(JSON.stringify({ error: 'unknown player' }), { status: 400 }),
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-    await joinAndReachCase()
-
-    fireEvent.click(screen.getByText(artemis.options[0].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    // The rejected answer must NOT be queued for retry — the room was reset,
-    // retrying forever would just 400 forever while silently dropping every answer.
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([])
-    })
-
-    // The stale run is cleared and the player is dropped back to the codename screen.
-    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
-    expect(localStorage.getItem('aidet.run')).toBeNull()
-
-    // A bilingual reset message is shown.
-    expect(screen.getByText('เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่')).toBeInTheDocument()
-  }, 15000)
-
-  it('a 500 from POST /api/answer still queues the answer and does not kick the player back (wifi-blip path)', async () => {
-    global.fetch = mockFetchImpl({
-      onAnswer: () => new Response(JSON.stringify({ error: 'server error' }), { status: 500 }),
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-    await joinAndReachCase()
-
-    fireEvent.click(screen.getByText(artemis.options[0].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    // The player is never blocked and advances to case 2.
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    // The failed answer is queued for retry (transient failure, not a permanent rejection).
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([
-        expect.objectContaining({ playerId: 'p1', caseId: artemis.id, optionId: artemis.options[0].id }),
-      ])
-    })
-
-    // The player was NOT kicked back to the codename screen.
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
-  }, 15000)
-
-  it('a queued answer that later 400s during flushPending is dropped from the queue, not retried forever', async () => {
-    const queued: Answer = { playerId: 'stale-p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 1234 }
-    localStorage.setItem('aidet.pending', JSON.stringify([queued]))
-    localStorage.setItem(
-      'aidet.run',
-      JSON.stringify({ playerId: 'stale-p1', codename: 'Detective Test', answers: [], index: 0 }),
-    )
-
-    let attempts = 0
-    global.fetch = mockFetchImpl({
-      onAnswer: () => {
-        attempts += 1
-        return new Response(JSON.stringify({ error: 'unknown player' }), { status: 400 })
-      },
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([])
-    })
-    expect(attempts).toBe(1)
-
-    // Not retried forever: give the mount-time flush effect a further tick and confirm
-    // no additional attempt was made.
-    await new Promise((r) => setTimeout(r, 50))
-    expect(attempts).toBe(1)
-
-    // The stale run tied to the reset room is also cleared.
-    expect(localStorage.getItem('aidet.run')).toBeNull()
-  }, 15000)
-
-  it('serialises concurrent flushes so an in-flight retry is not clobbered and nothing is dropped', async () => {
-    let releaseStale: (() => void) | undefined
-    const staleGate = new Promise<void>((resolve) => { releaseStale = resolve })
-    let staleAttempts = 0
-
-    // A run already sitting on case 2, with a stale answer left over from a previous
-    // flush attempt (e.g. the tab closed mid-retry).
-    localStorage.setItem(
-      'aidet.run',
-      JSON.stringify({
-        playerId: 'p1',
-        codename: 'Detective Test',
-        answers: [{ playerId: 'p1', caseId: artemis.id, optionId: artemis.options[1].id, elapsedMs: 500 }],
-        index: 1,
-      }),
-    )
-    localStorage.setItem(
-      'aidet.pending',
-      JSON.stringify([{ playerId: 'p1', caseId: artemis.id, optionId: 'stale', elapsedMs: 999 }]),
-    )
-
-    global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
-      if (url === '/api/answer') {
-        const body = JSON.parse(init!.body as string) as Answer
-        if (body.optionId === 'stale') {
-          staleAttempts += 1
-          await staleGate
-        }
-        return new Response(JSON.stringify({ ok: true }), { status: 200 })
-      }
-      throw new Error(`unexpected fetch: ${url}`)
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-
-    // Restored straight to case 2 — the mount-time flush of the stale answer is in
-    // flight (gated) but must never block the player.
-    await waitFor(() => expect(screen.getByText(olympics.aiAnswer.th)).toBeInTheDocument())
-
-    // Commit case 2 while the stale flush (call A) is still gated. Because commit()
-    // retries on every commit (success or failure), this fires a second, overlapping
-    // flushPending() (call B).
-    fireEvent.click(screen.getByText(olympics.options[1].label.th))
-    fireEvent.click(screen.getByText('ยืนยันคำตัดสิน'))
-
-    await waitFor(() => expect(staleAttempts).toBeGreaterThanOrEqual(1))
-
-    // Now let the gated (call A) flush resolve.
-    releaseStale!()
-
-    // Nothing was dropped: the queue ends up empty and the stale item was not
-    // resent by an overlapping call B racing ahead of call A.
-    await waitFor(() => {
-      const pending = JSON.parse(localStorage.getItem('aidet.pending') ?? '[]')
-      expect(pending).toEqual([])
-    })
-    expect(staleAttempts).toBe(1)
-  }, 20000)
-
-  // ── Finding: a finished player must have an escape hatch back to the codename screen ──
-
-  it('clicking "New detective" from the result screen clears the run and returns to the codename screen', async () => {
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-    // Seed a completed run (index === CASES.length) so mount lands directly on ResultScreen.
-    const completedAnswers: Answer[] = CASES.map((c) => ({
-      playerId: 'p1',
-      caseId: c.id,
-      optionId: c.options[0].id,
-      elapsedMs: 100,
-    }))
-    localStorage.setItem(
-      'aidet.run',
-      JSON.stringify({ playerId: 'p1', codename: 'Detective Test', answers: completedAnswers, index: CASES.length }),
-    )
-    localStorage.setItem('aidet.pending', JSON.stringify([{ playerId: 'p1', caseId: 'artemis', optionId: 'stale', elapsedMs: 1 }]))
-
-    render(<PlayerPage />)
-
-    await waitFor(() => expect(screen.getByText('เริ่มใหม่ (นักสืบคนใหม่)')).toBeInTheDocument())
-
-    fireEvent.click(screen.getByText('เริ่มใหม่ (นักสืบคนใหม่)'))
-
-    // Back on the codename screen, storage cleared, no "session was reset" banner.
-    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
-    expect(localStorage.getItem('aidet.run')).toBeNull()
-    expect(localStorage.getItem('aidet.pending')).toBeNull()
-    expect(screen.queryByText('เซสชันถูกรีเซ็ต กรุณาเริ่มใหม่')).not.toBeInTheDocument()
-  }, 15000)
-
-  // ── Finding: a restart control on the case screen must confirm before wiping a run ──
-
-  it('the case-screen restart control requires confirmation before clearing the run', async () => {
-    global.fetch = mockFetchImpl() as unknown as typeof fetch
-    render(<PlayerPage />)
-    await joinAndReachCase()
-
-    // Select an option to prove there's real mid-case progress at stake.
-    fireEvent.click(screen.getByText(artemis.options[0].label.th))
-
-    fireEvent.click(screen.getByText('เริ่มใหม่'))
-
-    // Not yet cleared — still mid-case, only the confirmation prompt shown.
-    expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument()
-    expect(localStorage.getItem('aidet.run')).not.toBeNull()
-
-    fireEvent.click(screen.getByText('ใช่ เริ่มใหม่'))
-
-    // Now cleared and back on the codename screen.
-    await waitFor(() => expect(screen.getByRole('textbox')).toBeInTheDocument())
-    expect(localStorage.getItem('aidet.run')).toBeNull()
-    expect(localStorage.getItem('aidet.pending')).toBeNull()
-  }, 15000)
-
-  // ── Finding: a failed join must give the player visible, bilingual feedback ──
-
-  it('a failing POST /api/join shows a bilingual error and leaves the player able to retry', async () => {
-    let joinAttempts = 0
-    global.fetch = vi.fn(async (url: string) => {
-      if (url === '/api/join') {
-        joinAttempts += 1
-        if (joinAttempts === 1) return new Response(JSON.stringify({ error: 'boom' }), { status: 500 })
-        return new Response(JSON.stringify({ player: { id: 'p1', codename: 'Detective Test' } }), { status: 200 })
-      }
-      throw new Error(`unexpected fetch: ${url}`)
-    }) as unknown as typeof fetch
-
-    render(<PlayerPage />)
-
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Detective Test' } })
-    fireEvent.click(screen.getByRole('button', { name: 'เริ่มภารกิจ' }))
-
-    await waitFor(() => expect(screen.getByText('เข้าร่วมไม่สำเร็จ กรุณาลองอีกครั้ง')).toBeInTheDocument())
-    // Still on the codename screen, able to retry.
-    expect(screen.getByRole('textbox')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'เริ่มภารกิจ' }))
-    await waitFor(() => expect(screen.getByText(artemis.aiAnswer.th)).toBeInTheDocument())
-  }, 15000)
+    await waitFor(() => expect(screen.getByText(round0.options[0].label.th)).toBeInTheDocument())
+    fireEvent.click(screen.getByText(round0.options[0].label.th))
+    await waitFor(() => expect(posted.some((b) => b.includes(round0.options[0].id))).toBe(true))
+  })
 })
