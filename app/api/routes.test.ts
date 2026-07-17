@@ -5,6 +5,8 @@ import { GET as stats } from './stats/route'
 import { POST as reset } from './reset/route'
 import { GET as stateGET } from './state/route'
 import { POST as controlPOST } from './control/route'
+import { getStore } from '@/lib/store'
+import { ROUNDS } from '@/lib/game'
 
 const post = (body: unknown) => new Request('http://x', { method: 'POST', body: JSON.stringify(body) })
 const postRaw = (body: string) => new Request('http://x', { method: 'POST', body })
@@ -32,6 +34,16 @@ const resetLocal = () => {
   process.env.FACILITATOR_TOKEN = TEST_FACILITATOR_TOKEN
   return resetWithToken(TEST_FACILITATOR_TOKEN)
 }
+// Store now gates recordAnswer() on phase === 'investigate' (Tasks 1-2), so any
+// test that needs an answer to actually record must open the round first.
+const startGame = () =>
+  controlPOST(
+    new Request('http://localhost:3000/api/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-facilitator-token': TEST_FACILITATOR_TOKEN },
+      body: JSON.stringify({ action: 'start' }),
+    })
+  )
 
 describe('API routes', () => {
   beforeEach(async () => { await resetLocal() })
@@ -51,7 +63,8 @@ describe('API routes', () => {
 
   it('POST /api/answer records an answer that shows up in stats', async () => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    const res = await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale', elapsedMs: 500 }))
+    await startGame()
+    const res = await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale' }))
     expect(res.status).toBe(200)
 
     const body = await (await stats()).json()
@@ -60,32 +73,41 @@ describe('API routes', () => {
     expect(artemis.fooled).toBe(0) // 'stale' is the correct option
   })
 
-  it('POST /api/answer rejects an unknown case', async () => {
+  // The store no longer validates caseId against content -- it only checks the
+  // caseId against the currently open round. A caseId for a round that isn't
+  // open (or no round is open at all) is a *closed round*, not a bad request.
+  it('POST /api/answer returns 409 when caseId does not match the open round', async () => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    const res = await answer(post({ playerId: player.id, caseId: 'ghost', optionId: 'x', elapsedMs: 0 }))
-    expect(res.status).toBe(400)
+    await startGame()
+    const res = await answer(post({ playerId: player.id, caseId: 'ghost', optionId: 'x' }))
+    expect(res.status).toBe(409)
   })
 
   it('POST /api/answer rejects an unknown player', async () => {
-    const res = await answer(post({ playerId: 'nobody', caseId: 'artemis', optionId: 'stale', elapsedMs: 0 }))
+    await startGame()
+    const res = await answer(post({ playerId: 'nobody', caseId: 'artemis', optionId: 'stale' }))
     expect(res.status).toBe(400)
   })
 
-  it('POST /api/answer rejects an unknown option', async () => {
+  // The store no longer validates optionId against content -- option validity
+  // is a client/UI concern now; the server only cares that the round is open.
+  it('POST /api/answer accepts any optionId for the open round (option validity is a client concern)', async () => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    const res = await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'nonsense', elapsedMs: 0 }))
-    expect(res.status).toBe(400)
+    await startGame()
+    const res = await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'nonsense' }))
+    expect(res.status).toBe(200)
   })
 
-  it('POST /api/answer is idempotent: re-answering the same case overwrites, not duplicates', async () => {
+  it('POST /api/answer is idempotent: first answer wins, the replay does not duplicate or overwrite', async () => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'ai-correct', elapsedMs: 100 }))
-    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale', elapsedMs: 200 }))
+    await startGame()
+    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'ai-correct' }))
+    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale' }))
 
     const body = await (await stats()).json()
     const artemis = body.caseStats.find((c: { caseId: string }) => c.caseId === 'artemis')
     expect(artemis.answered).toBe(1)
-    expect(artemis.fooled).toBe(0) // final answer was 'stale', the correct option
+    expect(artemis.fooled).toBe(1) // first answer was 'ai-correct' (wrong); first-wins keeps it
   })
 
   it('GET /api/stats returns all five cases even with an empty room', async () => {
@@ -134,14 +156,19 @@ describe('API routes', () => {
     expect(res.status).toBe(400)
   })
 
-  it.each(['abc', NaN, Infinity])('POST /api/answer rejects a non-finite elapsedMs (%j)', async (elapsedMs) => {
+  // elapsedMs is server-stamped now (Task 5); any client-supplied value --
+  // sane, garbage, or absent -- must be ignored, never trusted or validated.
+  it.each(['abc', NaN, Infinity, undefined])('POST /api/answer ignores a client-supplied elapsedMs (%j) and still succeeds', async (elapsedMs) => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    const res = await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale', elapsedMs }))
-    expect(res.status).toBe(400)
+    await startGame()
+    const body: Record<string, unknown> = { playerId: player.id, caseId: 'artemis', optionId: 'stale' }
+    if (elapsedMs !== undefined) body.elapsedMs = elapsedMs
+    const res = await answer(post(body))
+    expect(res.status).toBe(200)
   })
 
   it('POST /api/answer rejects non-string playerId/caseId/optionId without crashing', async () => {
-    const res = await answer(post({ playerId: 123, caseId: {}, optionId: [], elapsedMs: 0 }))
+    const res = await answer(post({ playerId: 123, caseId: {}, optionId: [] }))
     expect(res.status).toBe(400)
   })
 
@@ -157,7 +184,8 @@ describe('API routes', () => {
 
   it('regression: after a valid answer, GET /api/stats returns a numeric score, not null', async () => {
     const { player } = await (await join(post({ codename: 'D' }))).json()
-    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale', elapsedMs: 500 }))
+    await startGame()
+    await answer(post({ playerId: player.id, caseId: 'artemis', optionId: 'stale' }))
     const body = await (await stats()).json()
     const row = body.leaderboard.find((r: { codename: string }) => r.codename === 'D')
     expect(row.score).not.toBeNull()
@@ -255,5 +283,41 @@ describe('/api/state and /api/control', () => {
     const bad = await controlPOST(req('http://localhost/api/control', { action: 'bogus' }, h))
     expect(bad.status).toBe(400)
     process.env.FACILITATOR_TOKEN = prev
+  })
+})
+
+describe('/api/answer status contract', () => {
+  const originalToken = process.env.FACILITATOR_TOKEN
+  afterEach(() => {
+    if (originalToken === undefined) delete process.env.FACILITATOR_TOKEN
+    else process.env.FACILITATOR_TOKEN = originalToken
+  })
+
+  it('answer during the open round returns 200; unknown player returns 400', async () => {
+    process.env.FACILITATOR_TOKEN = 'secret'
+    getStore().reset()
+    const joined = await (await join(req('http://localhost/api/join', { codename: 'Alice' }))).json()
+    await controlPOST(req('http://localhost/api/control', { action: 'start' }, { 'x-facilitator-token': 'secret' }))
+    const round0 = ROUNDS[0]
+    const ok = await answer(req('http://localhost/api/answer', {
+      playerId: joined.player.id, caseId: round0.id, optionId: round0.options[0].id,
+    }))
+    expect(ok.status).toBe(200)
+    const unknown = await answer(req('http://localhost/api/answer', {
+      playerId: 'ghost', caseId: round0.id, optionId: round0.options[0].id,
+    }))
+    expect(unknown.status).toBe(400)
+  })
+
+  it('answering the wrong/closed round returns 409', async () => {
+    process.env.FACILITATOR_TOKEN = 'secret'
+    getStore().reset()
+    const joined = await (await join(req('http://localhost/api/join', { codename: 'Bob' }))).json()
+    await controlPOST(req('http://localhost/api/control', { action: 'start' }, { 'x-facilitator-token': 'secret' }))
+    const wrong = ROUNDS[1]
+    const res = await answer(req('http://localhost/api/answer', {
+      playerId: joined.player.id, caseId: wrong.id, optionId: wrong.options[0].id,
+    }))
+    expect(res.status).toBe(409)
   })
 })

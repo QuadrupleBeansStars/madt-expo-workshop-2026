@@ -20,6 +20,6 @@ export async function POST(req: Request) {
 
   const trimmed = codename.trim()
   if (!trimmed) return NextResponse.json({ error: 'codename required' }, { status: 400 })
-  const player = getStore().join(trimmed.slice(0, 40))
+  const player = getStore().join(trimmed.slice(0, 40), Date.now())
   return NextResponse.json({ player })
 }
