@@ -3,9 +3,19 @@ import { POST as join } from './join/route'
 import { POST as answer } from './answer/route'
 import { GET as stats } from './stats/route'
 import { POST as reset } from './reset/route'
+import { GET as stateGET } from './state/route'
+import { POST as controlPOST } from './control/route'
 
 const post = (body: unknown) => new Request('http://x', { method: 'POST', body: JSON.stringify(body) })
 const postRaw = (body: string) => new Request('http://x', { method: 'POST', body })
+
+function req(url: string, body?: unknown, headers?: Record<string, string>) {
+  return new Request(url, {
+    method: body === undefined ? 'GET' : 'POST',
+    headers: { 'content-type': 'application/json', ...(headers ?? {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  })
+}
 
 const TEST_FACILITATOR_TOKEN = 'test-token-suite'
 const resetWithToken = (token: string) =>
@@ -213,5 +223,37 @@ describe('POST /api/reset protection', () => {
     expect(res.status).toBe(200)
     const body = await (await stats()).json()
     expect(body.detectives).toBe(0)
+  })
+})
+
+describe('/api/state and /api/control', () => {
+  it('GET /api/state returns the public game state', async () => {
+    const res = await stateGET(req('http://localhost/api/state'))
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toHaveProperty('phase')
+    expect(body).toHaveProperty('remainingMs')
+    expect(body).toHaveProperty('seq')
+  })
+
+  it('POST /api/control without a valid token is forbidden', async () => {
+    const prev = process.env.FACILITATOR_TOKEN
+    process.env.FACILITATOR_TOKEN = 'secret'
+    const res = await controlPOST(req('http://localhost/api/control', { action: 'start' }, { 'x-facilitator-token': 'wrong' }))
+    expect(res.status).toBe(403)
+    process.env.FACILITATOR_TOKEN = prev
+  })
+
+  it('POST /api/control start then next moves the room forward', async () => {
+    const prev = process.env.FACILITATOR_TOKEN
+    process.env.FACILITATOR_TOKEN = 'secret'
+    const h = { 'x-facilitator-token': 'secret' }
+    const start = await controlPOST(req('http://localhost/api/control', { action: 'start' }, h))
+    expect(start.status).toBe(200)
+    const after = await (await stateGET(req('http://localhost/api/state'))).json()
+    expect(after.phase).toBe('investigate')
+    const bad = await controlPOST(req('http://localhost/api/control', { action: 'bogus' }, h))
+    expect(bad.status).toBe(400)
+    process.env.FACILITATOR_TOKEN = prev
   })
 })
