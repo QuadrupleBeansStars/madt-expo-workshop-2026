@@ -25,6 +25,12 @@ describe('TV stage', () => {
     expect(screen.getByRole('button', { name: /start|เริ่มเกม/i })).toBeInTheDocument()
   })
 
+  it('lobby prompts for the host token when none is entered', async () => {
+    mockFetch({ phase: 'lobby' })
+    render(<TvPage />)
+    await waitFor(() => expect(screen.getByText(/enter the host token|ใส่รหัสผู้ดำเนินรายการ/i)).toBeInTheDocument())
+  })
+
   it('investigate shows the question and the answered count', async () => {
     const r0 = ROUNDS[0]
     mockFetch({ phase: 'investigate', roundIndex: 0, caseId: r0.id, remainingMs: 40_000, answeredCount: 3, playerCount: 5 })

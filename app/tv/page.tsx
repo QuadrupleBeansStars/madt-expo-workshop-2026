@@ -69,20 +69,22 @@ export default function TvPage() {
   return (
     <main className="crt relative min-h-screen overflow-hidden p-8" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
       <TokenBar token={token} onSave={saveToken} error={tokenError} lang={lang} />
-      <Stage state={state} stats={stats} lang={lang} origin={origin} onStart={() => control('start')} onNext={() => control('next')} />
+      <Stage state={state} stats={stats} lang={lang} origin={origin} tokenError={tokenError} hasToken={token.trim().length > 0} onStart={() => control('start')} onNext={() => control('next')} />
     </main>
   )
 }
 
 function TokenBar({ token, onSave, error, lang }: { token: string; onSave: (v: string) => void; error: boolean; lang: Lang }) {
+  const borderColor = error ? 'var(--rt-pink)' : token.trim() ? 'var(--rt-green)' : 'var(--rt-gold)'
   return (
-    <div className="absolute right-4 top-4 z-50 flex items-center gap-2 rounded-lg p-2" style={{ background: 'var(--rt-panel)', border: '2px solid var(--rt-border)' }}>
+    <div className="absolute right-4 top-4 z-50 flex items-center gap-2 rounded-lg p-2" style={{ background: 'var(--rt-panel)', border: `2px solid ${borderColor}` }}>
       <label className="text-xs" style={{ fontFamily: 'var(--font-thai), sans-serif', color: error ? 'var(--rt-pink)' : 'var(--rt-text)' }}>{t('hostTokenLabel', lang)}</label>
       <input
-        type="password"
-        defaultValue={token}
-        onBlur={(e) => onSave(e.target.value)}
-        className="w-28 rounded bg-black/40 px-2 py-1 text-sm"
+        type="text"
+        value={token}
+        onChange={(e) => onSave(e.target.value)}
+        placeholder="madt2026"
+        className="w-32 rounded bg-black/40 px-2 py-1 text-sm"
         style={{ border: '1px solid var(--rt-border)', color: 'var(--rt-text)' }}
       />
     </div>
@@ -90,15 +92,22 @@ function TokenBar({ token, onSave, error, lang }: { token: string; onSave: (v: s
 }
 
 function Stage({
-  state, stats, lang, origin, onStart, onNext,
+  state, stats, lang, origin, tokenError, hasToken, onStart, onNext,
 }: {
   state: PublicGameState | null
   stats: RoomStats | null
   lang: Lang
   origin: string
+  tokenError: boolean
+  hasToken: boolean
   onStart: () => void
   onNext: () => void
 }) {
+  const tokenHint = tokenError
+    ? (lang === 'th' ? '❌ รหัสผู้ดำเนินรายการไม่ถูกต้อง — พิมพ์ในกล่องมุมขวาบน แล้วกด Start อีกครั้ง' : '❌ Wrong host token — type it in the box (top-right), then press Start again')
+    : !hasToken
+      ? (lang === 'th' ? '⚠️ ใส่รหัสผู้ดำเนินรายการที่มุมขวาบนก่อนกด Start' : '⚠️ Enter the host token (top-right) before pressing Start')
+      : null
   if (!state || state.phase === 'lobby') {
     const names = stats?.leaderboard.map((r) => r.codename) ?? []
     return (
@@ -114,6 +123,9 @@ function Stage({
           </div>
         </div>
         <button type="button" className="pixel-btn gold text-lg" onClick={onStart}>{t('hostStart', lang)}</button>
+        {tokenHint ? (
+          <p className="max-w-lg text-lg font-bold" style={{ fontFamily: 'var(--font-thai), sans-serif', color: tokenError ? 'var(--rt-pink)' : 'var(--rt-gold)' }}>{tokenHint}</p>
+        ) : null}
       </div>
     )
   }
@@ -172,7 +184,12 @@ function Stage({
           <div className="mt-2 text-2xl" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('believedAiLabel', lang)}</div>
         </div>
       ) : null}
-      <button type="button" className="pixel-btn gold mx-auto mt-auto text-lg" onClick={onNext}>{t('hostNext', lang)}</button>
+      <div className="mx-auto mt-auto flex flex-col items-center gap-2">
+        <button type="button" className="pixel-btn gold text-lg" onClick={onNext}>{t('hostNext', lang)}</button>
+        {tokenError ? (
+          <p className="text-base font-bold" style={{ fontFamily: 'var(--font-thai), sans-serif', color: 'var(--rt-pink)' }}>{tokenHint}</p>
+        ) : null}
+      </div>
     </div>
   )
 }
