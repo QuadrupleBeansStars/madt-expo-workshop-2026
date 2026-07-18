@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Lang, PublicGameState } from '@/lib/types'
 import type { RoomStats } from '@/lib/stats'
 import { ROUNDS } from '@/lib/game'
+import { QRCodeSVG } from 'qrcode.react'
 import { Countdown } from '@/components/game/Countdown'
 import { Duck } from '@/components/game/Duck'
 import { t } from '@/lib/i18n'
@@ -116,6 +117,11 @@ function Stage({
         <p className="text-2xl" style={{ fontFamily: 'var(--font-retro), monospace', color: 'var(--rt-cyan)' }}>
           {t('joinOnPhone', lang)} <strong>{origin || '…'}</strong>
         </p>
+        {origin ? (
+          <div className="rounded-2xl bg-white p-5" aria-label="Join QR code">
+            <QRCodeSVG value={origin} size={240} level="M" />
+          </div>
+        ) : null}
         <div className="retro-panel min-w-[320px] p-4">
           <div className="pixel-title mb-2 text-sm">{t('detectivesInRoom', lang)}: {names.length}</div>
           <div className="flex flex-wrap justify-center gap-2" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
