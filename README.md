@@ -11,11 +11,15 @@ punchline — *"73% of you believed the AI."*
 
 ```bash
 npm install
-cp .env.local.example .env.local     # sets FACILITATOR_TOKEN (Start/Next/reset secret)
+cp .env.local.example .env.local     # sets FACILITATOR_TOKEN (Start/Next/reset secret) — CHANGE THE VALUE
 npm run build                        # ONCE, online — bundles the fonts so the app runs offline
-npm run dev:lan                      # binds 0.0.0.0 so phones on the LAN can reach it
+npm run start:lan                    # production server, binds 0.0.0.0 so phones can reach it
 ipconfig getifaddr en0               # your IP — players go to http://<that-ip>:3000
 ```
+
+> **Run the day on `start:lan`, not `dev:lan`.** The production server has no dev-only origin
+> restrictions (see [LAN gotcha](#the-lan-gotcha-blank-unclickable-pages)), starts faster, and is
+> the mode the room should see. Use `dev:lan` only while editing code.
 
 | URL | Who | What |
 | --- | --- | --- |
@@ -35,7 +39,8 @@ ipconfig getifaddr en0               # your IP — players go to http://<that-ip
 5. Latecomers who open the app mid-game **spectate** until you reset for the next session.
 
 > The host controls need `FACILITATOR_TOKEN` set in the server environment (`.env.local` is loaded
-> automatically). Inline alternative: `FACILITATOR_TOKEN=madt2026 npm run dev:lan`.
+> automatically, in production too). Inline alternative:
+> `FACILITATOR_TOKEN=<your-token> npm run start:lan`.
 
 ## Clearing the room between sessions
 
@@ -58,6 +63,36 @@ laptop on the LAN actually sent the request — because the dev server runs with
 phones can reach it. Any "localhost-only" check would therefore be inert and would let **any phone
 on the LAN drive or wipe the live room**. The shared token is the only real guard — treat it like
 any secret for the day (a sticky note on the laptop is fine).
+
+> ⚠️ **This repo is public.** `madt2026` in `.env.local.example` is a placeholder and is visible to
+> anyone — do **not** run the event on it. Put a different value in your (gitignored) `.env.local`,
+> or any attendee could look it up and reset the room mid-session.
+
+## The LAN gotcha: blank, unclickable pages
+
+**Symptom:** the TV and phone pages render and look correct, but nothing responds — **Start** does
+nothing, typing a codename never enables **Begin the mission**, and the TV's join URL and QR code
+are missing entirely. Only happens when you reach the app by **IP** (`http://10.x.x.x:3000`), never
+via `localhost`.
+
+**Cause:** Next.js blocks cross-origin requests to dev-only resources. Reaching the dev server from
+a LAN IP gets `/_next/webpack-hmr` blocked, React never hydrates, and you're left with static HTML
+that has no event handlers attached. The missing QR is the tell — it's computed client-side, so its
+absence means client JS never ran. Check the server log for:
+
+```
+⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "10.88.20.122".
+```
+
+**Fixed** in `next.config.ts` via `allowedDevOrigins`. Patterns match per dot-segment, so the
+private ranges below cover any venue IP without hardcoding one:
+
+```ts
+allowedDevOrigins: ['10.*.*.*', '192.168.*.*', '172.*.*.*'],
+```
+
+This applies to `dev`/`dev:lan` only — `npm run start:lan` is unaffected, which is the other reason
+to run the day in production mode.
 
 ## Player experience notes
 
@@ -100,9 +135,10 @@ second-screen stats view.
 
 ```bash
 npm run dev        # localhost only, for local development
-npm run dev:lan    # binds 0.0.0.0, for the actual workshop
+npm run dev:lan    # binds 0.0.0.0 — for editing code with phones connected
 npm run build      # production build (also bundles fonts)
-npm test           # vitest run — full suite
+npm run start:lan  # production server on 0.0.0.0 — USE THIS ON THE DAY
+npm test           # vitest run — full suite (22 files, 168 tests)
 ```
 
 Type-check with `npx tsc --noEmit`. Styling is Tailwind v4 (CSS-first): the theme lives in
