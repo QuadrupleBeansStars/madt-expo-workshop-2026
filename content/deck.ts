@@ -75,7 +75,7 @@ export const DECK: Slide[] = [
     },
     body: {
       th: '"แล้วแต่ว่าใครซื้อ" ใกล้เคียงแล้ว — แต่ให้แม่นกว่านั้น: มันขึ้นอยู่กับว่าใครมี "การตัดสินใจ" ที่ต้องทำ ตอนนี้ยังไม่มีใครในห้องนี้ทำอะไรต่างไปเพราะข้อมูลชุดนี้เลย มันจึงมีค่า ฿0 แต่ร้านกาแฟข้างล่างต้องตัดสินใจพรุ่งนี้เช้าว่าจะจัดพนักงานกี่คนตอน 7 โมง',
-      en: '"Depends who\'s buying" is close — but sharpen it: it depends who has a decision to make. Nobody in this room has done anything differently because of this data, so it is worth ฿0. But the cafe downstairs has to decide how many staff to roster at 7am tomorrow.',
+      en: '“Depends who’s buying” is close — but sharpen it: it depends who has a decision to make. Nobody in this room has done anything differently because of this data, so it is worth ฿0. But the cafe downstairs has to decide how many staff to roster at 7am tomorrow.',
     },
     lesson: {
       th: 'ข้อมูลดิบคือ "ต้นทุน" ไม่ใช่ "สินทรัพย์"',
@@ -144,7 +144,7 @@ export const DECK: Slide[] = [
     },
     body: {
       th: 'ขายขาดครั้งเดียว = คุณส่งมอบสินทรัพย์ไปแล้ว และเขาไม่ต้องการคุณอีกเลย แต่ช่วงเร่งด่วนของสัปดาห์หน้าไม่เหมือนสัปดาห์นี้ — ข้อมูลเสื่อมค่าลงเรื่อย ๆ ในขณะที่ "การตัดสินใจ" นั้นเกิดซ้ำทุกวันไม่มีวันจบ ส่วนแบ่งรายได้คือคำตอบที่ลึกที่สุด เพราะคุณได้เงินตามมูลค่าที่คุณสร้างขึ้นจริง',
-      en: 'Sell once and you have handed over the asset — they never need you again. But next week\'s rush is different: data depreciates, while the decision recurs forever. The revenue share is the sophisticated answer, because you get paid in proportion to the value you actually created.',
+      en: 'Sell once and you have handed over the asset — they never need you again. But next week’s rush is different: data depreciates, while the decision recurs forever. The revenue share is the sophisticated answer, because you get paid in proportion to the value you actually created.',
     },
     lesson: {
       th: 'ขาย "การตัดสินใจที่เกิดซ้ำ" ไม่ใช่ "ข้อมูลครั้งเดียว"',
