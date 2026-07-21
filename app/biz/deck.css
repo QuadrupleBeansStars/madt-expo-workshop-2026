@@ -1,0 +1,414 @@
+/*
+ * Deck visual foundation — "Data in Business" / ข้อมูลกับธุรกิจ
+ *
+ * A sibling of the Store-Manager Insight Assistant pitch deck: oversized editorial
+ * headline with one phrase in the accent colour, eyebrow with a leading rule, giant
+ * low-opacity ghost numeral, per-slide accent driven by --deck-clr, left colour rail.
+ *
+ * This is deliberately NOT the retro/CRT AI Detective look. It does not import or
+ * extend app/globals.css — the deck owns its own token space, every name prefixed
+ * `--deck-` / `.deck-` so the two can coexist on one origin without collision.
+ *
+ * Primary constraint: legibility from the back of a lecture room on a projector.
+ * That is why the type scale is large and clamp()-driven, contrast is high, and
+ * muted text never drops below a readable weight.
+ *
+ * FONTS: the deck never uses the AI Detective pixel display face. It carries no Thai
+ * glyphs, so Thai falls back mid-heading and renders small and misaligned — a live
+ * defect on the sibling app. Everything here uses a Thai-capable sans.
+ */
+
+/* ── Tokens ──────────────────────────────────────────────────────────────── */
+
+:root {
+  --deck-bg: #ffffff;
+  --deck-card: #ffffff;
+  --deck-ink: #15160f;
+  --deck-muted: #6a6c64;
+  --deck-line: #e7e7e1;
+  --deck-line-strong: #d3d3cb;
+
+  /* Named accents. Pass these to SlideFrame's `accent` prop rather than a raw hex,
+     so a slide's colour re-tunes itself for light and dark instead of staying put. */
+  --deck-green: #12925a;
+  --deck-mango: #f2941b;
+  --deck-red: #e04b3f;
+  --deck-blue: #2f6df6;
+  --deck-berry: #d6336c;
+
+  /* Set per slide as an inline style on [data-testid="slide-frame"]. */
+  --deck-clr: var(--deck-green);
+  --deck-soft: color-mix(in srgb, var(--deck-clr) 9%, var(--deck-bg));
+
+  --deck-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI",
+    "Helvetica Neue", Arial, "Noto Sans Thai", "Noto Sans", sans-serif;
+
+  /* Horizontal gutters. The left gutter is wider to clear the rail. */
+  --deck-pad-l: clamp(44px, 8vw, 124px);
+  --deck-pad-r: clamp(34px, 7vw, 104px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --deck-bg: #101109;
+    --deck-card: #1a1b12;
+    --deck-ink: #f0efe6;
+    --deck-muted: #a0a196;
+    --deck-line: #2a2b20;
+    --deck-line-strong: #3a3b2e;
+
+    --deck-green: #2fb877;
+    --deck-mango: #ffab3d;
+    --deck-red: #f0655a;
+    --deck-blue: #5b8bff;
+    --deck-berry: #f45b90;
+  }
+}
+
+/* `data-theme` on the root overrides the OS preference in BOTH directions — a
+   projector often reports the laptop's theme, not the room's lighting. */
+:root[data-theme="light"] {
+  --deck-bg: #ffffff;
+  --deck-card: #ffffff;
+  --deck-ink: #15160f;
+  --deck-muted: #6a6c64;
+  --deck-line: #e7e7e1;
+  --deck-line-strong: #d3d3cb;
+
+  --deck-green: #12925a;
+  --deck-mango: #f2941b;
+  --deck-red: #e04b3f;
+  --deck-blue: #2f6df6;
+  --deck-berry: #d6336c;
+}
+
+:root[data-theme="dark"] {
+  --deck-bg: #101109;
+  --deck-card: #1a1b12;
+  --deck-ink: #f0efe6;
+  --deck-muted: #a0a196;
+  --deck-line: #2a2b20;
+  --deck-line-strong: #3a3b2e;
+
+  --deck-green: #2fb877;
+  --deck-mango: #ffab3d;
+  --deck-red: #f0655a;
+  --deck-blue: #5b8bff;
+  --deck-berry: #f45b90;
+}
+
+/* ── Slide shell ─────────────────────────────────────────────────────────── */
+
+.deck-slide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: clamp(26px, 5vw, 68px) var(--deck-pad-r) clamp(76px, 11vh, 118px)
+    var(--deck-pad-l);
+  overflow: hidden;
+
+  background: var(--deck-bg);
+  color: var(--deck-ink);
+  font-family: var(--deck-sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+.deck-slide *,
+.deck-slide *::before,
+.deck-slide *::after {
+  box-sizing: border-box;
+}
+
+/* Fixed accent rail down the left edge. --deck-progress (0–1) fills it as the
+   deck advances, so the room can see how much is left without a page count. */
+.deck-rail {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 10px;
+  z-index: 30;
+  background: color-mix(in srgb, var(--deck-clr) 22%, var(--deck-bg));
+  transition: background-color 0.55s ease;
+}
+
+.deck-rail__fill {
+  display: block;
+  width: 100%;
+  height: calc(var(--deck-progress, 0) * 100%);
+  background: var(--deck-clr);
+  transition: height 0.5s cubic-bezier(0.2, 0.7, 0.2, 1),
+    background-color 0.55s ease;
+}
+
+/* Giant ghost chapter numeral, top-right, behind everything. */
+.deck-ghost {
+  position: absolute;
+  top: clamp(-24px, -4vh, -10px);
+  right: -0.03em;
+  z-index: 0;
+  font-size: clamp(150px, 30vw, 400px);
+  font-weight: 800;
+  line-height: 0.8;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+  opacity: 0.07;
+  pointer-events: none;
+  user-select: none;
+  transition: color 0.55s ease;
+}
+
+.deck-stage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.deck-body {
+  margin-top: clamp(18px, 2.6vw, 30px);
+}
+
+/* ── Bilingual type ──────────────────────────────────────────────────────── */
+
+/*
+ * One string, both scripts, always at once — there is no toggle in this deck.
+ * English leads at full weight; Thai sits directly beneath, smaller and muted,
+ * so a mixed room reads whichever line it wants.
+ */
+.deck-bi {
+  display: block;
+  text-wrap: balance;
+}
+
+.deck-bi__en,
+.deck-bi__th {
+  display: block;
+}
+
+.deck-bi__th {
+  color: var(--deck-muted);
+  font-weight: 400;
+  letter-spacing: 0;
+  /* Thai has tall ascenders and low descenders; it needs more leading than Latin. */
+  line-height: 1.5;
+}
+
+/* hero — the oversized slide headline. */
+.deck-bi--hero .deck-bi__en {
+  font-size: clamp(34px, 6vw, 84px);
+  font-weight: 800;
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+
+.deck-bi--hero .deck-bi__th {
+  margin-top: clamp(12px, 1.8vw, 22px);
+  font-size: clamp(17px, 2.1vw, 30px);
+  line-height: 1.4;
+}
+
+/* body — paragraphs and leads. Capped at ~40ch so lines stay scannable. */
+.deck-bi--body .deck-bi__en {
+  max-width: 40ch;
+  font-size: clamp(18px, 2.2vw, 30px);
+  font-weight: 450;
+  line-height: 1.4;
+  letter-spacing: -0.008em;
+}
+
+.deck-bi--body .deck-bi__th {
+  max-width: 44ch;
+  margin-top: clamp(6px, 0.9vw, 12px);
+  font-size: clamp(15px, 1.7vw, 22px);
+}
+
+/* label — eyebrows, captions, chrome. */
+.deck-bi--label .deck-bi__en {
+  font-size: clamp(12px, 1.15vw, 16px);
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.deck-bi--label .deck-bi__th {
+  margin-top: 4px;
+  font-size: clamp(12px, 1.05vw, 15px);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  /* Thai has no letter case; uppercasing it does nothing but break shaping. */
+  text-transform: none;
+}
+
+/* Highlight one phrase in the slide's accent — the deck's single loud move. */
+.deck-hl {
+  color: var(--deck-clr);
+  transition: color 0.55s ease;
+}
+
+/* ── Eyebrow ─────────────────────────────────────────────────────────────── */
+
+/* Small-caps chapter label in the accent colour, with a short leading rule. */
+.deck-eyebrow {
+  position: relative;
+  padding-left: 38px;
+  color: var(--deck-clr);
+  transition: color 0.55s ease;
+}
+
+.deck-eyebrow::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.52em;
+  width: 26px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--deck-clr);
+  transition: background-color 0.55s ease;
+}
+
+.deck-eyebrow .deck-bi__th {
+  /* The Thai subline inherits the accent at reduced strength rather than going
+     grey, so the eyebrow reads as one object instead of two stacked labels. */
+  color: color-mix(in srgb, var(--deck-clr) 62%, var(--deck-muted));
+}
+
+/* ── Chrome ──────────────────────────────────────────────────────────────── */
+
+/* Keyboard hint, top-left. Fades back once the room has seen it. */
+.deck-hint {
+  position: absolute;
+  top: clamp(16px, 2.4vh, 26px);
+  left: var(--deck-pad-l);
+  margin: 0;
+  z-index: 21;
+  font-size: clamp(11px, 1vw, 13px);
+  letter-spacing: 0.06em;
+  color: var(--deck-muted);
+  pointer-events: none;
+}
+
+.deck-chrome {
+  position: absolute;
+  left: var(--deck-pad-l);
+  right: var(--deck-pad-r);
+  bottom: clamp(14px, 2.2vh, 22px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/*
+ * Deck title, bottom-left beside the counter.
+ *
+ * SlideFrame does not render this element — the projector shell (task 9) owns it,
+ * because the deck title is a constant for the whole run, not a per-slide value.
+ * The style lives here so the shell has it ready.
+ */
+.deck-title {
+  margin: 0;
+  font-size: clamp(11px, 1vw, 13px);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.deck-counter {
+  margin: 0;
+  font-size: clamp(12px, 1.1vw, 15px);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-muted);
+}
+
+.deck-counter__now {
+  color: var(--deck-clr);
+  font-weight: 800;
+  transition: color 0.55s ease;
+}
+
+.deck-counter__slash {
+  color: var(--deck-line-strong);
+}
+
+.deck-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.deck-nav__btn {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--deck-line-strong);
+  border-radius: 10px;
+  background: var(--deck-card);
+  color: var(--deck-ink);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.deck-nav__btn:hover {
+  border-color: var(--deck-clr);
+  color: var(--deck-clr);
+  transform: translateY(-1px);
+}
+
+.deck-nav__btn:focus-visible {
+  outline: 2px solid var(--deck-clr);
+  outline-offset: 2px;
+}
+
+.deck-nav__btn svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Responsive & motion ─────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  :root {
+    --deck-pad-l: 30px;
+    --deck-pad-r: 20px;
+  }
+
+  .deck-rail {
+    width: 6px;
+  }
+
+  .deck-hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deck-slide,
+  .deck-rail,
+  .deck-rail__fill,
+  .deck-ghost,
+  .deck-eyebrow,
+  .deck-eyebrow::before,
+  .deck-counter__now,
+  .deck-hl,
+  .deck-nav__btn {
+    transition: none !important;
+  }
+}
