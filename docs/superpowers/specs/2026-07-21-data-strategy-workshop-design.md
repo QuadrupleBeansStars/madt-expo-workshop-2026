@@ -105,7 +105,10 @@ actually created.
   mostly-student room.
 - **The ฿ figures are illustrative.** ฿5,000 / ฿3,000 / 5% should be sanity-checked against real
   Bangkok café economics before the day. They need to feel plausible, not be defensible.
-- Bilingual TH/EN throughout, matching AI Detective's `LocalizedText` convention.
+- **Bilingual, both languages visible at once** — English headline with a Thai subline beneath, per
+  §6. There is **no language toggle**: nobody should have to choose on behalf of a mixed room, and
+  the projector has space for both. Content still uses AI Detective's `LocalizedText` shape; only
+  the rendering differs.
 
 ---
 
@@ -123,9 +126,13 @@ a working, tested, already-pushed app.
 
 | | |
 | --- | --- |
-| **New** | `content/deck.ts`, `lib/deck.ts`, `app/api/deck/*`, `app/biz`, `app/biz/tv`, `.deck-state.json` |
-| **Shared** | `lib/i18n.ts` (extended), host-token guard, `Countdown`, the `MemoryRoomStore` pattern |
-| **Untouched** | every AI Detective code path |
+| **New** | `content/deck.ts`, `content/deck-strings.ts`, `lib/deck.ts`, `lib/deck-store.ts`, `app/api/deck/*`, `app/biz`, `app/biz/tv`, `app/biz/deck.css`, `components/deck/*`, `.deck-state.json` |
+| **Shared** | `LocalizedText` types only, plus the *patterns* (polling + seq guard, host-token guard, atomic persist) — copied, not imported |
+| **Untouched** | every AI Detective code path, including `lib/i18n.ts` |
+
+The deck carries its own strings in `content/deck-strings.ts` rather than extending `lib/i18n.ts`,
+because with both languages always rendered there is no `t(key, lang)` lookup to extend. That keeps
+the shared-file count at zero.
 
 Both workshops run from the same server on the same laptop; only the URL differs.
 
@@ -216,7 +223,40 @@ this is what caught the `allowedDevOrigins` hydration failure in AI Detective.
 
 ---
 
-## 6. Out of scope
+## 6. Visual language
+
+**Reference:** `~/Desktop/MADT-IS/pitch/index.html` (the Store-Manager pitch deck). The deck should
+feel like a sibling of that work, not like AI Detective.
+
+**Explicitly NOT the AI Detective look.** That app's retro/CRT pixel theme is deliberate for a game
+and wrong for this. In particular, do not reuse `Press Start 2P` for Thai text — it carries no Thai
+glyphs, so Thai falls back mid-heading and renders small and baseline-misaligned. This deck uses a
+Thai-capable sans throughout.
+
+Adopted from the reference:
+
+| Element | Treatment |
+| --- | --- |
+| **Type** | One oversized bold headline per slide; the load-bearing phrase in the accent colour, the rest in ink. Everything else is much smaller — the contrast *is* the design. |
+| **Bilingual** | EN headline, Thai subline directly beneath at roughly half the size, muted. Both always visible; no toggle. |
+| **Eyebrow** | Small caps chapter label with a short leading rule, in the accent colour (`— DATA IN BUSINESS`). |
+| **Ghost numeral** | Giant chapter number bleeding off the top-right at ~7% opacity. |
+| **Accent per chapter** | Each beat owns a colour, carried by a `--clr` custom property: hook, Beat 1, Beat 2, Beat 3, close. Transitions between slides. |
+| **Colour rail** | Fixed accent-coloured strip down the left edge. |
+| **Theme** | Light and dark, following `prefers-color-scheme`, with a manual toggle that wins. Every colour is a CSS custom property. |
+| **Chrome** | Deck title + `NN / 10` counter bottom-left; prev/next buttons bottom-right; `use ← / →` hint top-left. |
+
+**Keyboard navigation is required** — ←/→ drive the deck, matching the reference. On the TV surface
+these map to the same host actions as the on-screen buttons, so the facilitator can present from a
+clicker without touching the laptop.
+
+**Where this deck must differ from the reference:** the reference is a static file with no live
+data. Three slides here carry live vote bars that animate as the room answers, and the deck is
+driven by server state rather than local slide index — so the phones and the projector cannot
+disagree about which slide is live. Keyboard/button navigation issues a host action; the rendered
+slide always follows server state.
+
+## 7. Out of scope
 
 - Scoring, leaderboards, per-player results
 - Persisting results between sessions or exporting them

@@ -6,12 +6,17 @@
 
 **Architecture:** A parallel surface inside the existing Next.js app. New content model, slide machine, store, API namespace (`/api/deck/*`), and two routes (`/biz`, `/biz/tv`). Mirrors AI Detective's server-owned-state + polling-follower pattern but does **not** modify any AI Detective file.
 
-**Tech Stack:** Next.js 16 (App Router), React 19, TypeScript, Zod 4, Tailwind v4 (CSS-first, theme in `app/globals.css`), Vitest + Testing Library.
+**Tech Stack:** Next.js 16 (App Router), React 19, TypeScript, Zod 4, Tailwind v4 (CSS-first), Vitest + Testing Library. The deck's own styling lives in `app/biz/deck.css` — it does not extend AI Detective's retro theme in `app/globals.css`.
+
+**Design reference:** `~/Desktop/MADT-IS/pitch/index.html` — read it before any UI task.
 
 ## Global Constraints
 
-- **Do not modify any AI Detective file.** Specifically off-limits: `lib/game.ts`, `lib/store.ts`, `lib/types.ts`, `lib/stats.ts`, `lib/scoring.ts`, `content/cases.ts`, `app/page.tsx`, `app/tv/`, `app/dashboard/`, `app/api/{state,join,answer,control,reset}/`. Additive-only exception: `lib/i18n.ts` (append keys, change none).
-- **All user-facing copy is bilingual** `{ th, en }` via the existing `LocalizedTextSchema` from `lib/types.ts`.
+- **Do not modify any AI Detective file.** Off-limits: `lib/game.ts`, `lib/store.ts`, `lib/types.ts`, `lib/stats.ts`, `lib/scoring.ts`, `lib/i18n.ts`, `content/cases.ts`, `app/page.tsx`, `app/tv/`, `app/dashboard/`, `app/api/{state,join,answer,control,reset}/`. **No exceptions** — the deck has its own strings in `content/deck-strings.ts`, so even `lib/i18n.ts` stays untouched. Read-only reference is fine and encouraged.
+- **Both languages render at once — there is NO language toggle.** English leads; Thai sits beneath it, smaller and muted. No component takes a `lang` prop. Copy is still `{ th, en }` via `LocalizedTextSchema` from `lib/types.ts`; only the rendering differs.
+- **Visual language: the deck is a sibling of `~/Desktop/MADT-IS/pitch/index.html`, NOT of AI Detective.** Editorial layout, oversized bold headline with the key phrase in an accent colour, eyebrow chapter label, ghost chapter numeral, per-chapter accent via `--deck-clr`, left colour rail, light+dark themes. Read the reference before writing UI.
+- **Never use `Press Start 2P` in this deck.** It carries no Thai glyphs, so Thai falls back mid-heading and renders small and baseline-misaligned. This is a live defect on the AI Detective TV; do not reproduce it. Use a Thai-capable sans throughout.
+- **Accepted duplication (decided by the project owner):** `MemoryDeckStore.persist()`/`.load()` intentionally duplicate `MemoryRoomStore`'s. Extracting a shared helper would mean editing `lib/store.ts`, which ships in a month. Do not flag this as a defect; do not refactor it.
 - **Server owns all state.** Clients never derive phase, timing, or tallies.
 - **Persistence file:** `.deck-state.json` (already covered by `.gitignore`'s `.room-state.json`? NO — must be added; see Task 3 Step 7).
 - **Host control reuses `FACILITATOR_TOKEN`** with the exact guard from `app/api/control/route.ts:5-12`.
@@ -1273,27 +1278,273 @@ git commit -m "feat(deck): API namespace for state, join, vote and host control"
 
 ---
 
-### Task 5: Live result bar chart
+### Task 5: Deck chrome strings
+
+**Files:**
+- Create: `content/deck-strings.ts`
+- Test: `content/deck-strings.test.ts`
+
+**Interfaces:**
+- Consumes: `LocalizedText` from `lib/types.ts`.
+- Produces: `UI` — a frozen record of `LocalizedText` for every non-slide string.
+
+There is **no language toggle** (spec §2a). Every string renders in both languages at once, so the
+deck needs `LocalizedText` values, not a `t(key, lang)` lookup. This also means `lib/i18n.ts` is
+**not modified at all** — one less shared file touched.
+
+- [ ] **Step 1: Write the failing test `content/deck-strings.test.ts`**
+
+```ts
+import { describe, expect, it } from 'vitest'
+import { UI } from './deck-strings'
+
+describe('deck chrome strings', () => {
+  it('every string is present and non-empty in both languages', () => {
+    for (const [key, value] of Object.entries(UI)) {
+      expect(value.en.trim(), `${key}.en`).not.toBe('')
+      expect(value.th.trim(), `${key}.th`).not.toBe('')
+    }
+  })
+
+  it('has the keys the surfaces need', () => {
+    const required = [
+      'deckTitle', 'joinPrompt', 'waitingToStart', 'voteReceived', 'changeVote',
+      'votingClosed', 'lookAtScreen', 'thanks', 'start', 'next', 'back',
+      'closeVoting', 'lesson', 'peopleInRoom', 'votes', 'hostToken', 'tokenRequired',
+    ] as const
+    for (const k of required) expect(UI[k], k).toBeDefined()
+  })
+
+  it('does not translate a string to itself', () => {
+    for (const [key, value] of Object.entries(UI)) {
+      expect(value.en, `${key} looks untranslated`).not.toBe(value.th)
+    }
+  })
+})
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `npx vitest run content/deck-strings.test.ts`
+Expected: FAIL — cannot resolve `./deck-strings`.
+
+- [ ] **Step 3: Write `content/deck-strings.ts`**
+
+```ts
+import type { LocalizedText } from '@/lib/types'
+
+/**
+ * Chrome strings. Every one renders in BOTH languages at once (spec §2a) — there is
+ * no toggle, so these are LocalizedText values rather than i18n lookup keys.
+ */
+export const UI = {
+  deckTitle:      { en: 'Data in Business', th: 'ข้อมูลกับธุรกิจ' },
+  joinPrompt:     { en: 'Join on your phone at', th: 'เข้าร่วมด้วยมือถือที่' },
+  waitingToStart: { en: 'Waiting for the host to start', th: 'รอผู้ดำเนินรายการเริ่ม' },
+  voteReceived:   { en: 'Vote received', th: 'บันทึกคำตอบแล้ว' },
+  changeVote:     { en: 'Changed your mind? Tap again', th: 'เปลี่ยนใจได้ กดใหม่ได้เลย' },
+  votingClosed:   { en: 'Voting closed', th: 'ปิดโหวตแล้ว' },
+  lookAtScreen:   { en: 'Look at the big screen', th: 'ดูที่จอใหญ่' },
+  thanks:         { en: 'Thanks for playing', th: 'ขอบคุณที่ร่วมสนุก' },
+  start:          { en: 'Start', th: 'เริ่ม' },
+  next:           { en: 'Next', th: 'ถัดไป' },
+  back:           { en: 'Back', th: 'ย้อนกลับ' },
+  closeVoting:    { en: 'Close voting', th: 'ปิดโหวต' },
+  lesson:         { en: 'Lesson', th: 'บทเรียน' },
+  peopleInRoom:   { en: 'people in the room', th: 'คนในห้อง' },
+  votes:          { en: 'votes', th: 'โหวตแล้ว' },
+  hostToken:      { en: 'Host token', th: 'รหัสผู้ดำเนินรายการ' },
+  tokenRequired:  { en: 'Enter the host token before pressing Start', th: 'ใส่รหัสผู้ดำเนินรายการก่อนกดเริ่ม' },
+} as const satisfies Record<string, LocalizedText>
+```
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `npx vitest run content/deck-strings.test.ts`
+Expected: PASS, 3 tests.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add content/deck-strings.ts content/deck-strings.test.ts
+git commit -m "feat(deck): bilingual chrome strings, no language toggle"
+```
+
+---
+
+### Task 6: Visual foundation
+
+**Files:**
+- Create: `app/biz/deck.css`
+- Create: `components/deck/Bilingual.tsx`
+- Create: `components/deck/SlideFrame.tsx`
+- Test: `components/deck/SlideFrame.test.tsx`
+
+**REQUIRED SKILL:** Invoke `frontend-design` before writing this task.
+
+**REQUIRED READING:** `/Users/nchawanp/Desktop/MADT-IS/pitch/index.html` — the reference deck. Read
+its `<style>` block and one `<section class="slide">` before writing anything. This deck should read
+as a sibling of that one.
+
+**Interfaces:**
+- Consumes: `LocalizedText` from `lib/types.ts`.
+- Produces: `Bilingual` and `SlideFrame` components; the `deck-*` CSS custom properties and classes.
+
+**Design requirements** (spec §6). This is NOT the AI Detective retro/CRT look:
+
+- **Do not use `Press Start 2P` anywhere in this deck.** It has no Thai glyphs; Thai falls back
+  mid-heading and renders small and misaligned. Use a Thai-capable sans for everything.
+- CSS custom properties for every colour, defined for light and dark. Follow
+  `prefers-color-scheme`, with a `data-theme` attribute on the root overriding it in both directions.
+- `--deck-clr` accent, set per slide, with a transition between slides.
+- A fixed accent-coloured rail down the left edge.
+- Chrome: deck title + `NN / 10` counter bottom-left, prev/next bottom-right, `use ← / →` top-left.
+- Ghost numeral: the chapter number, huge, top-right, ~7% opacity, behind content.
+- Eyebrow: small-caps label with a short leading rule, in the accent colour.
+
+`Bilingual` renders one `LocalizedText` as English-primary with a Thai subline:
+
+```ts
+type BilingualProps = {
+  text: LocalizedText
+  /** 'hero' = oversized slide headline; 'body' = paragraph; 'label' = eyebrow/small. */
+  as?: 'hero' | 'body' | 'label'
+  className?: string
+}
+```
+
+`SlideFrame` wraps every slide with the chrome:
+
+```ts
+type SlideFrameProps = {
+  chapter: LocalizedText      // eyebrow text
+  chapterNumber: string       // ghost numeral, e.g. '01'
+  accent: string              // CSS colour value for --deck-clr
+  slideNumber: number         // 1-based
+  slideTotal: number
+  children: React.ReactNode
+}
+```
+
+- [ ] **Step 1: Write the failing test `components/deck/SlideFrame.test.tsx`**
+
+```tsx
+import { describe, expect, it } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import { SlideFrame } from './SlideFrame'
+import { Bilingual } from './Bilingual'
+
+const chapter = { en: 'Data in Business', th: 'ข้อมูลกับธุรกิจ' }
+
+describe('Bilingual', () => {
+  it('renders BOTH languages at once — there is no toggle', () => {
+    render(<Bilingual text={{ en: 'What is it worth?', th: 'มันมีค่าเท่าไร?' }} as="hero" />)
+    expect(screen.getByText('What is it worth?')).toBeDefined()
+    expect(screen.getByText('มันมีค่าเท่าไร?')).toBeDefined()
+  })
+
+  it('marks each language with its lang attribute for correct font shaping', () => {
+    render(<Bilingual text={{ en: 'Hello', th: 'สวัสดี' }} as="body" />)
+    expect(screen.getByText('Hello').closest('[lang="en"]')).not.toBeNull()
+    expect(screen.getByText('สวัสดี').closest('[lang="th"]')).not.toBeNull()
+  })
+})
+
+describe('SlideFrame', () => {
+  const frame = (over: Partial<React.ComponentProps<typeof SlideFrame>> = {}) => (
+    <SlideFrame
+      chapter={chapter} chapterNumber="01" accent="#f2941b"
+      slideNumber={4} slideTotal={10} {...over}
+    >
+      <p>slide body</p>
+    </SlideFrame>
+  )
+
+  it('renders its children', () => {
+    render(frame())
+    expect(screen.getByText('slide body')).toBeDefined()
+  })
+
+  it('shows the eyebrow chapter label in both languages', () => {
+    render(frame())
+    expect(screen.getByText('Data in Business')).toBeDefined()
+    expect(screen.getByText('ข้อมูลกับธุรกิจ')).toBeDefined()
+  })
+
+  it('shows the ghost chapter numeral', () => {
+    render(frame())
+    expect(screen.getByTestId('ghost-numeral').textContent).toBe('01')
+  })
+
+  it('shows the slide counter', () => {
+    render(frame())
+    expect(screen.getByTestId('slide-counter').textContent).toMatch(/4\s*\/\s*10/)
+  })
+
+  it('applies the accent colour as a CSS custom property', () => {
+    render(frame({ accent: '#12925a' }))
+    const root = screen.getByTestId('slide-frame')
+    expect(root.style.getPropertyValue('--deck-clr')).toBe('#12925a')
+  })
+
+  it('never renders the AI Detective pixel font', () => {
+    const { container } = render(frame())
+    expect(container.innerHTML).not.toContain('Press Start 2P')
+  })
+})
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `npx vitest run components/deck/SlideFrame.test.tsx`
+Expected: FAIL — cannot resolve `./SlideFrame`.
+
+- [ ] **Step 3: Invoke `frontend-design`, read the reference deck, then implement**
+
+Write `app/biz/deck.css` (custom properties, rail, chrome, ghost, eyebrow, hero type scale, light/dark),
+`components/deck/Bilingual.tsx`, and `components/deck/SlideFrame.tsx` to the requirements above.
+
+Required `data-testid`s: `slide-frame`, `ghost-numeral`, `slide-counter`.
+`--deck-clr` must be set as an inline style on the `slide-frame` element.
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `npx vitest run components/deck/SlideFrame.test.tsx`
+Expected: PASS, 8 tests.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add app/biz/deck.css components/deck/Bilingual.tsx components/deck/SlideFrame.tsx components/deck/SlideFrame.test.tsx
+git commit -m "feat(deck): editorial visual foundation with bilingual type and slide chrome"
+```
+
+---
+
+### Task 7: Live result bar chart
 
 **Files:**
 - Create: `components/deck/ResultBars.tsx`
 - Test: `components/deck/ResultBars.test.tsx`
 
-**REQUIRED SKILL:** Invoke the `dataviz` skill before writing this component. Take the palette and bar-form guidance from it; do not invent colors.
+**REQUIRED SKILL:** Invoke `dataviz` before writing this component. Take palette and bar-form
+guidance from it; do not invent colours.
 
 **Interfaces:**
-- Consumes: `Tally` from `lib/deck-types.ts`; `showPercentages` from `lib/deck.ts`; `LocalizedText`, `Lang` from `lib/types.ts`.
-- Produces: `ResultBars` React component.
+- Consumes: `Tally` from `lib/deck-types.ts`; `showPercentages` from `lib/deck.ts`; `LocalizedText`
+  from `lib/types.ts`; `Bilingual` from `components/deck/Bilingual.tsx`.
+- Produces: `ResultBars`.
 
 ```ts
 type ResultBarsProps = {
   tallies: Tally[]
   labels: { id: string; label: LocalizedText }[]
-  lang: Lang
-  /** Renders this option in the emphasis color. Used on reveal slides. */
+  /** Renders this option in the accent colour. Used on reveal slides. */
   highlightOptionId?: string
 }
 ```
+
+Note there is **no `lang` prop** — bars render both languages, per spec §2a.
 
 - [ ] **Step 1: Write the failing test `components/deck/ResultBars.test.tsx`**
 
@@ -1304,25 +1555,30 @@ import { ResultBars } from './ResultBars'
 import type { Tally } from '@/lib/deck-types'
 
 const labels = [
-  { id: 'walk', label: { th: 'เดินมา', en: 'Walked' } },
-  { id: 'train', label: { th: 'BTS / MRT', en: 'BTS / MRT' } },
-  { id: 'car', label: { th: 'รถยนต์', en: 'Car' } },
+  { id: 'walk', label: { en: 'Walked', th: 'เดินมา' } },
+  { id: 'train', label: { en: 'BTS / MRT', th: 'บีทีเอส / เอ็มอาร์ที' } },
+  { id: 'car', label: { en: 'Car', th: 'รถยนต์' } },
 ]
+const zero: Tally[] = labels.map((l) => ({ optionId: l.id, count: 0 }))
 
 describe('ResultBars', () => {
   it('renders every option even at zero votes', () => {
-    const tallies: Tally[] = labels.map((l) => ({ optionId: l.id, count: 0 }))
-    render(<ResultBars tallies={tallies} labels={labels} lang="en" />)
+    render(<ResultBars tallies={zero} labels={labels} />)
     expect(screen.getByText('Walked')).toBeDefined()
     expect(screen.getByText('BTS / MRT')).toBeDefined()
     expect(screen.getByText('Car')).toBeDefined()
+  })
+
+  it('renders both languages for each option', () => {
+    render(<ResultBars tallies={zero} labels={labels} />)
+    expect(screen.getByText('เดินมา')).toBeDefined()
   })
 
   it('shows counts but NOT percentages below the n=5 floor', () => {
     const tallies: Tally[] = [
       { optionId: 'walk', count: 1 }, { optionId: 'train', count: 2 }, { optionId: 'car', count: 0 },
     ]
-    render(<ResultBars tallies={tallies} labels={labels} lang="en" />)
+    render(<ResultBars tallies={tallies} labels={labels} />)
     expect(screen.getByTestId('count-train').textContent).toContain('2')
     expect(screen.queryByTestId('pct-train')).toBeNull()
   })
@@ -1331,7 +1587,7 @@ describe('ResultBars', () => {
     const tallies: Tally[] = [
       { optionId: 'walk', count: 1 }, { optionId: 'train', count: 3 }, { optionId: 'car', count: 1 },
     ]
-    render(<ResultBars tallies={tallies} labels={labels} lang="en" />)
+    render(<ResultBars tallies={tallies} labels={labels} />)
     expect(screen.getByTestId('pct-train').textContent).toContain('60')
   })
 
@@ -1339,27 +1595,29 @@ describe('ResultBars', () => {
     const tallies: Tally[] = [
       { optionId: 'walk', count: 0 }, { optionId: 'train', count: 6 }, { optionId: 'car', count: 0 },
     ]
-    render(<ResultBars tallies={tallies} labels={labels} lang="en" />)
+    render(<ResultBars tallies={tallies} labels={labels} />)
     expect(screen.getByTestId('pct-train').textContent).toContain('100')
     expect(screen.getByTestId('pct-walk').textContent).toContain('0')
   })
 
-  it('renders Thai labels when lang is th', () => {
-    const tallies: Tally[] = labels.map((l) => ({ optionId: l.id, count: 0 }))
-    render(<ResultBars tallies={tallies} labels={labels} lang="th" />)
-    expect(screen.getByText('เดินมา')).toBeDefined()
+  it('renders bars in label order, never sorted by count', () => {
+    const tallies: Tally[] = [
+      { optionId: 'walk', count: 1 }, { optionId: 'train', count: 9 }, { optionId: 'car', count: 3 },
+    ]
+    render(<ResultBars tallies={tallies} labels={labels} />)
+    const ids = screen.getAllByTestId(/^bar-/).map((el) => el.getAttribute('data-testid'))
+    expect(ids).toEqual(['bar-walk', 'bar-train', 'bar-car'])
   })
 
   it('marks the highlighted option', () => {
     const tallies: Tally[] = labels.map((l) => ({ optionId: l.id, count: 1 }))
-    render(<ResultBars tallies={tallies} labels={labels} lang="en" highlightOptionId="train" />)
+    render(<ResultBars tallies={tallies} labels={labels} highlightOptionId="train" />)
     expect(screen.getByTestId('bar-train').getAttribute('data-highlight')).toBe('true')
     expect(screen.getByTestId('bar-walk').getAttribute('data-highlight')).toBe('false')
   })
 
   it('does not divide by zero when there are no votes', () => {
-    const tallies: Tally[] = labels.map((l) => ({ optionId: l.id, count: 0 }))
-    expect(() => render(<ResultBars tallies={tallies} labels={labels} lang="en" />)).not.toThrow()
+    expect(() => render(<ResultBars tallies={zero} labels={labels} />)).not.toThrow()
   })
 })
 ```
@@ -1369,20 +1627,22 @@ describe('ResultBars', () => {
 Run: `npx vitest run components/deck/ResultBars.test.tsx`
 Expected: FAIL — cannot resolve `./ResultBars`.
 
-- [ ] **Step 3: Invoke the dataviz skill, then implement `components/deck/ResultBars.tsx`**
+- [ ] **Step 3: Invoke `dataviz`, then implement `components/deck/ResultBars.tsx`**
 
 Requirements the tests pin down:
-- One row per entry in `labels`, in `labels` order — never sorted by count, or bars would reorder mid-vote and the room would lose track.
-- `data-testid` attributes: `bar-<optionId>`, `count-<optionId>`, and `pct-<optionId>` (the last rendered **only** when `showPercentages(total)` is true).
+- One row per entry in `labels`, in `labels` order — never sorted by count, or bars reorder mid-vote
+  and the room loses track.
+- `data-testid`: `bar-<optionId>`, `count-<optionId>`, `pct-<optionId>` (the last rendered **only**
+  when `showPercentages(total)` is true).
 - `data-highlight="true" | "false"` on each bar row.
 - Guard the percentage math against `total === 0`.
-- Bar width is `count / max(1, total) * 100%`, with a CSS transition so bars grow as votes land.
-- Projector-legible: large type, high contrast, readable from the back of a room.
+- Bar width `count / max(1, total) * 100%`, with a CSS transition so bars grow as votes land.
+- Projector-legible from the back of a room; use `--deck-clr` for the highlighted bar.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run components/deck/ResultBars.test.tsx`
-Expected: PASS, 7 tests.
+Expected: PASS, 8 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -1393,95 +1653,31 @@ git commit -m "feat(deck): live result bars with an n=5 percentage floor"
 
 ---
 
-### Task 6: i18n strings for the deck
-
-**Files:**
-- Modify: `lib/i18n.ts` (append keys only — change no existing key)
-- Test: `lib/i18n.test.ts` (extend)
-
-**Interfaces:**
-- Produces: new keys usable via the existing `t(key, lang)` helper.
-
-- [ ] **Step 1: Add a failing test to `lib/i18n.test.ts`**
-
-Append inside the existing top-level `describe`:
-
-```ts
-  it('has deck strings in both languages', () => {
-    const keys = [
-      'deckTitle', 'deckJoinPrompt', 'deckWaiting', 'deckVoteReceived',
-      'deckChangeVote', 'deckVotingClosed', 'deckStart', 'deckNext',
-      'deckBack', 'deckCloseVoting', 'deckLesson', 'deckPeopleIn', 'deckVotes',
-    ] as const
-    for (const k of keys) {
-      expect(t(k, 'th'), `${k}.th`).toBeTruthy()
-      expect(t(k, 'en'), `${k}.en`).toBeTruthy()
-      expect(t(k, 'th')).not.toBe(t(k, 'en'))
-    }
-  })
-```
-
-- [ ] **Step 2: Run the test to verify it fails**
-
-Run: `npx vitest run lib/i18n.test.ts`
-Expected: FAIL — TypeScript error or falsy value for `deckTitle`.
-
-- [ ] **Step 3: Append the keys to the `STRINGS` object in `lib/i18n.ts`**
-
-Add before the closing brace of `STRINGS`. Do not modify any existing entry:
-
-```ts
-  deckTitle:        { th: 'ข้อมูลกับธุรกิจ', en: 'Data in Business' },
-  deckJoinPrompt:   { th: 'เข้าร่วมด้วยมือถือของคุณที่', en: 'Join on your phone at' },
-  deckWaiting:      { th: 'รอผู้ดำเนินรายการเริ่ม…', en: 'Waiting for the host to start…' },
-  deckVoteReceived: { th: '✓ บันทึกคำตอบแล้ว', en: '✓ Vote received' },
-  deckChangeVote:   { th: 'เปลี่ยนใจได้ กดใหม่ได้เลย', en: 'Changed your mind? Just tap again' },
-  deckVotingClosed: { th: 'ปิดโหวตแล้ว', en: 'Voting closed' },
-  deckStart:        { th: '▶ เริ่ม', en: '▶ Start' },
-  deckNext:         { th: 'ถัดไป →', en: 'Next →' },
-  deckBack:         { th: '← ย้อนกลับ', en: '← Back' },
-  deckCloseVoting:  { th: 'ปิดโหวต', en: 'Close voting' },
-  deckLesson:       { th: '💡 บทเรียน', en: '💡 Lesson' },
-  deckPeopleIn:     { th: 'คนในห้อง', en: 'people in the room' },
-  deckVotes:        { th: 'โหวตแล้ว', en: 'votes' },
-```
-
-- [ ] **Step 4: Run the test to verify it passes**
-
-Run: `npx vitest run lib/i18n.test.ts`
-Expected: PASS.
-
-- [ ] **Step 5: Verify no AI Detective string changed**
-
-Run: `git diff lib/i18n.ts`
-Expected: only additions (`+` lines). If any `-` line appears other than the closing brace shifting, revert it.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add lib/i18n.ts lib/i18n.test.ts
-git commit -m "feat(deck): bilingual strings for the deck surfaces"
-```
-
----
-
-### Task 7: Phone surface
+### Task 8: Phone surface
 
 **Files:**
 - Create: `app/biz/page.tsx`
 - Test: `app/biz/biz.test.tsx`
 
 **Interfaces:**
-- Consumes: `PublicDeckState`, `Slide` types; `SLIDES` from `lib/deck.ts`; `t` from `lib/i18n.ts`.
+- Consumes: `PublicDeckState` from `lib/deck-types.ts`; `SLIDES` from `lib/deck.ts`; `UI` from
+  `content/deck-strings.ts`; `Bilingual` from `components/deck/Bilingual.tsx`.
 - Produces: the `/biz` route.
 
 Behaviour:
-1. On mount, read `playerId` from `localStorage['deck.playerId']`. If absent, `POST /api/deck/join` and store the returned id.
+1. On mount, read `playerId` from `localStorage['deck.playerId']`. If absent, `POST /api/deck/join`
+   and store the returned id.
 2. Poll `GET /api/deck/state?playerId=<id>` every 1000ms while `votingOpen`, else 2000ms.
-3. Drop any response whose `seq` is lower than the last seen (monotonic guard), and keep the last good frame on a fetch or parse error.
-4. Render by phase: `lobby` → waiting message; `slide` with a poll/vote → prompt + option buttons; `slide` with reveal/content → "look at the big screen"; `done` → thank-you.
-5. Tapping an option `POST`s to `/api/deck/vote`. On `200`, show `deckVoteReceived` plus `deckChangeVote`. On `409`, show `deckVotingClosed`.
+3. Drop any response whose `seq` is lower than the last seen; keep the last good frame on a fetch or
+   parse error.
+4. Render by phase: `lobby` → waiting; `slide` + poll/vote → prompt + option buttons; `slide` +
+   reveal/content → `lookAtScreen`; `done` → `thanks`.
+5. Tapping an option `POST`s to `/api/deck/vote`. On `200`, show `voteReceived` + `changeVote`. On
+   `409`, show `votingClosed`.
 6. When `votingOpen` is false, option buttons are disabled.
+
+The phone is a controller, not a slide — keep it plain and thumb-friendly. Big tap targets, the
+option text in both languages, no ghost numerals or deck chrome.
 
 - [ ] **Step 1: Write the failing test `app/biz/biz.test.tsx`**
 
@@ -1498,67 +1694,81 @@ const state = (over: Record<string, unknown> = {}) => ({
   tallies: [], youVoted: null, ...over,
 })
 
-function mockFetch(handler: (url: string, init?: RequestInit) => unknown) {
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => ({
-    ok: true, status: 200, json: async () => handler(String(url), init),
+function mockFetch(handler: (url: string) => unknown) {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => ({
+    ok: true, status: 200, json: async () => handler(String(url)),
   })))
 }
+const joinOr = (body: unknown) => (url: string) =>
+  url.includes('/join') ? { player: { id: 'p1', joinedAt: 0 } } : body
 
 describe('/biz phone surface', () => {
   beforeEach(() => { localStorage.clear() })
   afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
   it('joins once and stores the player id', async () => {
-    mockFetch((url) => url.includes('/join') ? { player: { id: 'p1', joinedAt: 0 } } : state())
+    mockFetch(joinOr(state()))
     render(<BizPage />)
     await waitFor(() => expect(localStorage.getItem('deck.playerId')).toBe('p1'))
   })
 
-  it('shows the waiting message in lobby', async () => {
-    mockFetch((url) => url.includes('/join')
-      ? { player: { id: 'p1', joinedAt: 0 } }
-      : state({ phase: 'lobby', slideId: null }))
+  it('reuses a stored player id instead of joining again', async () => {
+    localStorage.setItem('deck.playerId', 'existing')
+    const urls: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      urls.push(String(url))
+      return { ok: true, status: 200, json: async () => state() }
+    }))
     render(<BizPage />)
-    await waitFor(() => expect(screen.getByText(/Waiting for the host|รอผู้ดำเนินรายการ/)).toBeDefined())
+    await waitFor(() => expect(urls.some((u) => u.includes('/state'))).toBe(true))
+    expect(urls.some((u) => u.includes('/join'))).toBe(false)
   })
 
-  it('renders the current poll options', async () => {
-    mockFetch((url) => url.includes('/join') ? { player: { id: 'p1', joinedAt: 0 } } : state())
+  it('shows the waiting message in lobby', async () => {
+    mockFetch(joinOr(state({ phase: 'lobby', slideId: null })))
     render(<BizPage />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /Walked|เดินมา/ })).toBeDefined())
+    await waitFor(() => expect(screen.getByText(/Waiting for the host/)).toBeDefined())
+  })
+
+  it('renders the current poll options in both languages', async () => {
+    mockFetch(joinOr(state()))
+    render(<BizPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /Walked/ })).toBeDefined())
+    expect(screen.getByText('เดินมา')).toBeDefined()
   })
 
   it('posts a vote when an option is tapped', async () => {
-    const calls: string[] = []
+    const urls: string[] = []
     vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-      calls.push(String(url))
+      urls.push(String(url))
       return {
         ok: true, status: 200,
-        json: async () => String(url).includes('/join')
-          ? { player: { id: 'p1', joinedAt: 0 } } : state(),
+        json: async () => String(url).includes('/join') ? { player: { id: 'p1', joinedAt: 0 } } : state(),
       }
     }))
     render(<BizPage />)
-    const btn = await screen.findByRole('button', { name: /Walked|เดินมา/ })
-    await userEvent.click(btn)
-    await waitFor(() => expect(calls.some((c) => c.includes('/api/deck/vote'))).toBe(true))
+    await userEvent.click(await screen.findByRole('button', { name: /Walked/ }))
+    await waitFor(() => expect(urls.some((u) => u.includes('/api/deck/vote'))).toBe(true))
   })
 
   it('shows the received state when the server says you voted', async () => {
-    mockFetch((url) => url.includes('/join')
-      ? { player: { id: 'p1', joinedAt: 0 } }
-      : state({ youVoted: 'walk' }))
+    mockFetch(joinOr(state({ youVoted: 'walk' })))
     render(<BizPage />)
-    await waitFor(() => expect(screen.getByText(/Vote received|บันทึกคำตอบแล้ว/)).toBeDefined())
+    await waitFor(() => expect(screen.getByText(/Vote received/)).toBeDefined())
   })
 
   it('disables options once voting is closed', async () => {
-    mockFetch((url) => url.includes('/join')
-      ? { player: { id: 'p1', joinedAt: 0 } }
-      : state({ votingOpen: false }))
+    mockFetch(joinOr(state({ votingOpen: false })))
     render(<BizPage />)
-    const btn = await screen.findByRole('button', { name: /Walked|เดินมา/ })
+    const btn = await screen.findByRole('button', { name: /Walked/ })
     await waitFor(() => expect(btn.hasAttribute('disabled')).toBe(true))
+  })
+
+  it('tells the room to look at the screen on a reveal slide', async () => {
+    const i = SLIDES.findIndex((s) => s.kind === 'reveal')
+    mockFetch(joinOr(state({ slideIndex: i, slideId: SLIDES[i].id, votingOpen: false })))
+    render(<BizPage />)
+    await waitFor(() => expect(screen.getByText(/Look at the big screen/)).toBeDefined())
   })
 
   it('ignores a state frame with a lower seq', async () => {
@@ -1566,12 +1776,14 @@ describe('/biz phone surface', () => {
     mockFetch((url) => {
       if (url.includes('/join')) return { player: { id: 'p1', joinedAt: 0 } }
       n++
-      return n === 1 ? state({ seq: 5, slideIndex: 0 }) : state({ seq: 2, slideIndex: 5, slideId: SLIDES[5].id })
+      return n === 1
+        ? state({ seq: 5 })
+        : state({ seq: 2, slideIndex: 5, slideId: SLIDES[5].id })
     })
     render(<BizPage />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /Walked|เดินมา/ })).toBeDefined())
-    await new Promise((r) => setTimeout(r, 1200))
-    expect(screen.getByRole('button', { name: /Walked|เดินมา/ })).toBeDefined()
+    await waitFor(() => expect(screen.getByRole('button', { name: /Walked/ })).toBeDefined())
+    await new Promise((r) => setTimeout(r, 1300))
+    expect(screen.getByRole('button', { name: /Walked/ })).toBeDefined()
   })
 })
 ```
@@ -1583,12 +1795,14 @@ Expected: FAIL — cannot resolve `./page`.
 
 - [ ] **Step 3: Implement `app/biz/page.tsx`**
 
-A `'use client'` component meeting the behaviours listed above and the test expectations. Reuse the polling/monotonic-seq/last-good-frame approach already used in `app/page.tsx` — read that file first and follow its structure. Option buttons must expose their label as accessible text so `getByRole('button', { name })` resolves.
+A `'use client'` component meeting the behaviours and tests above. Read `app/page.tsx` first for the
+existing polling / monotonic-seq / last-good-frame approach and follow its structure. Option buttons
+must expose their English label as accessible text so `getByRole('button', { name })` resolves.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run app/biz/biz.test.tsx`
-Expected: PASS, 7 tests.
+Expected: PASS, 9 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -1599,25 +1813,40 @@ git commit -m "feat(deck): phone surface with anonymous join and vote-change"
 
 ---
 
-### Task 8: TV surface
+### Task 9: TV surface
 
 **Files:**
 - Create: `app/biz/tv/page.tsx`
+- Create: `components/deck/Slides.tsx`
 - Test: `app/biz/tv/tv.test.tsx`
 
+**REQUIRED READING:** `/Users/nchawanp/Desktop/MADT-IS/pitch/index.html`. This surface must read as a
+sibling of that deck. Do **not** mirror `app/tv/page.tsx`'s retro/CRT styling — reuse only its
+host-token and polling *logic*.
+
 **Interfaces:**
-- Consumes: `ResultBars`; `SLIDES`, `slideAt` from `lib/deck.ts`; `t` from `lib/i18n.ts`.
-- Produces: the `/biz/tv` route.
+- Consumes: `SlideFrame`, `Bilingual`, `ResultBars`; `SLIDES`, `slideAt`, `SLIDE_COUNT` from
+  `lib/deck.ts`; `UI` from `content/deck-strings.ts`; `qrcode.react` (existing dependency).
+- Produces: the `/biz/tv` route; `Slides.tsx` holds one renderer per slide kind.
 
 Behaviour:
-1. Host-token box (top-right), persisted to `localStorage['deck.hostToken']` — mirror `app/tv/page.tsx`'s implementation, including showing that the token is required before Start works.
-2. Lobby: title, join URL built from `window.location.origin + '/biz'`, a QR code of it (`qrcode.react`, already a dependency), and the live `playerCount`.
-3. Slide rendering by kind:
-   - `poll` / `vote` — prompt, countdown, live `ResultBars`, and `voteCount` / `playerCount`.
-   - `reveal` — headline, body, `deckLesson` label + lesson, and `ResultBars` for `forSlideId` with `highlightOptionId` set to that slide's `bestOptionId` when it is a `vote`.
+1. Host-token box, persisted to `localStorage['deck.hostToken']`, saved as typed. Show `tokenRequired`
+   until a token is present.
+2. Lobby: deck title, join URL from `window.location.origin + '/biz'`, a QR code of it, live
+   `playerCount`.
+3. Slide rendering by kind, each inside `SlideFrame` with that chapter's accent and ghost numeral:
+   - `poll` / `vote` — hero prompt, countdown, live `ResultBars`, `voteCount` / `playerCount`.
+   - `reveal` — hero headline, body, `UI.lesson` eyebrow + the lesson, and `ResultBars` for
+     `forSlideId` with `highlightOptionId` set to that slide's `bestOptionId` when it is a `vote`.
    - `content` — headline and bullets.
-4. Controls: **Start** (lobby only), **Back**, **Close voting** (only while `votingOpen`), **Next**. All `POST /api/deck/control` with the token header. A `403` surfaces a visible "check your host token" error.
-5. `done`: closing screen.
+4. Controls: **Start** (lobby only), **Back**, **Close voting** (only while `votingOpen`), **Next**.
+   All `POST /api/deck/control` with the token header. A `403` surfaces a visible token error.
+5. **Keyboard navigation:** `→` issues `next`, `←` issues `back`. Ignore keystrokes while the token
+   input has focus, so typing the token never advances the deck.
+6. `done`: closing screen.
+
+Accent per chapter (pass to `SlideFrame`): hook slides share one accent; Beat 1, Beat 2, Beat 3 and
+the close each get their own. Take the actual colour values from the `frontend-design` pass in Task 6.
 
 - [ ] **Step 1: Write the failing test `app/biz/tv/tv.test.tsx`**
 
@@ -1641,9 +1870,8 @@ const state = (over: Record<string, unknown> = {}) => ({
   ...over,
 })
 
-function mockFetch(body: unknown, status = 200) {
+const mockFetch = (body: unknown, status = 200) =>
   vi.stubGlobal('fetch', vi.fn(async () => ({ ok: status < 400, status, json: async () => body })))
-}
 
 describe('/biz/tv', () => {
   beforeEach(() => { localStorage.clear() })
@@ -1659,28 +1887,38 @@ describe('/biz/tv', () => {
   it('renders a poll prompt with live bars', async () => {
     mockFetch(state())
     render(<BizTvPage />)
-    await waitFor(() => expect(screen.getByText(/How did you get here|เดินทางมาที่นี่/)).toBeDefined())
+    await waitFor(() => expect(screen.getByText(/How did you get here/)).toBeDefined())
     expect(screen.getByTestId('bar-walk')).toBeDefined()
+  })
+
+  it('renders the prompt in both languages', async () => {
+    mockFetch(state())
+    render(<BizTvPage />)
+    const slide = SLIDES[0]
+    if (slide.kind !== 'poll') throw new Error('fixture drift: slide 0 should be a poll')
+    await waitFor(() => expect(screen.getByText(slide.prompt.th)).toBeDefined())
   })
 
   it('renders a reveal with its lesson', async () => {
     const reveal = SLIDES[revealIndex]
     mockFetch(state({ slideIndex: revealIndex, slideId: reveal.id, votingOpen: false }))
     render(<BizTvPage />)
-    await waitFor(() => {
-      if (reveal.kind !== 'reveal') throw new Error('fixture drift: expected a reveal slide')
-      expect(screen.getByText(reveal.lesson.en)).toBeDefined()
-    })
+    if (reveal.kind !== 'reveal') throw new Error('fixture drift: expected a reveal slide')
+    await waitFor(() => expect(screen.getByText(reveal.lesson.en)).toBeDefined())
   })
 
   it('renders the closing content slide bullets', async () => {
     const close = SLIDES[contentIndex]
     mockFetch(state({ slideIndex: contentIndex, slideId: close.id, votingOpen: false, tallies: [] }))
     render(<BizTvPage />)
-    await waitFor(() => {
-      if (close.kind !== 'content') throw new Error('fixture drift: expected a content slide')
-      expect(screen.getByText(close.bullets[0].en)).toBeDefined()
-    })
+    if (close.kind !== 'content') throw new Error('fixture drift: expected a content slide')
+    await waitFor(() => expect(screen.getByText(close.bullets[0].en)).toBeDefined())
+  })
+
+  it('shows the slide counter chrome', async () => {
+    mockFetch(state())
+    render(<BizTvPage />)
+    await waitFor(() => expect(screen.getByTestId('slide-counter').textContent).toMatch(/1\s*\/\s*10/))
   })
 
   it('saves the host token to localStorage as it is typed', async () => {
@@ -1694,7 +1932,32 @@ describe('/biz/tv', () => {
   it('hides Close voting when voting is already closed', async () => {
     mockFetch(state({ votingOpen: false }))
     render(<BizTvPage />)
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Close voting|ปิดโหวต/ })).toBeNull())
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Close voting/ })).toBeNull())
+  })
+
+  it('advances on the right-arrow key', async () => {
+    const bodies: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/control')) bodies.push(String(init?.body ?? ''))
+      return { ok: true, status: 200, json: async () => state() }
+    }))
+    render(<BizTvPage />)
+    await screen.findByTestId('slide-counter')
+    await userEvent.keyboard('{ArrowRight}')
+    await waitFor(() => expect(bodies.some((b) => b.includes('next'))).toBe(true))
+  })
+
+  it('does not advance when typing in the token box', async () => {
+    const bodies: string[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (String(url).includes('/control')) bodies.push(String(init?.body ?? ''))
+      return { ok: true, status: 200, json: async () => state() }
+    }))
+    render(<BizTvPage />)
+    const input = await screen.findByRole('textbox')
+    input.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(bodies.some((b) => b.includes('next'))).toBe(false)
   })
 
   it('surfaces a visible error when control returns 403', async () => {
@@ -1704,8 +1967,7 @@ describe('/biz/tv', () => {
         : { ok: true, status: 200, json: async () => state() },
     ))
     render(<BizTvPage />)
-    const next = await screen.findByRole('button', { name: /Next|ถัดไป/ })
-    await userEvent.click(next)
+    await userEvent.click(await screen.findByRole('button', { name: /Next/ }))
     await waitFor(() => expect(screen.getByText(/token/i)).toBeDefined())
   })
 })
@@ -1716,25 +1978,26 @@ describe('/biz/tv', () => {
 Run: `npx vitest run app/biz/tv/tv.test.tsx`
 Expected: FAIL — cannot resolve `./page`.
 
-- [ ] **Step 3: Implement `app/biz/tv/page.tsx`**
+- [ ] **Step 3: Implement `components/deck/Slides.tsx` and `app/biz/tv/page.tsx`**
 
-Read `app/tv/page.tsx` first and mirror its host-token handling, polling, and QR usage. Note the AI Detective TV renders Thai headings in the `Press Start 2P` pixel font, which has no Thai glyphs and renders them small and baseline-misaligned; for this deck, use the pixel font for **Latin/numeric** display text only and a Thai-capable font for prompts and body copy.
+`Slides.tsx` exports one renderer per slide kind, each composing `SlideFrame` + `Bilingual` +
+`ResultBars`. `page.tsx` owns polling, host controls, keyboard handling and the lobby.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `npx vitest run app/biz/tv/tv.test.tsx`
-Expected: PASS, 7 tests.
+Expected: PASS, 11 tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add app/biz/tv/page.tsx app/biz/tv/tv.test.tsx
-git commit -m "feat(deck): TV surface with QR lobby, live bars and host controls"
+git add app/biz/tv/page.tsx components/deck/Slides.tsx app/biz/tv/tv.test.tsx
+git commit -m "feat(deck): editorial TV deck with live bars, QR lobby and keyboard nav"
 ```
 
 ---
 
-### Task 9: Full-suite check and LAN playthrough
+### Task 10: Full-suite check and LAN playthrough
 
 **Files:**
 - Modify: `README.md`
@@ -1746,17 +2009,19 @@ npm test
 npx tsc --noEmit
 ```
 
-Expected: all tests pass (168 existing + ~71 new); `tsc` exits 0 with no output.
+Expected: all tests pass (168 existing + ~80 new); `tsc` exits 0 with no output.
 
 - [ ] **Step 2: Confirm no AI Detective file was modified**
 
 ```bash
 git diff --stat main..HEAD -- lib/game.ts lib/store.ts lib/types.ts lib/stats.ts \
-  lib/scoring.ts content/cases.ts app/page.tsx app/tv app/dashboard \
+  lib/scoring.ts lib/i18n.ts content/cases.ts app/page.tsx app/tv app/dashboard \
   app/api/state app/api/join app/api/answer app/api/control app/api/reset
 ```
 
 Expected: **empty output.** Any output is a Global Constraints violation — revert those changes.
+Note `lib/i18n.ts` is now in this list: the deck uses `content/deck-strings.ts` instead, so no
+shared i18n file should change at all.
 
 - [ ] **Step 3: Build and start on the LAN**
 
@@ -1775,15 +2040,20 @@ Using Playwright against `http://<lan-ip>:3000`, with at least two phone context
 3. Start; vote from both phones on slide 0; confirm bars move on the TV.
 4. Change one phone's vote; confirm the tally shifts and `voteCount` stays 2.
 5. Close voting; confirm both phones disable and a further vote returns 409.
-6. Step Next through all ten slides; confirm every slide kind renders.
+6. Step through all ten slides with the **arrow keys**; confirm every slide kind renders.
 7. Press Back once; confirm earlier votes are still shown.
-8. Confirm zero console errors on every surface.
+8. Screenshot the TV on a poll, a reveal and the close slide, in **both light and dark themes**, and
+   look at them. A slide that renders but looks wrong is a failure.
+9. Confirm zero console errors on every surface.
 
-**This must run against the LAN IP.** Testing only on localhost is what hid the `allowedDevOrigins` hydration failure in AI Detective — the pages render but nothing is clickable, and localhost never reproduces it.
+**This must run against the LAN IP.** Testing only on localhost is what hid the `allowedDevOrigins`
+hydration failure in AI Detective — pages render but nothing is clickable, and localhost never
+reproduces it.
 
 - [ ] **Step 5: Add the deck to the README**
 
-Add `/biz` and `/biz/tv` to the URL table, with a short section describing the 15-minute workshop and noting that both workshops run from the same server.
+Add `/biz` and `/biz/tv` to the URL table, plus a short section describing the 15-minute workshop,
+its arrow-key navigation, and that both workshops run from the same server.
 
 - [ ] **Step 6: Commit**
 
@@ -1796,7 +2066,17 @@ git commit -m "docs: add the Data in Business deck to the run guide"
 
 ## Notes for the implementer
 
-- **The `bestOptionId` is not a score.** It selects which bar to highlight on the reveal. Do not add scoring, a leaderboard, or per-player results — the spec rules them out (§6), and they would undercut the collective-result payoff.
-- **Bars never reorder.** Always render in the slide's option order. Sorting by count makes bars swap places mid-vote and the room loses the thread.
-- **The n=5 floor is deliberate.** Expo crowds are small; "67%" from three people is not a statistic. Counts always show.
-- **The ฿ figures in `content/deck.ts` are illustrative** and were flagged for the facilitator to sanity-check against real Bangkok café economics. If asked to change them, only `content/deck.ts` needs editing.
+- **This deck is not AI Detective.** The reference is `~/Desktop/MADT-IS/pitch/index.html` — editorial,
+  light/dark, oversized type, per-chapter accent. Reuse AI Detective's *logic* patterns (polling,
+  seq guard, token guard), never its retro/CRT *styling*.
+- **Never use `Press Start 2P` in this deck.** It has no Thai glyphs; Thai falls back mid-heading and
+  renders small and baseline-misaligned. This bit the AI Detective TV and is why the rule exists.
+- **Both languages render at once.** There is no toggle and no `lang` prop. English leads, Thai sits
+  beneath it, muted and smaller.
+- **The `bestOptionId` is not a score.** It selects which bar to highlight on the reveal. Do not add
+  scoring, a leaderboard, or per-player results — the spec rules them out (§7).
+- **Bars never reorder.** Always render in the slide's option order. Sorting by count makes bars swap
+  places mid-vote and the room loses the thread.
+- **The n=5 floor is deliberate.** Expo crowds are small; "67%" from three people is not a statistic.
+- **The ฿ figures in `content/deck.ts` are illustrative** and were flagged for the facilitator to
+  sanity-check against real Bangkok café economics. Only `content/deck.ts` needs editing to change them.
