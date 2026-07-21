@@ -74,11 +74,11 @@ export const DECK: Slide[] = [
       en: 'Right now, it is worth ฿0',
     },
     body: {
-      th: '"แล้วแต่ว่าใครซื้อ" ใกล้เคียงแล้ว — แต่ให้แม่นกว่านั้น: มันขึ้นอยู่กับว่าใครมี "การตัดสินใจ" ที่ต้องทำ ตอนนี้ยังไม่มีใครในห้องนี้ทำอะไรต่างไปเพราะข้อมูลชุดนี้เลย มันจึงมีค่า ฿0 แต่ร้านกาแฟข้างล่างต้องตัดสินใจพรุ่งนี้เช้าว่าจะจัดพนักงานกี่คนตอน 7 โมง',
+      th: '“แล้วแต่ว่าใครซื้อ” ใกล้เคียงแล้ว — แต่ให้แม่นกว่านั้น: มันขึ้นอยู่กับว่าใครมี “การตัดสินใจ” ที่ต้องทำ ตอนนี้ยังไม่มีใครในห้องนี้ทำอะไรต่างไปเพราะข้อมูลชุดนี้เลย มันจึงมีค่า ฿0 แต่ร้านกาแฟข้างล่างต้องตัดสินใจพรุ่งนี้เช้าว่าจะจัดพนักงานกี่คนตอน 7 โมง',
       en: '“Depends who’s buying” is close — but sharpen it: it depends who has a decision to make. Nobody in this room has done anything differently because of this data, so it is worth ฿0. But the cafe downstairs has to decide how many staff to roster at 7am tomorrow.',
     },
     lesson: {
-      th: 'ข้อมูลดิบคือ "ต้นทุน" ไม่ใช่ "สินทรัพย์"',
+      th: 'ข้อมูลดิบคือ “ต้นทุน” ไม่ใช่ “สินทรัพย์”',
       en: 'Raw data is a cost, not an asset.',
     },
   },
@@ -88,7 +88,7 @@ export const DECK: Slide[] = [
     kind: 'vote',
     id: 'beat2-decision',
     prompt: {
-      th: 'ถ้าคุณเป็นเจ้าของร้านกาแฟนั้น ข้อมูลชุดนี้เปลี่ยน "การตัดสินใจ" ข้อไหนได้จริง?',
+      th: 'ถ้าคุณเป็นเจ้าของร้านกาแฟนั้น ข้อมูลชุดนี้เปลี่ยน “การตัดสินใจ” ข้อไหนได้จริง?',
       en: 'You run that cafe. Which decision does this data actually change?',
     },
     durationMs: VOTE_MS,
@@ -105,15 +105,15 @@ export const DECK: Slide[] = [
     id: 'beat2-reveal',
     forSlideId: 'beat2-decision',
     headline: {
-      th: 'มีแค่ "การจัดพนักงาน" เท่านั้น',
+      th: 'มีแค่ “การจัดพนักงาน” เท่านั้น',
       en: 'Only the staffing decision',
     },
     body: {
-      th: 'เวลาตื่น + วิธีเดินทาง บอก "รูปร่าง" ของช่วงเร่งด่วนตอนเช้าได้ ส่วนอีกสามข้อต้องใช้ข้อมูลที่เราไม่มีและหาไม่ได้จากชุดนี้ ทำไมงาน Data Strategy ส่วนใหญ่ถึงล้มเหลว? เพราะเก็บข้อมูลรูปแบบ "จะเปิดสาขาที่ไหน" มาตอบคำถามรูปแบบ "จัดพนักงานกี่คน"',
+      th: 'เวลาตื่น + วิธีเดินทาง บอก “รูปร่าง” ของช่วงเร่งด่วนตอนเช้าได้ ส่วนอีกสามข้อต้องใช้ข้อมูลที่เราไม่มีและหาไม่ได้จากชุดนี้ ทำไมงาน Data Strategy ส่วนใหญ่ถึงล้มเหลว? เพราะเก็บข้อมูลรูปแบบ “จะเปิดสาขาที่ไหน” มาตอบคำถามรูปแบบ “จัดพนักงานกี่คน”',
       en: 'Wake time + arrival mode gives you the shape of the morning rush. The other three need data you do not have and cannot derive from this. Most data strategy fails exactly here: it collects branch-location-shaped data to answer a staffing-shaped question.',
     },
     lesson: {
-      th: 'กลยุทธ์ = จับคู่ "ข้อมูลที่เก็บได้" กับ "การตัดสินใจที่คุณคุมได้"',
+      th: 'กลยุทธ์ = จับคู่ “ข้อมูลที่เก็บได้” กับ “การตัดสินใจที่คุณคุมได้”',
       en: 'Strategy is matching data you can collect to a decision you control.',
     },
   },
@@ -143,11 +143,11 @@ export const DECK: Slide[] = [
       en: 'The obvious option is the worst one',
     },
     body: {
-      th: 'ขายขาดครั้งเดียว = คุณส่งมอบสินทรัพย์ไปแล้ว และเขาไม่ต้องการคุณอีกเลย แต่ช่วงเร่งด่วนของสัปดาห์หน้าไม่เหมือนสัปดาห์นี้ — ข้อมูลเสื่อมค่าลงเรื่อย ๆ ในขณะที่ "การตัดสินใจ" นั้นเกิดซ้ำทุกวันไม่มีวันจบ ส่วนแบ่งรายได้คือคำตอบที่ลึกที่สุด เพราะคุณได้เงินตามมูลค่าที่คุณสร้างขึ้นจริง',
+      th: 'ขายขาดครั้งเดียว = คุณส่งมอบสินทรัพย์ไปแล้ว และเขาไม่ต้องการคุณอีกเลย แต่ช่วงเร่งด่วนของสัปดาห์หน้าไม่เหมือนสัปดาห์นี้ — ข้อมูลเสื่อมค่าลงเรื่อย ๆ ในขณะที่ “การตัดสินใจ” นั้นเกิดซ้ำทุกวันไม่มีวันจบ ส่วนแบ่งรายได้คือคำตอบที่ลึกที่สุด เพราะคุณได้เงินตามมูลค่าที่คุณสร้างขึ้นจริง',
       en: 'Sell once and you have handed over the asset — they never need you again. But next week’s rush is different: data depreciates, while the decision recurs forever. The revenue share is the sophisticated answer, because you get paid in proportion to the value you actually created.',
     },
     lesson: {
-      th: 'ขาย "การตัดสินใจที่เกิดซ้ำ" ไม่ใช่ "ข้อมูลครั้งเดียว"',
+      th: 'ขาย “การตัดสินใจที่เกิดซ้ำ” ไม่ใช่ “ข้อมูลครั้งเดียว”',
       en: 'Monetize the recurring decision, not the one-time data.',
     },
   },
@@ -158,7 +158,7 @@ export const DECK: Slide[] = [
     headline: { th: 'สรุป 3 ข้อ', en: 'Three things to take away' },
     bullets: [
       { th: 'Data in business — ข้อมูลดิบคือต้นทุน ไม่ใช่สินทรัพย์', en: 'Data in business — raw data is a cost, not an asset' },
-      { th: 'Data strategy — หา "การตัดสินใจ" ให้เจอก่อน แล้วค่อยย้อนกลับมาเก็บข้อมูล', en: 'Data strategy — find the decision first, collect backwards' },
+      { th: 'Data strategy — หา “การตัดสินใจ” ให้เจอก่อน แล้วค่อยย้อนกลับมาเก็บข้อมูล', en: 'Data strategy — find the decision first, collect backwards' },
       { th: 'Monetization — ขายการตัดสินใจที่เกิดซ้ำ ไม่ใช่ข้อมูลครั้งเดียว', en: 'Monetization — sell the recurring decision, not the one-time data' },
     ],
   },
