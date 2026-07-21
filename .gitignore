@@ -42,3 +42,6 @@ next-env.d.ts
 
 # room store safety-net mirror
 .room-state.json
+
+# isolated dev worktrees
+.worktrees/
