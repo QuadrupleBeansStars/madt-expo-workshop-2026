@@ -7,6 +7,10 @@ rounds; players follow on their **phones**. Each round: read the retrieved Case 
 the AI "duck's" confident answer, then tap A/B/C/D before the timer runs out. The reveal shows the
 punchline — *"73% of you believed the AI."*
 
+📖 **[The five cases — what each one teaches](docs/cases.md)** — per-case sources, the point of each
+failure mode, why every wrong answer is wrong, and which evidence is real vs. deliberately invented.
+Read this before facilitating.
+
 ## Run it
 
 ```bash
