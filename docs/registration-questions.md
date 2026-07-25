@@ -15,32 +15,20 @@ costs you signups.
 
 ---
 
-## Group A — Persona
+## Persona — not needed here
 
-Two questions. These segment every chart in the deck.
-
-**A1. Which best describes you?** / **คุณคือ?**
-- Student / นักศึกษา
-- Working professional / คนทำงาน
-- Faculty or staff / อาจารย์หรือบุคลากร
-- Business owner / เจ้าของกิจการ
-
-**A2. How close is your work or study to data?** / **งานหรือการเรียนของคุณเกี่ยวข้องกับข้อมูลแค่ไหน?**
-- I work with data directly / ทำงานกับข้อมูลโดยตรง
-- I use reports others make / ใช้รายงานที่คนอื่นทำ
-- Not really / ไม่ค่อยเกี่ยว
-- Not at all / ไม่เกี่ยวเลย
-
-> Why: A2 gives you the room's composition in one number, useful for pitching the level live. It also
-> sets up a nice aside — the people who say "not at all" still generated data by registering.
+The general expo registration already captures who people are (student / professional / organization).
+Do not duplicate it. If that export includes an attendee-type column, pass it through: it lets the
+deck segment any chart by student vs professional, which is a free extra dimension. If it doesn't,
+the workshop works fine without it.
 
 ---
 
 ## Group B — The signal
 
-**These four are the ones that actually work.** Together they give the shape of a morning rush:
-when people are moving, how they're moving, and whether they're buying a drink while they move.
-This is the data that drives Beat 2's staffing answer.
+**This is the whole form.** Together these give the shape of a morning rush — when people move, how
+they move, whether they buy while moving, and how long they will tolerate a queue. This is the data
+that drives Beat 2's staffing answer.
 
 **B1. How will you travel to the expo?** / **คุณจะเดินทางมางานอย่างไร?**
 - Walk / เดินมา
@@ -67,20 +55,44 @@ This is the data that drives Beat 2's staffing answer.
 - After 11 / หลัง 11 โมง
 - I don't buy / ไม่ได้ซื้อ
 
+**B5. How long would you wait in line for coffee before giving up?** / **คุณจะยอมต่อคิวกาแฟนานแค่ไหนก่อนจะเลิกซื้อ?**
+- Under 3 minutes / ไม่เกิน 3 นาที
+- 3–5 minutes / 3–5 นาที
+- 5–10 minutes / 5–10 นาที
+- As long as it takes / รอได้เรื่อย ๆ
+
 > B4 is the single most valuable question on this form. B2 tells you when people are awake; B4 tells
 > you when they are **at the counter**. A cafe staffs to the counter, not to the alarm clock.
+>
+> B5 is what makes Beat 2 a calculation instead of an opinion. Arrival timing alone cannot size a
+> shift — two baristas versus three is entirely a question of how fast the queue must move before
+> people leave. With B5 you can work the staffing number live on the TV: *this many arrive in the
+> 7–9 window (B4), this share of them buy at all (B3), this share abandons after five minutes (B5)*
+> — then ask the room how long one drink takes to make, and the required headcount falls out of
+> their own data in front of them. Do not pre-compute this. Deriving it live is the moment the
+> workshop is built around.
+
+**If you need to cut one, cut B1.** Travel mode makes a fun chart and warms the room up, but it only
+proxies for arrival time, which B4 measures directly. B2–B5 are the load-bearing four.
 
 ---
 
-## Group C — The decoys
+## Appendix — Group C, the decoys (NOT IN USE)
 
-**These three are deliberately the wrong shape**, and that is the entire point of Beat 2.
+**Dropped by decision of the project owner: the form is Group B only.** Kept here because the
+reasoning below is what a facilitator needs when someone in the room pushes back, and because it is
+the obvious thing to reach for if a future run wants a longer form.
 
-Beat 2 asks the room: *"You run that cafe. Which decision does this data actually change?"* with four
-options — menu, staffing, branch location, price. The room will assume all four are answerable,
-because they answered questions about all four at registration. Only staffing is.
+The idea was three extra questions in deliberately the wrong shape. Beat 2 asks *"You run that cafe.
+Which decision does this data actually change?"* with four options — menu, staffing, branch location,
+price — and the room would assume all four were answerable, because they had answered questions
+about all four at registration. Only staffing is.
 
-Each decoy maps to one wrong option:
+Without these, Beat 2 still lands: the room reads the four Group B charts and works out which of the
+four decisions they can support. The decoys made the trap personal rather than abstract; that is a
+sharpening, not a requirement.
+
+Each decoy mapped to one wrong option:
 
 **C1. What is your usual coffee order?** / **ปกติคุณสั่งกาแฟอะไร?** → *maps to "What's on the menu"*
 - Latte / ลาเต้
@@ -110,8 +122,10 @@ They are half right, and the real answer is better than the simple one:
 - **There is no counterfactual.** C3 tells you what people currently pay somewhere else. It says
   nothing about what they would pay *you*, which is the only question pricing cares about.
 
-B1–B4 dodge all three problems because a rush hour is a physical fact about bodies moving through
-space, and the sample **is** the population — these people really are arriving that morning.
+**This argument is still worth having on the day, even without the decoy questions**, because
+someone will ask why the cafe can't just set its menu from this. Group B dodges all three problems:
+a rush hour is a physical fact about bodies moving through space, and the sample **is** the
+population — these people really are arriving that morning.
 
 ---
 
@@ -126,8 +140,8 @@ lesson, which is that the most valuable dataset is usually the one you already o
 
 ## Notes for whoever builds the form
 
-1. **Order matters.** Put Group B before Group C. If the decoys come first, people are primed to
-   think about coffee preferences and answer B3/B4 aspirationally.
+1. **Keep them in order, B1 through B5.** B5 asks about queue patience; if it runs before B4, people
+   start reasoning about their coffee habits and answer B4 aspirationally rather than factually.
 2. **Every question must be required**, or the aggregate charts get ragged and the TV shows uneven
    totals across slides.
 3. **Export as CSV** with one row per registrant and one column per question, using the option
