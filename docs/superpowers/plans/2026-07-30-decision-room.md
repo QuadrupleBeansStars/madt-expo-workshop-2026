@@ -134,6 +134,13 @@ the form exports.
 
 **This is the most important task in the plan.** Read spec §4 in full before starting.
 
+**Scope — read this first.** Only **round 1 (staffing)** is simulated. Rounds 2 and 3 apply fixed
+KPI deltas per option, as the reference prototype does. This is deliberate: round 1 is where "your
+own data decided this" has to land, and it is the only decision the registration questions can
+actually resolve. Round 2 turns on price sensitivity and round 3 on capital allocation — neither is
+in the five questions, so simulating them would mean inventing inputs, which is exactly the
+dishonesty this workshop argues against. Do not build `simulateDefend` or `simulateInvest`.
+
 **Files:**
 - Create: `lib/sim.ts`
 - Test: `lib/sim.test.ts`
@@ -189,6 +196,16 @@ describe('simulateStaffing', () => {
     const best = profits.indexOf(Math.max(...profits))
     expect(best).toBeGreaterThan(0)                  // understaffing is not optimal
     expect(best).toBeLessThan(profits.length - 1)    // nor is maximum staffing
+  })
+
+  it('the winning choice wins by a visible margin', () => {
+    // An interior optimum is not enough: [10, 11, 10.5, 10, 9] passes the test above
+    // and is an unreadable flat curve on a projector. The room must be able to SEE
+    // that one answer beat the next-best one.
+    const profits = [1, 2, 3, 4, 5].map((n) => simulateStaffing(n, AUDIENCE).profit)
+    const sorted = [...profits].sort((a, b) => b - a)
+    expect(sorted[0]).toBeGreaterThan(sorted[1] * 1.15)   // best beats runner-up by >15%
+    expect(sorted[0]).toBeGreaterThan(sorted[4] * 2)      // best is at least double the worst
   })
 
   it('served + lostToQueue never exceeds arrivals', () => {
@@ -252,9 +269,19 @@ clear interior optimum — that optimum is the game's answer.
 Stage kinds are `intro`, `data`, `decide`, `outcome`, `close` (spec §2). Model them as Zod schemas
 in a discriminated union on `kind`, following the existing style in `lib/deck-types.ts`.
 
-`decide` stages carry `options` (2–4), a `durationMs`, and the id of the simulator entry point they
-resolve through. `outcome` stages carry `forStageId`, plus `lesson` — the teaching beat, which is
-the whole reason this stage kind exists.
+`decide` stages carry `options` (2–4), a `durationMs`, and a **resolution**: either
+`{ resolve: 'simulate-staffing' }` (round 1 only) or `{ resolve: 'fixed', fx: Partial<Kpi> }` per
+option (rounds 2 and 3). See Task 3's scope note for why only one round is simulated. Model the
+resolution as a discriminated union so a stage cannot claim both.
+
+`outcome` stages carry `forStageId`, plus `lesson` — the teaching beat, which is the whole reason
+this stage kind exists.
+
+**Design constraint on the round 3 options.** At least one option must raise `revenue` *and* raise
+`waste`. Without that, waste only ever rises from overstaffing — which already suppresses profit —
+so it is redundant with profit rather than a real trade-off, and spec §5.1's claim that a player
+who maximises every bar loses becomes unreachable. The marketing option is the natural home for
+this: more customers drawn in, more stock prepped, more of it thrown away.
 
 Every user-facing string is `LocalizedText` (`{ th, en }`), both rendered at once.
 
@@ -262,8 +289,15 @@ Every user-facing string is `LocalizedText` (`{ th, en }`), both rendered at onc
 
 Assert: every stage id is unique; every `outcome.forStageId` names a real `decide` stage; every
 `decide` has 2–4 options with unique ids; every localized string has non-empty `th` and `en`; the
-sequence contains exactly three `decide` stages; total `durationMs` across decide stages is under
-four minutes (the fifteen-minute budget is a hard constraint, so assert it).
+sequence contains exactly three `decide` stages; exactly one stage resolves via
+`simulate-staffing` and every other `decide` supplies `fx` for all its options; at least one round
+3 option has both positive `revenue` and positive `waste` in its `fx`.
+
+**Assert the whole time budget, not just the voting slice.** Sum `durationMs` across decide stages
+*plus* a stated allowance per non-decide stage (put the allowance in a named constant —
+`ALLOWANCE_MS` — with a comment that it is the host's talking time). The total must come in under
+fifteen minutes. Guarding only the voting slice leaves the real timing risk unguarded, and timing
+is the constraint most likely to break this workshop on the day.
 
 - [ ] **Step 2: Run it, confirm it fails**
 
@@ -328,9 +362,10 @@ Each player carries `{ id, name, kpi: Kpi, choices: Record<stageId, optionId>, j
 state is **per player and carried across rounds** — this is the mechanical difference from the deck
 store, which only tallied a room.
 
-When a `decide` stage closes, resolve every player's choice through the simulator and apply the
-result to their KPI. Players who did not vote take the default option's outcome, so the leaderboard
-never has holes.
+When a `decide` stage closes, resolve every player's choice and apply the result to their KPI. The
+stage's resolution decides how: `simulate-staffing` runs the choice through `simulateStaffing`
+(round 1 only); `fixed` applies the option's `fx` deltas (rounds 2 and 3). Players who did not vote
+take the first option's outcome, so the leaderboard never has holes.
 
 `shopValue(kpi)` is the weighted sum used for ranking. **`waste` is inverted** — it subtracts.
 
@@ -486,9 +521,16 @@ Queue a vote locally and retry if the network drops. Never re-queue a vote the s
 - [ ] **Step 5:** Build and run over the LAN (`npm run build && npm run start:lan`). With a real
       phone on the venue-like network: join, play all three rounds, confirm the leaderboard updates
       and the outcome traces render. **Reset mid-session and confirm the phone returns to join.**
-- [ ] **Step 6:** Update `README.md` with the room's URLs, the host token note, and the
+- [ ] **Step 6: Delete the superseded deck build.** `content/deck.ts`, `lib/deck.ts`,
+      `lib/deck-types.ts`, `lib/deck-store.ts`, and `app/api/deck/` implement the poll-and-tally
+      model this plan replaces. Nothing in the room build imports them. Delete them and their tests
+      in one commit, so the final review sees a coherent branch rather than two competing designs.
+      **Keep** `app/biz/deck.css`, `components/deck/Bilingual.tsx`, `components/deck/SlideFrame.tsx`,
+      and `content/deck-strings.ts` — those are live. Confirm with `npx vitest run` and
+      `npx tsc --noEmit` after deleting.
+- [ ] **Step 7:** Update `README.md` with the room's URLs, the host token note, and the
       run-day sequence.
-- [ ] **Step 7: Commit** — `docs: run-day instructions for The Decision Room`
+- [ ] **Step 8: Commit** — `docs: run-day instructions for The Decision Room`
 
 ---
 

@@ -104,8 +104,15 @@ Four properties this must have:
 - **Explainable to a named person.** The simulator returns not just a number but the chain that
   produced it, so the room can be told *"someone told us they'd wait three minutes. You staffed two
   baristas. They left at 7:14."* An unexplainable outcome teaches nothing.
-- **Traceable to a question.** Every input maps to a registration question the audience personally
-  answered. Nothing is invented to make the maths work.
+- **Traceable to a question.** Every simulator input maps to a registration question the audience
+  personally answered. Nothing is invented to make the maths work.
+
+**Only round 1 is simulated.** Rounds 2 and 3 apply fixed KPI deltas per option, as the reference
+prototype does. This is a deliberate limit, not a shortcut: round 2 turns on price sensitivity and
+round 3 on capital allocation, and neither is in the five registration questions. Simulating them
+would mean inventing inputs and presenting the output as derived from the audience's data — exactly
+the dishonesty this workshop argues against. Round 1 is where "your own data decided this" has to
+land, and it is the one decision the data can genuinely resolve.
 - **Total.** Every choice must produce a defensible result, including deliberately bad ones. No
   choice may crash or return a degenerate score.
 
