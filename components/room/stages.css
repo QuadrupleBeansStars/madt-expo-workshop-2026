@@ -1,0 +1,761 @@
+/*
+ * The Decision Room — projector layout.
+ *
+ * A sibling of app/biz/deck.css's editorial language and it reads that file's tokens
+ * (--deck-ink, --deck-clr, --deck-line …) rather than redefining them; every class here is
+ * prefixed `.room-` so the two never collide and neither file has to be modified.
+ *
+ * Everything is sized for one constraint: a 200-person room reading a projector from the back
+ * row. Figures are oversized and tabular; labels never drop below a readable weight; the
+ * outcome screen's causal chain is the largest type in the workshop after the slide headline.
+ *
+ * FONTS: never the AI Detective pixel face — it carries no Thai glyphs, which is a live defect
+ * on the sibling app. Everything inherits deck.css's Thai-capable sans.
+ */
+
+.room-root {
+  min-height: 100dvh;
+  background: var(--deck-bg);
+}
+
+/* The stages carry more furniture than a pitch slide (charts, boards, six-step chains), so the
+   shell tops out rather than centring, and scrolls if a laptop is on a short display. */
+.room-slide {
+  justify-content: flex-start;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: clamp(56px, 8vh, 96px);
+}
+
+.room-slide .deck-stage {
+  max-width: 1500px;
+}
+
+/* ── Join / lobby ────────────────────────────────────────────────────────── */
+
+.room-join {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: clamp(28px, 5vw, 72px);
+  align-items: start;
+}
+
+.room-join__body {
+  margin-top: clamp(14px, 2vw, 26px);
+}
+
+.room-join__count {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin: clamp(22px, 3vw, 40px) 0 0;
+}
+
+.room-join__count-n {
+  font-size: clamp(44px, 7vw, 96px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+}
+
+.room-join__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: clamp(16px, 2vw, 26px);
+  border: 1px solid var(--deck-line);
+  border-radius: 20px;
+  background: var(--deck-card);
+}
+
+/* White plate under the code regardless of theme: a QR inverted in dark mode does not scan. */
+.room-join__qr-box {
+  padding: 16px;
+  border-radius: 14px;
+  background: #ffffff;
+  line-height: 0;
+}
+
+.room-join__url {
+  margin: 0;
+  font-size: clamp(15px, 1.6vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  word-break: break-all;
+  text-align: center;
+  color: var(--deck-ink);
+}
+
+.room-join__hint .deck-bi__en,
+.room-join__hint .deck-bi__th {
+  text-align: center;
+}
+
+/* ── Data ────────────────────────────────────────────────────────────────── */
+
+.room-data,
+.room-decide__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(26px, 4vw, 64px);
+  align-items: start;
+}
+
+.room-data__lead {
+  margin-top: clamp(14px, 2vw, 24px);
+}
+
+.room-data__panels {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 3vw, 40px);
+}
+
+.room-data__gap {
+  margin: clamp(18px, 2.4vw, 28px) 0 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--deck-clr);
+}
+
+.room-points {
+  list-style: none;
+  margin: clamp(20px, 2.6vw, 32px) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vw, 22px);
+}
+
+.room-points__item {
+  position: relative;
+  padding-left: 30px;
+}
+
+.room-points__item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--deck-clr);
+}
+
+/* ── Decide ──────────────────────────────────────────────────────────────── */
+
+.room-decide__context {
+  margin-top: clamp(12px, 1.6vw, 20px);
+}
+
+.room-decide__clock {
+  justify-self: end;
+  text-align: right;
+}
+
+.room-decide__seconds {
+  display: block;
+  font-size: clamp(64px, 12vw, 180px);
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+}
+
+.room-decide__clock[data-open="false"] .room-decide__seconds {
+  color: var(--deck-muted);
+}
+
+.room-decide__state {
+  margin-top: 10px;
+}
+
+.room-options {
+  list-style: none;
+  margin: clamp(24px, 3.4vw, 48px) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.room-options__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 34%) 1fr auto;
+  gap: clamp(14px, 2vw, 28px);
+  align-items: center;
+}
+
+.room-options__track {
+  height: clamp(26px, 3.6vw, 44px);
+  border-radius: 8px;
+  border: 1px solid var(--deck-line);
+  background: color-mix(in srgb, var(--deck-clr) 10%, var(--deck-bg));
+  overflow: hidden;
+}
+
+.room-options__fill {
+  height: 100%;
+  background: var(--deck-clr);
+  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.room-options__count {
+  min-width: 3ch;
+  text-align: right;
+  font-size: clamp(24px, 3.4vw, 44px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-decide__votes {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin: clamp(20px, 2.6vw, 32px) 0 0;
+  font-size: clamp(22px, 3vw, 40px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.room-decide__of {
+  color: var(--deck-muted);
+  font-weight: 600;
+}
+
+/* ── Outcome — the teaching screen ───────────────────────────────────────── */
+
+.room-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(24px, 3.2vw, 44px);
+}
+
+.room-outcome__body {
+  margin-top: clamp(12px, 1.8vw, 22px);
+  max-width: none;
+}
+
+.room-outcome__body .deck-bi__en {
+  max-width: 68ch;
+}
+
+.room-outcome__body .deck-bi__th {
+  max-width: 72ch;
+}
+
+/*
+ * The causal chain. Six figures in sequence, each one caused by the one before it: arrived →
+ * could be made → served → walked out → still waiting → the wait itself. Sized to be legible
+ * from the back row, which is why the numerals dominate and the sentences sit under them.
+ */
+.room-trace {
+  padding: clamp(20px, 2.6vw, 34px);
+  border: 1px solid var(--deck-line);
+  border-radius: 22px;
+  background: var(--deck-card);
+}
+
+.room-trace__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.room-trace__staffing {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 0;
+}
+
+.room-trace__staffing b {
+  font-size: clamp(26px, 3.4vw, 44px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+}
+
+.room-trace__steps {
+  list-style: none;
+  margin: clamp(18px, 2.4vw, 30px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: clamp(14px, 1.8vw, 26px);
+}
+
+.room-trace__step {
+  position: relative;
+  padding: clamp(12px, 1.4vw, 20px) clamp(12px, 1.4vw, 18px);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--deck-clr) 7%, var(--deck-bg));
+  border: 1px solid color-mix(in srgb, var(--deck-clr) 22%, var(--deck-bg));
+}
+
+/* The two links the lesson turns on: the ones who left, and the wait that sent them. */
+.room-trace__step[data-tone="loss"] {
+  background: color-mix(in srgb, var(--deck-red) 9%, var(--deck-bg));
+  border-color: color-mix(in srgb, var(--deck-red) 34%, var(--deck-bg));
+}
+
+.room-trace__step[data-tone="loss"] .room-trace__value {
+  color: var(--deck-red);
+}
+
+.room-trace__step[data-tone="wait"] .room-trace__value {
+  color: var(--deck-muted);
+}
+
+.room-trace__idx {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--deck-clr);
+  color: var(--deck-bg);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.room-trace__value {
+  display: block;
+  margin: 6px 0 4px;
+  font-size: clamp(52px, 7.4vw, 112px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+}
+
+.room-trace__label .deck-bi__en {
+  max-width: none;
+  font-size: clamp(14px, 1.35vw, 20px);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.room-trace__label .deck-bi__th {
+  max-width: none;
+  font-size: clamp(13px, 1.15vw, 17px);
+}
+
+/* Nobody vanishes: the four counts are shown to add up, in arithmetic, on screen. */
+.room-trace__sum {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+  margin: clamp(16px, 2vw, 24px) 0 0;
+  padding-top: clamp(14px, 1.8vw, 20px);
+  border-top: 1px dashed var(--deck-line-strong);
+}
+
+.room-trace__eq {
+  font-size: clamp(22px, 2.8vw, 38px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* Rounds 2 and 3: signed deltas, not bars — these values go negative. */
+.room-fx__list {
+  list-style: none;
+  margin: clamp(14px, 1.8vw, 22px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.room-fx__card {
+  padding: clamp(14px, 1.8vw, 22px);
+  border: 1px solid var(--deck-line);
+  border-radius: 18px;
+  background: var(--deck-card);
+}
+
+.room-fx__label .deck-bi__en {
+  max-width: none;
+  font-size: clamp(17px, 1.7vw, 24px);
+  font-weight: 700;
+}
+
+.room-fx__label .deck-bi__th {
+  max-width: none;
+}
+
+.room-fx__deltas {
+  margin: clamp(12px, 1.4vw, 18px) 0 0;
+}
+
+.room-fx__delta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 6px 0;
+  border-top: 1px solid var(--deck-line);
+}
+
+.room-fx__delta dt {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(12px, 1.1vw, 15px);
+  font-weight: 600;
+  color: var(--deck-muted);
+}
+
+.room-fx__delta dd {
+  margin: 0;
+  font-size: clamp(20px, 2.4vw, 32px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-red);
+}
+
+.room-fx__delta[data-good="true"] dd {
+  color: var(--deck-green);
+}
+
+/* The teaching beat. Set as loudly as a headline, because it is the sentence to remember. */
+.room-lesson {
+  margin: 0;
+  padding: clamp(18px, 2.4vw, 30px) clamp(20px, 2.6vw, 34px);
+  border-left: 8px solid var(--deck-clr);
+  border-radius: 4px 18px 18px 4px;
+  background: color-mix(in srgb, var(--deck-clr) 8%, var(--deck-bg));
+}
+
+.room-lesson__text .deck-bi__en {
+  font-size: clamp(28px, 4.4vw, 62px);
+}
+
+.room-lesson__eyebrow {
+  color: var(--deck-clr);
+}
+
+/* ── Close ───────────────────────────────────────────────────────────────── */
+
+.room-close {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(26px, 4vw, 60px);
+  align-items: start;
+}
+
+.room-close__lead {
+  margin-top: clamp(12px, 1.8vw, 22px);
+}
+
+.room-close__side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 2.6vw, 34px);
+}
+
+.room-takeaways {
+  list-style: none;
+  margin: clamp(20px, 2.6vw, 34px) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 1.8vw, 24px);
+}
+
+.room-takeaways__item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.room-takeaways__n {
+  font-size: clamp(28px, 3.4vw, 46px);
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-clr);
+  opacity: 0.5;
+}
+
+.room-archetypes__list {
+  list-style: none;
+  margin: clamp(12px, 1.6vw, 20px) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.room-archetypes__item {
+  padding: clamp(12px, 1.4vw, 18px);
+  border: 1px solid var(--deck-line);
+  border-radius: 16px;
+  background: var(--deck-card);
+}
+
+.room-archetypes__name {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(18px, 1.9vw, 26px);
+  font-weight: 800;
+  color: var(--deck-clr);
+}
+
+.room-archetypes__name [lang="th"] {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--deck-muted);
+}
+
+.room-archetypes__sting {
+  margin-top: 8px;
+}
+
+.room-archetypes__sting .deck-bi__en {
+  max-width: none;
+  font-size: clamp(13px, 1.2vw, 17px);
+}
+
+.room-archetypes__sting .deck-bi__th {
+  max-width: none;
+  font-size: clamp(12px, 1.05vw, 15px);
+}
+
+/* ── The board ───────────────────────────────────────────────────────────── */
+
+.room-board {
+  padding: clamp(16px, 2vw, 26px);
+  border: 1px solid var(--deck-line);
+  border-radius: 20px;
+  background: var(--deck-card);
+}
+
+.room-board__title {
+  color: var(--deck-clr);
+}
+
+.room-board__list {
+  list-style: none;
+  margin: clamp(12px, 1.4vw, 18px) 0 0;
+  padding: 0;
+}
+
+.room-board__row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: clamp(12px, 1.6vw, 22px);
+  padding: clamp(8px, 1vw, 14px) 0;
+  border-top: 1px solid var(--deck-line);
+}
+
+.room-board__row:first-child {
+  border-top: 0;
+}
+
+.room-board__rank {
+  min-width: 1.6ch;
+  font-size: clamp(22px, 2.6vw, 36px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-muted);
+}
+
+/* The leader is the only row that gets the accent — a board where every row shouts ranks nothing. */
+.room-board__row[data-rank="1"] .room-board__rank,
+.room-board__row[data-rank="1"] .room-board__name {
+  color: var(--deck-clr);
+}
+
+.room-board__name {
+  font-size: clamp(19px, 2.2vw, 32px);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-board__kpis {
+  display: flex;
+  gap: clamp(10px, 1.4vw, 20px);
+}
+
+.room-board__kpi {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(10px, 0.9vw, 12px);
+  font-weight: 600;
+  color: var(--deck-muted);
+}
+
+.room-board__kpi b {
+  font-size: clamp(14px, 1.4vw, 20px);
+  font-variant-numeric: tabular-nums;
+  color: var(--deck-ink);
+}
+
+.room-board__score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: clamp(10px, 0.9vw, 12px);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.room-board__score b {
+  font-size: clamp(22px, 2.6vw, 38px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--deck-ink);
+}
+
+.room-board__score-th {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.room-board__empty {
+  margin-top: 10px;
+}
+
+/* ── Host chrome (app/biz/page.tsx) ──────────────────────────────────────── */
+
+/* Deliberately small and out of the way: the room should never notice it, and the host only
+   touches it once, to type the token. Advancing is the arrow key. */
+.room-host {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--deck-line-strong);
+  border-radius: 12px;
+  background: var(--deck-card);
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.room-host:hover,
+.room-host:focus-within {
+  opacity: 1;
+}
+
+.room-host__label {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--deck-muted);
+}
+
+.room-host__label [lang="th"] {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.room-host__input {
+  width: 130px;
+  padding: 6px 8px;
+  border: 1px solid var(--deck-line-strong);
+  border-radius: 8px;
+  background: var(--deck-bg);
+  color: var(--deck-ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.room-host__btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--deck-clr, var(--deck-green));
+  color: #ffffff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.room-host__btn [lang="th"] {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.room-alert {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 40;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--deck-card);
+  border: 1px solid var(--deck-line-strong);
+}
+
+.room-alert--error {
+  border-color: var(--deck-red);
+}
+
+.room-alert--error .deck-bi__en,
+.room-alert--error .deck-bi__th {
+  color: var(--deck-red);
+}
+
+/* ── Narrow screens (a laptop mirroring, or a rehearsal on a phone) ──────── */
+
+@media (max-width: 1100px) {
+  .room-join,
+  .room-data,
+  .room-decide__head,
+  .room-close {
+    grid-template-columns: 1fr;
+  }
+
+  .room-decide__clock {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .room-options__row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .room-options__track {
+    grid-column: 1 / -1;
+  }
+
+  .room-board__kpis {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-options__fill,
+  .room-host {
+    transition: none !important;
+  }
+}
