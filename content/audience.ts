@@ -15,8 +15,9 @@ export type AudienceAggregate = {
 }
 
 // PLACEHOLDER DATA — the registration CSV does not exist yet (event is 23 Aug 2026).
-// This flag is a safety mechanism, not a note: the UI renders a visible "PLACEHOLDER DATA"
-// badge wherever AUDIENCE is used, driven directly by this value.
+// This flag is a safety mechanism, not a note: once built, `components/room/PlaceholderBadge.tsx`
+// will render a visible "PLACEHOLDER DATA" badge wherever AUDIENCE is used, driven directly by
+// this value. That component does not exist yet — nothing currently consumes this flag.
 //
 // To clear it: run `scripts/import-audience.ts` against the real registration CSV once it
 // exists, then set IS_PLACEHOLDER to `false` here.

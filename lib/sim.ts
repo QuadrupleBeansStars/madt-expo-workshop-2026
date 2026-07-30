@@ -66,6 +66,20 @@ const PATIENCE_LIMIT_MINUTES: Record<keyof AudienceAggregate['queuePatience'], n
 /** Width of the ramp below each patience threshold, in minutes. */
 const PATIENCE_RAMP_MINUTES = 0.5
 
+/**
+ * Satisfaction hits zero once the average wait reaches this many minutes — a modelling
+ * decision (not a physical constant), used as the slope in `100 - SATISFACTION_ZERO_AT_WAIT_MINUTES * waitMinutes`.
+ */
+const SATISFACTION_ZERO_AT_WAIT_MINUTES = 10
+
+/**
+ * Divisor used to average a queue that grows roughly linearly over the peak: the customer at
+ * the very back waits for the whole overflow to clear, the customer right at the front waits
+ * for almost none of it, so the average overflow-wait is half the total overflow. Used in
+ * `averageWait`'s `queueAhead` term.
+ */
+const QUEUE_AHEAD_AVERAGING_DIVISOR = 2
+
 export type SimTrace = {
   /** Customers who wanted to buy in the 07:00-09:00 peak. */
   arrivals: number
@@ -74,6 +88,12 @@ export type SimTrace = {
   served: number
   /** Walked out — the wait exceeded the patience they stated at registration. */
   lostToQueue: number
+  /**
+   * Still in line when the rush ended: neither served nor walked out. `arrivals - served -
+   * lostToQueue`, named rather than left to vanish — the outcome screen must account for
+   * every arrival, not just the ones with a happy or unhappy ending.
+   */
+  stillQueuing: number
   /** Average minutes a customer spent waiting. */
   waitMinutes: number
 }
@@ -111,7 +131,7 @@ function round2(v: number): number {
 function peakArrivals(a: AudienceAggregate): number {
   const respondents = Math.max(0, a.respondents)
   if (respondents === 0) return 0
-  const coffeeShare = Math.max(0, a.firstDrink.coffee) / respondents
+  const coffeeShare = Math.min(1, Math.max(0, a.firstDrink.coffee) / respondents)
   const peakBuyers = Math.max(0, a.buyTime['7to9'])
   return Math.round(peakBuyers * coffeeShare)
 }
@@ -124,7 +144,12 @@ function peakArrivals(a: AudienceAggregate): number {
  */
 function averageWait(arrivals: number, capacity: number, perMinute: number): number {
   if (perMinute <= 0) return PEAK_MINUTES
-  const queueAhead = Math.max(0, arrivals - capacity) / 2
+  const queueAhead = Math.max(0, arrivals - capacity) / QUEUE_AHEAD_AVERAGING_DIVISOR
+  // NOTE: the `1 +` here is NOT one customer's individual service time — it's divided by
+  // `perMinute`, the shop's total throughput (baristas × rate), not a single barista's rate.
+  // It is a shop-throughput proxy: as more baristas are hired this term shrinks toward zero
+  // regardless of how long one drink actually takes to make (constants say ~4.9 minutes).
+  // Do not narrate this figure on stage as "your drink takes X minutes" — it isn't that.
   return Math.min(PEAK_MINUTES, (1 + queueAhead) / perMinute)
 }
 
@@ -167,6 +192,9 @@ export function simulateStaffing(baristas: number, a: AudienceAggregate): SimRes
   // above arrivals through independent rounding.
   const lostToQueue = Math.min(arrivals, Math.round(arrivals * walkOutShare(a, waitMinutes)))
   const served = Math.max(0, Math.min(capacity, arrivals - lostToQueue))
+  // Named, not dropped: anyone left over is still in line when the rush ends — neither
+  // served nor lost to the queue.
+  const stillQueuing = Math.max(0, arrivals - served - lostToQueue)
 
   // The cafe preps for the customers it could serve, never beyond the demand it expects.
   // Anything prepped that nobody collects is waste — traceable straight back to queuePatience.
@@ -178,7 +206,7 @@ export function simulateStaffing(baristas: number, a: AudienceAggregate): SimRes
   const profit = revenue - staff * CONSTANTS.baristaWageBaht - waste
 
   const servedShare = arrivals > 0 ? served / arrivals : 1
-  const patienceScore = clamp(100 - 10 * waitMinutes, 0, 100)
+  const patienceScore = clamp(100 - SATISFACTION_ZERO_AT_WAIT_MINUTES * waitMinutes, 0, 100)
   const satisfaction = Math.round(clamp(patienceScore * servedShare, 0, 100))
 
   return {
@@ -186,6 +214,6 @@ export function simulateStaffing(baristas: number, a: AudienceAggregate): SimRes
     profit,
     satisfaction,
     waste,
-    trace: { arrivals, capacity, served, lostToQueue, waitMinutes },
+    trace: { arrivals, capacity, served, lostToQueue, stillQueuing, waitMinutes },
   }
 }
