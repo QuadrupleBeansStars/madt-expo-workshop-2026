@@ -129,6 +129,89 @@ both languages present, real sources cited).
 **Content rules:** never fabricate evidence imitating a real outlet. Real cases cite real URLs;
 fictional evidence (NovaBrew) is flagged `fictional: true` and renders a FICTIONAL badge.
 
+---
+
+# ☕ The Decision Room — the second workshop
+
+Fifteen minutes. The audience runs a cafe using data **they supplied at event registration**, and
+competes on profit. Same app, same server, different routes.
+
+## Run it
+
+```bash
+FACILITATOR_TOKEN='<your-token>' npm run start:lan     # after npm run build
+```
+
+| Screen | URL |
+|---|---|
+| 📺 Room view (projector) | `http://<your-ip>:3000/biz` |
+| 📱 Player | `http://<your-ip>:3000/play` — the QR on the intro stage points here |
+
+The host advances with **→ or space**, after entering the facilitator token once. There is no
+"close voting" button by design: advancing off a decision closes it and resolves the round. One
+control under stage pressure beats two.
+
+Reset between sessions:
+
+```bash
+curl -X POST -H "x-facilitator-token: $FACILITATOR_TOKEN" http://<your-ip>:3000/api/room/reset
+```
+
+Phones detect the reset from their next poll and return to the join screen on their own — they do
+**not** have to be reloaded, and they are not ejected mid-round the way AI Detective's are.
+
+## The fifteen minutes
+
+Ten stages: intro → their data → decide → outcome → new data → decide → outcome → decide → outcome
+→ close. Voting takes 2:10 of it; the rest is the host talking. Budgeted at 12:40, leaving 2:20 of
+slack.
+
+**The teaching lives in the `outcome` stages**, never in a lecture slide. Round 1's outcome is the
+one that matters: two baristas produce a 3.7-minute wait, and nineteen people who told you at
+registration they would not wait three minutes walk out. Three baristas is the right answer, worth
+฿1,700 against ฿610.
+
+Round 2 is the **designated cut** if you are running long. Rounds are self-contained; dropping it
+needs no code change, just advance past it.
+
+## ⚠️ Before the day
+
+1. **Change `FACILITATOR_TOKEN`.** It is `madt2026` in these docs, which are public.
+2. **Import the registration CSV**, then clear the placeholder flag:
+   ```bash
+   node scripts/import-audience.ts registration-export.csv
+   # then set IS_PLACEHOLDER = false in content/audience.ts
+   ```
+   Until you do, every data screen carries a loud **PLACEHOLDER DATA** badge. That badge is driven
+   by the flag, not by hand — it cannot be forgotten, only cleared deliberately.
+3. **Expect to re-tune the simulator.** `lib/sim.ts`'s constants (ticket ฿70, wage ฿600/shift,
+   service rate, waste ฿20) are tuned so three baristas wins by 54%. That answer sits on a knife
+   edge: one fewer respondent in the 7–9 bucket, or a 1% change to the service rate, flips it to
+   two. `lib/sim.test.ts` fails loudly if the curve goes flat or the winner changes — treat that
+   failure as a signal to re-tune, not to relax the test.
+4. **Round 1's on-screen copy quotes figures from the placeholder data** (50 arrivals, 3.7 minutes,
+   19 walkouts, ฿1,700, 54%). A test recomputes them through the simulator, so real data will fail
+   loudly and four sentences in `content/room.ts` need rewriting — plus `NARRATED_BARISTAS` in
+   `content/room-labels.ts`.
+
+## Things not to say on stage
+
+- **Never call the simulator AI, ML, or a model.** It is arithmetic over the audience's own
+  answers. A workshop about data honesty should not oversell its own machinery.
+- **Never narrate `waitMinutes` as "your drink takes X minutes."** It is a shop-throughput figure,
+  not individual service time. Correcting the arithmetic collapses the profit curve, so it is
+  deferred to the post-CSV re-tune; until then, do not put that reading in anyone's head.
+
+## Editing the workshop
+
+`content/room.ts` holds every stage and every word, bilingual (th/en), both languages rendered at
+once — there is no language toggle anywhere. `content/audience.ts` is the only file that knows
+about registration data. `lib/sim.ts` holds the economics.
+
+`npx vitest run content/room.test.ts` validates the script: unique stage ids, every outcome points
+at a real decision, both languages present, the time budget fits fifteen minutes, and round 3's
+recurring option still beats the flashy one.
+
 ## Superseded / dead code (safe to delete later)
 
 `app/reveal/`, `components/CaseScreen.tsx`, `components/ResultScreen.tsx` are from the v1 free-roam
