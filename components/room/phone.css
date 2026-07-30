@@ -1,0 +1,337 @@
+/*
+ * The phone (app/play, components/room/PhoneBody.tsx).
+ *
+ * Its own token space, `--phone-` / `.phone-` prefixed, so it collides with neither the deck
+ * (`--deck-*`) nor the AI Detective CRT theme sharing this origin. Dark by default and dark in
+ * both colour schemes on purpose: this screen is held in a dim lecture hall for fifteen minutes,
+ * and a white phone in a dark room is the thing people put face-down.
+ *
+ * FONTS: never the pixel display face. It carries no Thai glyphs, so Thai falls back mid-line and
+ * renders small and misaligned — a live defect on the sibling app. Sarabun (--font-thai) covers
+ * both scripts, so one stack serves the whole page.
+ *
+ * TOUCH: no interactive element is under 56px tall. A mis-tap here costs a player a whole round.
+ */
+
+.phone-root {
+  --phone-bg: #101109;
+  --phone-card: #1a1b12;
+  --phone-ink: #f2f1e8;
+  --phone-muted: #a4a598;
+  --phone-line: #2c2d21;
+  --phone-clr: #ffab3d;
+  --phone-good: #2fb877;
+  --phone-warn: #f0655a;
+
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 3.5vw, 22px);
+  padding: clamp(14px, 4vw, 24px) clamp(14px, 4.5vw, 26px) clamp(22px, 6vw, 34px);
+  background: var(--phone-bg);
+  color: var(--phone-ink);
+  font-family: var(--font-thai), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-size: clamp(16px, 4.2vw, 19px);
+  line-height: 1.35;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Bilingual pairs: English leads, Thai sits beneath it, muted. Mirrors the deck's treatment
+   without importing deck.css, so this page stands alone. */
+.phone-root .deck-bi {
+  display: block;
+}
+.phone-root .deck-bi__en,
+.phone-root .deck-bi__th {
+  display: block;
+}
+.phone-root .deck-bi__th {
+  color: var(--phone-muted);
+  font-size: 0.82em;
+  margin-top: 0.15em;
+}
+.phone-root .deck-bi--hero .deck-bi__en {
+  font-size: clamp(24px, 6.6vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.phone-root .deck-bi--label .deck-bi__en {
+  font-size: 0.86em;
+  text-transform: none;
+  color: var(--phone-muted);
+  letter-spacing: 0.02em;
+}
+.phone-root .deck-bi--label .deck-bi__th {
+  font-size: 0.8em;
+}
+
+/* ── chrome ──────────────────────────────────────────────────────────────── */
+
+.phone-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--phone-line);
+  padding-bottom: 10px;
+}
+
+.phone-head__name {
+  font-weight: 700;
+  font-size: 1.05em;
+  overflow-wrap: anywhere;
+}
+
+.phone-head__offline {
+  color: var(--phone-warn);
+  text-align: right;
+  max-width: 55%;
+}
+
+.phone-notice {
+  border: 1px solid color-mix(in srgb, var(--phone-clr) 45%, transparent);
+  background: color-mix(in srgb, var(--phone-clr) 12%, var(--phone-bg));
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.phone-main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(14px, 3vw, 20px);
+}
+
+/* ── holding / final ─────────────────────────────────────────────────────── */
+
+.phone-hold {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: clamp(18px, 6vw, 40px) 0;
+  text-align: center;
+}
+
+.phone-hold__sub {
+  color: var(--phone-muted);
+}
+
+/* ── decide ──────────────────────────────────────────────────────────────── */
+
+.phone-decide {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 3vw, 18px);
+}
+
+.phone-decide__head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.phone-decide__context .deck-bi__en {
+  font-size: 0.92em;
+  color: var(--phone-muted);
+}
+
+.phone-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.phone-clock b {
+  font-size: clamp(30px, 9vw, 44px);
+  font-variant-numeric: tabular-nums;
+  color: var(--phone-warn);
+  line-height: 1;
+}
+
+.phone-clock[data-open='true'] b {
+  color: var(--phone-clr);
+}
+
+.phone-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 2.6vw, 14px);
+}
+
+.phone-option {
+  /* The whole point of this page. Full width, tall, and impossible to miss in the dark. */
+  width: 100%;
+  min-height: 76px;
+  padding: 16px 18px;
+  text-align: left;
+  border: 2px solid var(--phone-line);
+  border-radius: 16px;
+  background: var(--phone-card);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+}
+
+.phone-option:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.phone-option[aria-pressed='true'] {
+  border-color: var(--phone-clr);
+  background: color-mix(in srgb, var(--phone-clr) 16%, var(--phone-card));
+}
+
+.phone-option:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.phone-picked {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--phone-line);
+  padding-top: 12px;
+}
+
+.phone-picked--empty {
+  color: var(--phone-muted);
+}
+
+/* ── the player's own shop ───────────────────────────────────────────────── */
+
+.phone-shop {
+  border: 1px solid var(--phone-line);
+  border-radius: 16px;
+  background: var(--phone-card);
+  padding: clamp(12px, 3.5vw, 18px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.phone-shop--empty {
+  text-align: center;
+}
+
+.phone-shop__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.phone-shop__score b,
+.phone-shop__rank b {
+  font-size: clamp(22px, 6vw, 28px);
+  font-variant-numeric: tabular-nums;
+  color: var(--phone-clr);
+}
+
+.phone-shop__score,
+.phone-shop__rank {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.phone-shop__score-k,
+.phone-shop__rank-k {
+  color: var(--phone-muted);
+  font-size: 0.8em;
+}
+
+.phone-kpis {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin: 0;
+}
+
+.phone-kpis__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.phone-kpis__item dt {
+  color: var(--phone-muted);
+  font-size: 0.76em;
+}
+
+.phone-kpis__item dt span[lang='th'] {
+  display: block;
+}
+
+.phone-kpis__item dd {
+  margin: 0;
+  font-size: 1.15em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── join ────────────────────────────────────────────────────────────────── */
+
+.phone-join {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(16px, 4vw, 26px);
+  padding: clamp(20px, 7vw, 44px) clamp(16px, 5vw, 30px);
+  background: var(--phone-bg, #101109);
+  color: var(--phone-ink, #f2f1e8);
+  font-family: var(--font-thai), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+.phone-join__form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.phone-join__input {
+  width: 100%;
+  min-height: 62px;
+  padding: 14px 16px;
+  /* 16px minimum, or iOS Safari zooms the whole page on focus and the room loses its place. */
+  font-size: 18px;
+  font-family: inherit;
+  color: inherit;
+  background: var(--phone-card, #1a1b12);
+  border: 2px solid var(--phone-line, #2c2d21);
+  border-radius: 14px;
+}
+
+.phone-join__input:focus {
+  outline: none;
+  border-color: var(--phone-clr, #ffab3d);
+}
+
+.phone-join__btn {
+  min-height: 68px;
+  width: 100%;
+  border: none;
+  border-radius: 16px;
+  background: var(--phone-clr, #ffab3d);
+  color: #16170f;
+  font: inherit;
+  font-size: 1.15em;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.phone-join__btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

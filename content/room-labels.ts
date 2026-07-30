@@ -182,6 +182,53 @@ export const UI = {
   },
 } satisfies Record<string, LocalizedText>
 
+/**
+ * The phone (`app/play`). Two hundred of these are held at arm's length in a dark room for
+ * fifteen minutes, so every string here is short, plain, and reads the same in both scripts.
+ *
+ * Separate from `UI` because the audiences differ: `UI` is read from the back of a lecture hall
+ * off a projector, this is read at arm's length by one person who also has to tap it. Nothing
+ * here narrates the workshop — the script stays on the big screen, which is exactly what
+ * `lookUp` tells the player.
+ */
+export const PHONE = {
+  joinTitle: { en: 'Run your own cafe', th: 'เปิดร้านกาแฟของคุณเอง' },
+  joinBlurb: {
+    en: 'Three decisions, one tap each. Your shop keeps its own numbers.',
+    th: 'มีสามการตัดสินใจ กดเลือกครั้งละหนึ่งครั้ง และร้านของคุณจะเก็บตัวเลขของตัวเอง',
+  },
+  namePrompt: { en: 'Name your shop', th: 'ตั้งชื่อร้านของคุณ' },
+  joinButton: { en: 'Open the shop', th: 'เปิดร้าน' },
+  joining: { en: 'Opening…', th: 'กำลังเปิดร้าน…' },
+  nameRequired: { en: 'Type a name first.', th: 'พิมพ์ชื่อก่อนนะ' },
+  joinFailed: {
+    en: 'Could not join. Check the Wi-Fi and tap again.',
+    th: 'เข้าร่วมไม่สำเร็จ ลองเช็ก Wi-Fi แล้วกดอีกครั้ง',
+  },
+  roomReset: {
+    en: 'The room started over. Join again to keep your seat.',
+    th: 'ห้องเริ่มรอบใหม่แล้ว เข้าร่วมอีกครั้งเพื่อเล่นต่อ',
+  },
+  lookUp: { en: 'Look at the big screen.', th: 'มองไปที่จอใหญ่' },
+  waiting: { en: 'Waiting for the host.', th: 'รอผู้ดำเนินรายการ' },
+  yourShop: { en: 'Your shop', th: 'ร้านของคุณ' },
+  rank: { en: 'Rank', th: 'อันดับ' },
+  ofShops: { en: 'of', th: 'จาก' },
+  notTradingYet: {
+    en: 'Your shop starts trading at the first decision.',
+    th: 'ร้านของคุณจะเริ่มทำตัวเลขตอนการตัดสินใจแรก',
+  },
+  tapOne: { en: 'Tap one', th: 'แตะเลือกหนึ่งข้อ' },
+  youPicked: { en: 'You picked', th: 'คุณเลือก' },
+  locked: { en: 'Voting has closed for this round.', th: 'ปิดโหวตรอบนี้แล้ว' },
+  tooLate: {
+    en: 'Too late — that round had already closed.',
+    th: 'ไม่ทันแล้ว รอบนั้นปิดไปก่อน',
+  },
+  finalTitle: { en: 'That is your shop for the day.', th: 'นี่คือผลของร้านคุณทั้งวัน' },
+  thanks: { en: 'Thank you for running it.', th: 'ขอบคุณที่มาเปิดร้านด้วยกัน' },
+} satisfies Record<string, LocalizedText>
+
 /** KPI bar names on the board. `waste` is inverted — lower is better (lib/room-types.ts). */
 export const KPI_LABELS = {
   revenue: { en: 'Revenue', th: 'รายได้' },
