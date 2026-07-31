@@ -537,13 +537,13 @@
    longest element on the stage in both scripts, so it gives up the most. */
 .room-slide .room-outcome__body .deck-bi__en {
   max-width: 62ch;
-  font-size: min(clamp(13px, 1.15vw, 19px), 2.5vh);
+  font-size: min(clamp(11px, 1vw, 19px), 1.9vh);
   line-height: 1.35;
 }
 
 .room-slide .room-outcome__body .deck-bi__th {
   max-width: 66ch;
-  font-size: min(clamp(12px, 1.05vw, 17px), 2.3vh);
+  font-size: min(clamp(10px, 0.9vw, 17px), 1.75vh);
   line-height: 1.4;
 }
 
@@ -697,14 +697,14 @@
 
 .room-slide .room-fx__label .deck-bi__en {
   max-width: none;
-  font-size: min(clamp(12px, 1.15vw, 18px), 2.4vh);
+  font-size: min(clamp(10px, 1vw, 18px), 2vh);
   font-weight: 700;
   line-height: 1.2;
 }
 
 .room-slide .room-fx__label .deck-bi__th {
   max-width: none;
-  font-size: min(clamp(11px, 1vw, 15px), 2.1vh);
+  font-size: min(clamp(9px, 0.88vw, 15px), 1.8vh);
   line-height: 1.25;
 }
 
@@ -724,14 +724,14 @@
 .room-fx__delta dt {
   display: flex;
   flex-direction: column;
-  font-size: min(clamp(9px, 0.8vw, 13px), 1.8vh);
+  font-size: min(clamp(8px, 0.72vw, 13px), 1.5vh);
   font-weight: 600;
   color: var(--deck-muted);
 }
 
 .room-fx__delta dd {
   margin: 0;
-  font-size: min(clamp(14px, 1.5vw, 24px), 3.2vh);
+  font-size: min(clamp(12px, 1.3vw, 24px), 2.5vh);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   color: var(--deck-red);
@@ -745,19 +745,19 @@
    width of both columns now, which buys the type back most of what the height cap takes. */
 .room-lesson {
   margin: 0;
-  padding: clamp(10px, 1.5vh, 22px) clamp(16px, 2.2vw, 30px);
+  padding: min(clamp(7px, 1.1vh, 16px), 1.6vh) clamp(14px, 2vw, 28px);
   border-left: 8px solid var(--deck-clr);
   border-radius: 4px 18px 18px 4px;
   background: color-mix(in srgb, var(--deck-clr) 8%, var(--deck-bg));
 }
 
 .room-slide .room-lesson__text .deck-bi__en {
-  font-size: min(clamp(20px, 2.8vw, 44px), 6vh);
+  font-size: min(clamp(17px, 2.3vw, 44px), 4.4vh);
   line-height: 1.1;
 }
 
 .room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(14px, 1.7vw, 26px), 3.6vh);
+  font-size: min(clamp(12px, 1.4vw, 26px), 2.6vh);
 }
 
 .room-lesson__eyebrow {
