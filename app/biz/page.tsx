@@ -12,11 +12,20 @@
 //     a stale screen is recoverable in front of a room, a blank one is not.
 //   - The QR is computed client-side, so its absence is the tell that hydration failed.
 
+// deck.css FIRST, above the component imports, and it has to stay there.
+//
+// `components/room/stages.css` is a layer on top of this sheet: it restyles deck classes
+// (.deck-bi--body, .deck-bi--hero) at the same specificity, so the two tie constantly and the
+// later sheet wins every tie. With `cssChunking: 'strict'` (next.config.ts) sheet order IS import
+// order, and importing Stages before deck.css put the base sheet last — which silently reverted
+// every size stages.css sets. The projector rendered the outcome stage's six-step chain at body
+// type, three times its height, pushing the lesson and the board off the screen.
+import './deck.css'
+
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UI } from '@/content/room-labels'
 import { Bilingual } from '@/components/deck/Bilingual'
 import { Stages, type RoomFrame } from '@/components/room/Stages'
-import './deck.css'
 
 const STATE_POLL_MS = 1000
 /** How often the countdown re-renders between polls, so 45s does not tick in 1s jumps. */
