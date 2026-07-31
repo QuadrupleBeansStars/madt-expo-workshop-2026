@@ -24,7 +24,7 @@
   justify-content: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-top: clamp(40px, 5.5vh, 84px);
+  padding-top: clamp(30px, 4vh, 70px);
 }
 
 .room-slide .deck-stage {
@@ -51,29 +51,29 @@
  * `npm run check:projector` is the check. Re-run it after touching anything here.
  */
 .room-slide .deck-bi--hero .deck-bi__en {
-  font-size: min(clamp(28px, 4.4vw, 84px), 8.4vh);
+  font-size: min(clamp(24px, 3.9vw, 84px), 6.8vh);
   line-height: 1.04;
 }
 
 .room-slide .deck-bi--hero .deck-bi__th {
   margin-top: min(clamp(6px, 1.2vw, 22px), 1.4vh);
-  font-size: min(clamp(15px, 1.8vw, 30px), 4vh);
+  font-size: min(clamp(13px, 1.6vw, 30px), 3.2vh);
   line-height: 1.3;
 }
 
 .room-slide .deck-bi--body .deck-bi__en {
-  font-size: min(clamp(14px, 1.5vw, 30px), 2.9vh);
+  font-size: min(clamp(12px, 1.3vw, 30px), 2.3vh);
   line-height: 1.35;
 }
 
 .room-slide .deck-bi--body .deck-bi__th {
   margin-top: min(clamp(4px, 0.9vw, 12px), 1vh);
-  font-size: min(clamp(12px, 1.2vw, 22px), 2.5vh);
+  font-size: min(clamp(11px, 1.1vw, 22px), 2vh);
   line-height: 1.4;
 }
 
 .room-slide .deck-body {
-  margin-top: min(clamp(10px, 2.6vw, 30px), 2.2vh);
+  margin-top: min(clamp(8px, 2vw, 30px), 1.5vh);
 }
 
 /* ── Join / lobby ────────────────────────────────────────────────────────── */
@@ -502,10 +502,10 @@
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
   grid-template-areas:
-    "words board"
-    "chain board"
+    "words  board"
+    "chain  chain"
     "lesson lesson";
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto auto auto;
   gap: clamp(12px, 1.6vh, 22px) clamp(20px, 2.4vw, 40px);
   align-content: start;
 }
@@ -1008,15 +1008,28 @@
 }
 
 .room-outcome .room-board__rank {
-  font-size: min(clamp(16px, 1.7vw, 24px), 3.4vh);
+  font-size: min(clamp(14px, 1.4vw, 20px), 2.6vh);
 }
 
 .room-outcome .room-board__name {
-  font-size: min(clamp(15px, 1.6vw, 23px), 3.2vh);
+  font-size: min(clamp(13px, 1.35vw, 20px), 2.5vh);
 }
 
 .room-outcome .room-board__score b {
-  font-size: min(clamp(17px, 1.8vw, 26px), 3.6vh);
+  font-size: min(clamp(15px, 1.5vw, 22px), 2.8vh);
+}
+
+/* "SCORE / คะแนน" under every number turns a 40px row into an 84px one. The column is a board
+   and the big number in it is a score; the caption is not carrying its height. The close stage
+   keeps it, where there is room. */
+.room-outcome .room-board__score-k,
+.room-outcome .room-board__score-th {
+  display: none;
+}
+
+.room-outcome .room-board__title .deck-bi__en,
+.room-outcome .room-board__title .deck-bi__th {
+  font-size: min(clamp(10px, 0.9vw, 14px), 1.8vh);
 }
 
 /* ── Host chrome (app/biz/page.tsx) ──────────────────────────────────────── */
