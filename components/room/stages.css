@@ -1174,3 +1174,45 @@
     transition: none !important;
   }
 }
+
+/* ── Final projector fit ─────────────────────────────────────────────────────
+ *
+ * The last two stages to come inside the fold, measured rather than guessed. Both were losing
+ * their height to text wrapping, not to type size: bucket labels breaking onto two and three
+ * lines in a 122px column, and the close stage's takeaways spaced for a screen twice as tall.
+ *
+ * `npm run check:projector` is the check.
+ */
+
+/* A wider label column stops "UNDER 3 MINUTES" and its Thai from becoming five lines. */
+.room-data .room-bars__row {
+  grid-template-columns: minmax(92px, 34%) minmax(0, 1fr) auto;
+  gap: clamp(8px, 1vw, 14px);
+}
+
+.room-data .room-data-panel {
+  gap: min(1vh, 10px);
+}
+
+.room-data .room-placeholder-badge {
+  padding: 3px 10px;
+}
+
+.room-slide .room-data .room-placeholder-badge__text .deck-bi__en,
+.room-slide .room-data .room-placeholder-badge__text .deck-bi__th {
+  font-size: min(clamp(9px, 0.72vw, 12px), 1.5vh);
+  margin-top: 0;
+}
+
+/* The close stage runs three columns; its headline no longer needs full-deck scale. */
+.room-slide .room-close .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(20px, 2.6vw, 48px), 5vh);
+}
+
+.room-slide .room-close .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(12px, 1.4vw, 24px), 2.6vh);
+}
+
+.room-takeaways__item {
+  gap: 10px;
+}
