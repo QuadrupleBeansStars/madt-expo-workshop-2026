@@ -1,6 +1,21 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Cloud Run wants a container that boots fast and carries no node_modules it does not use.
+  // `standalone` emits .next/standalone/server.js with only the traced dependencies; the
+  // Dockerfile copies `public` and `.next/static` in beside it, which that server does not
+  // gather on its own.
+  output: 'standalone',
+
+  // Pin the trace root to THIS directory. Next otherwise walks up looking for a workspace root,
+  // and development happens in a git worktree under `.worktrees/data-deck` — so it picked the
+  // parent repo and emitted the server at `.next/standalone/.worktrees/data-deck/server.js`.
+  // The Dockerfile's `CMD ["node", "server.js"]` would not have found it. Inside the container
+  // the path happens to come out right anyway, which is exactly what makes this worth pinning:
+  // the failure only appears in whichever environment you did not test.
+  outputFileTracingRoot: path.join(__dirname),
+
   // Phones join over the LAN by IP, not localhost. Next blocks cross-origin requests
   // to dev resources (/_next/webpack-hmr) by default, which silently breaks hydration:
   // the pages still render, but nothing is clickable and the TV's QR code never appears.
