@@ -150,28 +150,62 @@
 }
 
 .room-data__lead {
-  margin-top: clamp(14px, 2vw, 24px);
+  margin-top: min(clamp(8px, 1.4vw, 20px), 1.8vh);
 }
 
+/* Two charts stacked in half a screen is the whole cost of this stage. Everything below is sized
+   so both distributions land above the fold with their bars still proportional and their bucket
+   words still legible from the back. */
 .room-data__panels {
   display: flex;
   flex-direction: column;
-  gap: clamp(24px, 3vw, 40px);
+  gap: min(clamp(10px, 1.8vw, 30px), 2.4vh);
 }
 
 .room-data__gap {
-  margin: clamp(18px, 2.4vw, 28px) 0 0;
+  margin: min(clamp(10px, 1.8vw, 24px), 2vh) 0 0;
   padding-left: 16px;
   border-left: 4px solid var(--deck-clr);
 }
 
+.room-data .room-bars {
+  gap: min(0.9vh, 9px);
+}
+
+.room-data .room-bars__track {
+  height: min(clamp(14px, 1.5vw, 26px), 2.8vh);
+}
+
+.room-slide .room-data .room-bars__label .deck-bi__en {
+  font-size: min(clamp(11px, 1.05vw, 17px), 2vh);
+  line-height: 1.15;
+}
+
+.room-slide .room-data .room-bars__label .deck-bi__th {
+  font-size: min(clamp(10px, 0.92vw, 15px), 1.8vh);
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+.room-data .room-bars__value {
+  font-size: min(clamp(16px, 1.8vw, 30px), 3.4vh);
+}
+
+.room-slide .room-data .room-data-panel__title .deck-bi__en {
+  font-size: min(clamp(11px, 1vw, 16px), 1.9vh);
+}
+
+.room-slide .room-data .room-data-panel__title .deck-bi__th {
+  font-size: min(clamp(10px, 0.9vw, 14px), 1.7vh);
+}
+
 .room-points {
   list-style: none;
-  margin: clamp(20px, 2.6vw, 32px) 0 0;
+  margin: min(clamp(10px, 1.8vw, 28px), 2.2vh) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 1.8vw, 22px);
+  gap: min(clamp(7px, 1.2vw, 18px), 1.6vh);
 }
 
 .room-points__item {
@@ -732,30 +766,33 @@
 
 /* ── Close ───────────────────────────────────────────────────────────────── */
 
+/*
+ * Three columns, not two. The old right-hand column stacked the four archetypes ON TOP of the
+ * full board and measured 1,553px against a 768px screen — the board, which is the last thing the
+ * room looks at all session, sat entirely below the fold.
+ */
 .room-close {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(26px, 4vw, 60px);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: clamp(16px, 2.4vw, 40px);
   align-items: start;
 }
 
 .room-close__lead {
-  margin-top: clamp(12px, 1.8vw, 22px);
+  margin-top: min(clamp(8px, 1.4vw, 18px), 1.6vh);
 }
 
 .room-close__side {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(20px, 2.6vw, 34px);
+  display: contents;
 }
 
 .room-takeaways {
   list-style: none;
-  margin: clamp(20px, 2.6vw, 34px) 0 0;
+  margin: min(clamp(12px, 2vw, 28px), 2.4vh) 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 1.8vw, 24px);
+  gap: min(clamp(8px, 1.4vw, 20px), 1.8vh);
 }
 
 .room-takeaways__item {
@@ -766,7 +803,7 @@
 }
 
 .room-takeaways__n {
-  font-size: clamp(28px, 3.4vw, 46px);
+  font-size: min(clamp(20px, 2.4vw, 40px), 4.4vh);
   font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -774,17 +811,20 @@
   opacity: 0.5;
 }
 
+/* One column in the middle rail: `auto-fit` at a 240px floor put the four archetypes side by
+   side on a wide screen and stacked them into a 2x2 on a narrow one, and neither shape fits
+   beside a board. */
 .room-archetypes__list {
   list-style: none;
-  margin: clamp(12px, 1.6vw, 20px) 0 0;
+  margin: min(clamp(8px, 1.4vw, 18px), 1.6vh) 0 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: clamp(12px, 1.6vw, 20px);
+  grid-template-columns: minmax(0, 1fr);
+  gap: min(clamp(6px, 1vw, 14px), 1.2vh);
 }
 
 .room-archetypes__item {
-  padding: clamp(12px, 1.4vw, 18px);
+  padding: min(clamp(8px, 1.1vw, 14px), 1.4vh) clamp(10px, 1.2vw, 16px);
   border: 1px solid var(--deck-line);
   border-radius: 16px;
   background: var(--deck-card);
@@ -793,7 +833,7 @@
 .room-archetypes__name {
   display: flex;
   flex-direction: column;
-  font-size: clamp(18px, 1.9vw, 26px);
+  font-size: min(clamp(13px, 1.4vw, 22px), 2.6vh);
   font-weight: 800;
   color: var(--deck-clr);
 }
@@ -805,17 +845,38 @@
 }
 
 .room-archetypes__sting {
-  margin-top: 8px;
+  margin-top: 5px;
 }
 
-.room-archetypes__sting .deck-bi__en {
+.room-slide .room-archetypes__sting .deck-bi__en {
   max-width: none;
-  font-size: clamp(13px, 1.2vw, 17px);
+  font-size: min(clamp(10px, 0.95vw, 15px), 1.9vh);
+  line-height: 1.25;
 }
 
-.room-archetypes__sting .deck-bi__th {
+.room-slide .room-archetypes__sting .deck-bi__th {
   max-width: none;
-  font-size: clamp(12px, 1.05vw, 15px);
+  font-size: min(clamp(9px, 0.85vw, 13px), 1.7vh);
+  line-height: 1.3;
+}
+
+/* The board on the close stage keeps its KPI columns — this is the one screen with the width for
+   them, and the session ends on it. */
+.room-close .room-board__row {
+  padding: min(clamp(4px, 0.8vw, 11px), 1vh) 0;
+}
+
+.room-close .room-board__rank,
+.room-close .room-board__name {
+  font-size: min(clamp(14px, 1.5vw, 24px), 2.9vh);
+}
+
+.room-close .room-board__score b {
+  font-size: min(clamp(16px, 1.7vw, 28px), 3.2vh);
+}
+
+.room-close .room-board__kpi b {
+  font-size: min(clamp(11px, 1.1vw, 17px), 2.1vh);
 }
 
 /* ── The board ───────────────────────────────────────────────────────────── */
