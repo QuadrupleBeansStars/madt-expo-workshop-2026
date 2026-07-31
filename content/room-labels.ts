@@ -101,6 +101,24 @@ export const QUEUE_PATIENCE_LABELS: Labels = {
 }
 
 /**
+ * Bucket labels keyed the same way `AudienceAggregate` is, so a screen that has an evidence key
+ * (`lib/room-types.ts`'s `EvidenceKey`) can find the words for that distribution without a second
+ * per-stage lookup table. This is the ONLY set of bucket labels in the project — the decide
+ * stage's charts and the data stage's charts read the same words, because the room is being asked
+ * to recognise the answer it tapped weeks ago.
+ */
+export const BUCKET_LABELS: Record<
+  'arrivalMode' | 'wakeTime' | 'firstDrink' | 'buyTime' | 'queuePatience',
+  Labels
+> = {
+  arrivalMode: ARRIVAL_MODE_LABELS,
+  wakeTime: WAKE_TIME_LABELS,
+  firstDrink: FIRST_DRINK_LABELS,
+  buyTime: BUY_TIME_LABELS,
+  queuePatience: QUEUE_PATIENCE_LABELS,
+}
+
+/**
  * The causal chain on the round 1 outcome screen — the most important screen in the workshop.
  *
  * Two labels here are load-bearing and were written against `lib/sim.ts`, not guessed:
@@ -149,6 +167,9 @@ export const UI = {
   votingClosed: { en: 'Voting closed', th: 'ปิดโหวตแล้ว' },
   seconds: { en: 'seconds left', th: 'วินาที' },
   whatHappened: { en: 'What happened', th: 'เกิดอะไรขึ้น' },
+  // Sits over the charts on the decide screen. It says "already" because the room gave these
+  // answers weeks ago — the decision is not a guess unless they choose to make it one.
+  whatYouKnow: { en: 'What you already know', th: 'ข้อมูลที่คุณมีอยู่แล้ว' },
   // Rendered after the staffing number so the copy never hardcodes a level that NARRATED_BARISTAS
   // could move away from: "2 baristas on the bar".
   baristasOnBar: { en: 'baristas on the bar', th: 'บาริสต้ายืนประจำหน้าร้าน' },
@@ -218,6 +239,9 @@ export const PHONE = {
     en: 'Your shop starts trading at the first decision.',
     th: 'ร้านของคุณจะเริ่มทำตัวเลขตอนการตัดสินใจแรก',
   },
+  // The heading on the phone's evidence strip. The figures themselves are the same ones charted
+  // on the projector — the phone shows fewer of them, never different ones.
+  fromYourAnswers: { en: 'From your answers', th: 'จากคำตอบของพวกคุณ' },
   tapOne: { en: 'Tap one', th: 'แตะเลือกหนึ่งข้อ' },
   youPicked: { en: 'You picked', th: 'คุณเลือก' },
   locked: { en: 'Voting has closed for this round.', th: 'ปิดโหวตรอบนี้แล้ว' },

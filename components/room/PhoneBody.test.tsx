@@ -12,6 +12,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+import { AUDIENCE, IS_PLACEHOLDER } from '@/content/audience'
+import { STAGES } from '@/content/room'
 import type { Kpi } from '@/lib/room-types'
 import { PhoneBody, type PhoneFrame } from './PhoneBody'
 import PlayPage from '@/app/play/page'
@@ -83,6 +85,62 @@ describe('PhoneBody', () => {
     }
     expect(screen.getByText('3 baristas')).toBeInTheDocument()
     expect(screen.getByText('บาริสต้า 3 คน')).toBeInTheDocument()
+  })
+
+  // The phone must carry the evidence too — but as figures, never as charts, and never at the
+  // cost of pushing the options off the screen.
+  it('shows the evidence figures AND keeps every option button on the same screen', () => {
+    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
+    const strip = screen.getByTestId('phone-evidence')
+
+    // 90 buy between 07:00 and 09:00; 70 will not wait three minutes.
+    expect(strip).toHaveTextContent('90')
+    expect(strip).toHaveTextContent('07:00–09:00')
+    expect(strip).toHaveTextContent('70')
+    expect(strip).toHaveTextContent('Under 3 minutes')
+    // Both languages, as everywhere else in this workshop.
+    expect(strip).toHaveTextContent('7–9 โมง')
+    expect(strip).toHaveTextContent('ไม่เกิน 3 นาที')
+
+    // Figures, not charts: a bar track on a 390px screen is what pushes the vote below the fold.
+    expect(strip.querySelector('.room-bars')).toBeNull()
+
+    for (const id of ['b1', 'b2', 'b3', 'b4']) {
+      expect(screen.getByTestId(`option-${id}`)).toBeEnabled()
+    }
+  })
+
+  it('never shows audience figures on the phone without the placeholder guard', () => {
+    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
+    expect(IS_PLACEHOLDER).toBe(true)
+    expect(screen.getByTestId('phone-evidence').querySelector('.room-placeholder-badge')).not.toBeNull()
+  })
+
+  it('quotes the same figures the projector charts — never a second set of numbers', () => {
+    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
+    const strip = screen.getByTestId('phone-evidence')
+    // Read straight out of the aggregate the big screen draws from, so a CSV import moves both.
+    expect(strip).toHaveTextContent(String(AUDIENCE.buyTime['7to9']))
+    expect(strip).toHaveTextContent(String(AUDIENCE.queuePatience.under3))
+  })
+
+  // A stage that names ONE distribution shows that distribution's two largest buckets, not one.
+  // This is the only non-obvious branch in `evidenceFigures`, and the round it serves is the one
+  // about demand nobody is meeting yet — a single figure would not show a gap.
+  it('shows two figures when a decision rests on a single distribution', () => {
+    const invest = STAGES.findIndex((s) => s.id === 'decide-invest')
+    render(
+      <PhoneBody
+        name="Ada"
+        frame={decideFrame({ stageId: 'decide-invest', stageIndex: invest })}
+        picked={null}
+        onVote={() => {}}
+      />,
+    )
+    const items = screen.getByTestId('phone-evidence').querySelectorAll('.phone-evidence__item')
+    expect(items).toHaveLength(2)
+    expect(screen.getByTestId('phone-evidence-buyTime-7to9')).toHaveTextContent('90')
+    expect(screen.getByTestId('phone-evidence-buyTime-9to11')).toHaveTextContent('40')
   })
 
   it('calls onVote exactly once with the stage and option tapped', () => {

@@ -85,6 +85,10 @@ export const STAGES: Stage[] = [
       en: '07:00. How many baristas do you put on the bar?',
       th: 'เจ็ดโมงเช้า คุณจะจัดบาริสต้ากี่คนยืนประจำหน้าร้าน',
     },
+    // The two distributions that decide the answer: when the room is at the counter, and how long
+    // it will stand there. A player who reads these two charts can derive three baristas — that
+    // derivation IS the round, so the charts belong on the decide screen, not two stages earlier.
+    evidence: ['buyTime', 'queuePatience'],
     context: {
       en: 'A barista costs ฿600 for the shift. A drink sells for ฿70. Your own answers decide who stays in the queue and who walks out.',
       th: 'บาริสต้าหนึ่งคน ค่าแรง 600 บาทต่อกะ กาแฟแก้วละ 70 บาท และคำตอบที่พวกคุณให้ไว้เอง จะเป็นตัวตัดสินว่าใครยอมรอ และใครเดินออก',
@@ -144,6 +148,10 @@ export const STAGES: Stage[] = [
       en: 'How do you defend the shop?',
       th: 'คุณจะรับมือกับคู่แข่งยังไง',
     },
+    // Patience is what the competitor is attacking, and committed coffee drinkers are the people
+    // who might stay anyway. Neither figure decides the round — nothing on the form asked about
+    // noon (see `data-competitor`) — but they are the only data the room actually holds.
+    evidence: ['queuePatience', 'firstDrink'],
     context: {
       en: 'The same budget whichever way you go. Pick one.',
       th: 'ไม่ว่าจะเลือกทางไหน งบเท่ากัน เลือกได้ทางเดียว',
@@ -204,6 +212,9 @@ export const STAGES: Stage[] = [
       en: '฿20,000 left in the account. Where does it go?',
       th: 'เหลือเงินในบัญชี 20,000 บาท คุณจะลงกับอะไร',
     },
+    // The 09:00–11:00 and after-11:00 buckets are demand nobody in this shop is serving yet: the
+    // case for the campaign, sitting in the same chart the staffing round was won with.
+    evidence: ['buyTime'],
     context: {
       en: 'You spend it once. Whatever it buys, the shop keeps for the rest of the year.',
       th: 'ใช้ได้ครั้งเดียว และสิ่งที่ได้มา ร้านจะเก็บไว้ใช้ไปตลอดทั้งปี',

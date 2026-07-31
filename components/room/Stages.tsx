@@ -17,19 +17,17 @@ import type { CSSProperties } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { AUDIENCE } from '@/content/audience'
 import { ARCHETYPES, STAGES } from '@/content/room'
-import {
-  BUY_TIME_LABELS, KPI_LABELS, NARRATED_BARISTAS, QUESTIONS, QUEUE_PATIENCE_LABELS,
-  TRACE_LABELS, UI,
-} from '@/content/room-labels'
+import { KPI_LABELS, NARRATED_BARISTAS, TRACE_LABELS, UI } from '@/content/room-labels'
 import { STAGE_COUNT } from '@/lib/room'
 import type { LeaderboardEntry, PublicRoomState } from '@/lib/room-store'
 import type {
-  CloseStage, DataStage, DecideStage, IntroStage, Kpi, KpiDelta, OutcomeStage, Stage,
+  CloseStage, DataStage, DecideStage, EvidenceKey, IntroStage, Kpi, KpiDelta, OutcomeStage, Stage,
 } from '@/lib/room-types'
 import type { LocalizedText } from '@/lib/types'
 import { simulateStaffing } from '@/lib/sim'
 import { Bilingual } from '@/components/deck/Bilingual'
 import { DataPanel } from './DataPanel'
+import { evidencePanels } from './evidence'
 import { Leaderboard } from './Leaderboard'
 import { PlaceholderBadge } from './PlaceholderBadge'
 import './stages.css'
@@ -214,18 +212,13 @@ function JoinView({
  * shows queue patience alone — the same chart as the round before, because the whole stage is
  * about the meaning of that number changing while the number does not.
  */
-const PANELS: Record<string, { question: LocalizedText; data: Record<string, number>; labels: Record<string, LocalizedText> }[]> = {
-  'data-you': [
-    { question: QUESTIONS.buyTime, data: AUDIENCE.buyTime, labels: BUY_TIME_LABELS },
-    { question: QUESTIONS.queuePatience, data: AUDIENCE.queuePatience, labels: QUEUE_PATIENCE_LABELS },
-  ],
-  'data-competitor': [
-    { question: QUESTIONS.queuePatience, data: AUDIENCE.queuePatience, labels: QUEUE_PATIENCE_LABELS },
-  ],
+const PANELS: Record<string, EvidenceKey[]> = {
+  'data-you': ['buyTime', 'queuePatience'],
+  'data-competitor': ['queuePatience'],
 }
 
 function DataView({ stage }: { stage: DataStage }) {
-  const panels = PANELS[stage.id] ?? []
+  const panels = evidencePanels(PANELS[stage.id])
   return (
     <div className="room-data">
       <div className="room-data__words">
@@ -245,7 +238,7 @@ function DataView({ stage }: { stage: DataStage }) {
 
       <div className="room-data__panels">
         {panels.map((panel) => (
-          <DataPanel key={panel.question.en} question={panel.question} data={panel.data} labels={panel.labels} />
+          <DataPanel key={panel.key} question={panel.question} data={panel.data} labels={panel.labels} />
         ))}
       </div>
     </div>
@@ -254,47 +247,78 @@ function DataView({ stage }: { stage: DataStage }) {
 
 // ── decide ──────────────────────────────────────────────────────────────────
 
+/**
+ * The left column of the decide screen: the distributions this decision actually rests on
+ * (spec §2 — "the question, the data that bears on it, a live timer").
+ *
+ * This is the screen the room reasons from, so it reuses `DataPanel` rather than drawing a second
+ * kind of chart: the bars here are the same bars, at the same scale, with the same bucket words
+ * and the same PLACEHOLDER guard the audience saw on the data stage. A player looking at
+ * `decide-staffing` can read 90 people at the counter between 07:00 and 09:00 against 70 who will
+ * not wait three minutes, and get to three baristas without being told.
+ */
+function DecideEvidence({ evidence }: { evidence: EvidenceKey[] | undefined }) {
+  const panels = evidencePanels(evidence)
+  if (panels.length === 0) return null
+
+  return (
+    <section className="room-evidence" data-testid="decide-evidence">
+      <Bilingual text={UI.whatYouKnow} as="label" className="room-evidence__title" />
+      {panels.map((panel) => (
+        <div className="room-evidence__panel" key={panel.key} data-testid={`evidence-${panel.key}`}>
+          <DataPanel question={panel.question} data={panel.data} labels={panel.labels} />
+        </div>
+      ))}
+    </section>
+  )
+}
+
 function DecideView({
   stage, frame, remainingMs,
 }: { stage: DecideStage; frame: RoomFrame; remainingMs: number }) {
   const counts = new Map(frame.tallies.map((t) => [t.optionId, t.count]))
   const max = Math.max(1, ...frame.tallies.map((t) => t.count))
   const seconds = Math.max(0, Math.ceil(remainingMs / 1000))
+  const hasEvidence = (stage.evidence ?? []).length > 0
 
   return (
-    <div className="room-decide">
-      <header className="room-decide__head">
-        <div>
-          <Bilingual text={stage.prompt} as="hero" />
-          <Bilingual text={stage.context} as="body" className="room-decide__context" />
-        </div>
-        <div className="room-decide__clock" data-open={frame.votingOpen}>
-          <span className="room-decide__seconds" data-testid="countdown">{seconds}</span>
-          <Bilingual text={UI.seconds} as="label" />
-          <Bilingual text={frame.votingOpen ? UI.votingOpen : UI.votingClosed} as="label" className="room-decide__state" />
-        </div>
-      </header>
+    <div className="room-decide" data-evidence={hasEvidence}>
+      <DecideEvidence evidence={stage.evidence} />
 
-      <ol className="room-options">
-        {stage.options.map((option) => {
-          const count = counts.get(option.id) ?? 0
-          return (
-            <li className="room-options__row" key={option.id}>
-              <Bilingual text={option.label} as="body" className="room-options__label" />
-              <div className="room-options__track">
-                <div className="room-options__fill" style={{ width: `${(count / max) * 100}%` }} />
-              </div>
-              <span className="room-options__count" data-testid={`tally-${option.id}`}>{count}</span>
-            </li>
-          )
-        })}
-      </ol>
+      <div className="room-decide__vote">
+        <header className="room-decide__head">
+          <div>
+            <Bilingual text={stage.prompt} as="hero" />
+            <Bilingual text={stage.context} as="body" className="room-decide__context" />
+          </div>
+          <div className="room-decide__clock" data-open={frame.votingOpen}>
+            <span className="room-decide__seconds" data-testid="countdown">{seconds}</span>
+            <Bilingual text={UI.seconds} as="label" />
+            <Bilingual text={frame.votingOpen ? UI.votingOpen : UI.votingClosed} as="label" className="room-decide__state" />
+          </div>
+        </header>
 
-      <p className="room-decide__votes">
-        <span data-testid="vote-count">{frame.voteCount}</span>
-        <span className="room-decide__of"> / {frame.playerCount}</span>
-        <Bilingual text={UI.votesIn} as="label" />
-      </p>
+        <ol className="room-options">
+          {stage.options.map((option) => {
+            const count = counts.get(option.id) ?? 0
+            return (
+              <li className="room-options__row" key={option.id}>
+                <Bilingual text={option.label} as="body" className="room-options__label" />
+                <div className="room-options__track">
+                  <div className="room-options__fill" style={{ width: `${(count / max) * 100}%` }} />
+                </div>
+                <span className="room-options__count" data-testid={`tally-${option.id}`}>{count}</span>
+              </li>
+            )
+          })}
+        </ol>
+
+        <p className="room-decide__votes">
+          <span data-testid="vote-count">{frame.voteCount}</span>
+          <span className="room-decide__of"> / {frame.playerCount}</span>
+          <Bilingual text={UI.votesIn} as="label" />
+        </p>
+      </div>
     </div>
   )
 }

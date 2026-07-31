@@ -91,12 +91,39 @@ export const FixedOptionSchema = z.object({
 })
 export type FixedOption = z.infer<typeof FixedOptionSchema>
 
+/**
+ * The registration questions a decide stage can put on screen beside its question.
+ *
+ * A closed enum rather than `string`, so a mistyped key is a compile error here and not a blank
+ * chart in front of 200 people. These are exactly the non-`respondents` fields of
+ * `AudienceAggregate` (`content/audience.ts`); `content/room.test.ts` asserts that correspondence
+ * at runtime, because this file must not import from `content/` (the dependency runs content→lib).
+ */
+export const EvidenceKeySchema = z.enum([
+  'arrivalMode',
+  'wakeTime',
+  'firstDrink',
+  'buyTime',
+  'queuePatience',
+])
+export type EvidenceKey = z.infer<typeof EvidenceKeySchema>
+
 const decideBase = {
   kind: z.literal('decide'),
   id: StageIdSchema,
   prompt: LocalizedTextSchema,
   /** The data that bears on the decision, shown beside it. */
   context: LocalizedTextSchema,
+  /**
+   * Which audience distributions bear on THIS decision — spec §2: a decide stage shows "the
+   * question, the data that bears on it, a live timer". The projector renders one chart per entry
+   * beside the question and the phone renders the same figures as text, so nobody is asked to
+   * decide from memory of a screen two stages ago.
+   *
+   * Optional: rounds that reach past the registration data (price, capital) have nothing honest
+   * to show, and an empty list says so rather than dressing the screen with an unrelated chart.
+   */
+  evidence: z.array(EvidenceKeySchema).optional(),
   /**
    * The voting window only — NOT the stage's share of the fifteen minutes. The gap between this
    * and spec §5.2's clock times is the host talking around the vote; `ALLOWANCE_MS` in

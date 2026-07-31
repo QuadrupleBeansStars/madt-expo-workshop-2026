@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { ALLOWANCE_MS, ARCHETYPES, STAGES } from './room'
-import { SHOP_VALUE_WEIGHTS, StageSchema, type Kpi } from '@/lib/room-types'
-import { AUDIENCE } from './audience'
+import { SHOP_VALUE_WEIGHTS, StageSchema, type EvidenceKey, type Kpi } from '@/lib/room-types'
+import { AUDIENCE, type AudienceAggregate } from './audience'
 import { simulateStaffing } from '@/lib/sim'
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000
@@ -130,6 +130,53 @@ describe('room stage sequence', () => {
     for (const [where, t] of localizedStrings()) {
       expect(banned.test(t.en), `${where}.en`).toBe(false)
       expect(banned.test(t.th), `${where}.th`).toBe(false)
+    }
+  })
+})
+
+/**
+ * Spec §2: a decide stage shows "the question, the data that bears on it, a live timer". These
+ * guard the middle clause — the one that was missing, which left the room voting from memory of a
+ * dashboard two stages earlier.
+ */
+describe('the evidence on each decision', () => {
+  // Against the runtime keys of AUDIENCE, not a re-typed list: a list here would pass by
+  // construction and catch nothing the day the aggregate's shape changes.
+  const audienceKeys = Object.keys(AUDIENCE).filter((k) => k !== 'respondents')
+
+  it('names only real audience distributions', () => {
+    for (const stage of decideStages()) {
+      for (const key of stage.evidence ?? []) {
+        expect(audienceKeys, `${stage.id}.evidence`).toContain(key)
+      }
+    }
+  })
+
+  // The type-level half of the same claim, kept here rather than in lib/room-types.ts: that file
+  // must not import from content/ (the dependency runs content→lib), so this is where the enum
+  // and the aggregate can be held against each other. A key added to one and not the other is a
+  // compile error in `npx tsc --noEmit`.
+  it('has an EvidenceKey union that matches AudienceAggregate exactly', () => {
+    type FromAggregate = Exclude<keyof AudienceAggregate, 'respondents'>
+    const _sameKeys: EvidenceKey extends FromAggregate
+      ? FromAggregate extends EvidenceKey ? true : never
+      : never = true
+    expect(_sameKeys).toBe(true)
+  })
+
+  it('gives round 1 both of the distributions the answer is derived from', () => {
+    const staffing = STAGES.find((s) => s.kind === 'decide' && s.id === 'decide-staffing')
+    expect(staffing?.kind).toBe('decide')
+    // When the room is at the counter, and how long it will stand there. Without either chart on
+    // screen the round is unwinnable by reasoning, and reasoning is the whole point of it.
+    expect(staffing && staffing.kind === 'decide' ? staffing.evidence : undefined)
+      .toEqual(expect.arrayContaining(['buyTime', 'queuePatience']))
+  })
+
+  it('quotes no distribution twice on one decision', () => {
+    for (const stage of decideStages()) {
+      const keys = stage.evidence ?? []
+      expect(new Set(keys).size, `${stage.id}.evidence`).toBe(keys.length)
     }
   })
 })

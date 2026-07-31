@@ -131,6 +131,42 @@ describe('Stages — decide', () => {
     render(<Stages frame={frameFor('decide-staffing', { remainingMs: 0, votingOpen: false })} joinUrl="" />)
     expect(screen.getByTestId('countdown')).toHaveTextContent('0')
   })
+
+  // Spec §2: the question, THE DATA THAT BEARS ON IT, and a live timer — on the same screen. The
+  // room saw these distributions two stages ago and cannot be expected to hold them in memory
+  // through a 45-second vote.
+  it('renders one chart per evidence entry, beside the question', () => {
+    render(<Stages frame={frame} joinUrl="" />)
+    const stage = STAGES.find((s) => s.id === 'decide-staffing')
+    const evidence = stage && stage.kind === 'decide' ? stage.evidence ?? [] : []
+    expect(evidence.length).toBeGreaterThan(0)
+    for (const key of evidence) expect(screen.getByTestId(`evidence-${key}`)).toBeInTheDocument()
+    expect(screen.getByTestId('decide-evidence').querySelectorAll('.room-data-panel'))
+      .toHaveLength(evidence.length)
+  })
+
+  it('draws the RIGHT distributions — the two a player derives three baristas from', () => {
+    render(<Stages frame={frame} joinUrl="" />)
+    // 90 at the counter between 07:00 and 09:00, against 70 who walk at three minutes.
+    expect(screen.getByTestId('bar-fill-7to9')).toBeInTheDocument()
+    expect(screen.getByTestId('bar-fill-under3')).toBeInTheDocument()
+    expect(screen.getAllByText(/07:00–09:00/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Under 3 minutes/).length).toBeGreaterThan(0)
+  })
+
+  it('keeps the PLACEHOLDER guard on every decide-stage chart', () => {
+    render(<Stages frame={frame} joinUrl="" />)
+    expect(IS_PLACEHOLDER).toBe(true)
+    expect(screen.getAllByTestId('placeholder-badge').length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('renders the later rounds with their own evidence and their vote intact', () => {
+    render(<Stages frame={frameFor('decide-invest')} joinUrl="" />)
+    expect(screen.getByTestId('evidence-buyTime')).toBeInTheDocument()
+    expect(screen.getByTestId('decide-evidence').querySelectorAll('.room-data-panel')).toHaveLength(1)
+    expect(screen.getByTestId('countdown')).toBeInTheDocument()
+    expect(screen.getByTestId('tally-equipment')).toBeInTheDocument()
+  })
 })
 
 describe('Stages — the round 1 outcome (the teaching screen)', () => {

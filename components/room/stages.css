@@ -147,6 +147,180 @@
 
 /* ── Decide ──────────────────────────────────────────────────────────────── */
 
+/*
+ * Two columns: the evidence the decision rests on, then the question and the vote (spec §2).
+ * Charts lead on the left because that is the reading order of the room — look at the data, then
+ * at what you are being asked. A stage with no evidence keeps the original single column, so the
+ * question does not sit in half a screen with nothing beside it.
+ */
+.room-decide[data-evidence="true"] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(28px, 3.6vw, 64px);
+  align-items: start;
+}
+
+.room-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 1.4vw, 18px);
+  min-width: 0;
+  padding-right: clamp(20px, 2.4vw, 40px);
+  border-right: 2px solid var(--deck-line);
+}
+
+.room-evidence__title {
+  color: var(--deck-clr);
+}
+
+/*
+ * `.room-slide` scrolls rather than clips, and on a projector that is the same thing as losing
+ * the content: nobody walks over to scroll the screen mid-vote, and the first thing to go over
+ * the edge is the live tally at the foot of the vote column. So the decide screen is typeset
+ * one step down from the rest of the deck: still legible from the back of a 200-person room
+ * (no chart text below 14px, counts at 28px, bars still full-width and proportional; only the
+ * PLACEHOLDER pill drops to 12px, and it is a red block nobody has to read to notice), but two
+ * charts, a question, four options and a clock all land inside one screen at once. Every figure
+ * below was measured in Chrome at 1600x900, not guessed.
+ */
+.room-evidence .room-data-panel {
+  gap: 8px;
+}
+
+.room-evidence .room-data-panel__title .deck-bi__en {
+  font-size: clamp(13px, 0.95vw, 16px);
+  letter-spacing: 0.1em;
+}
+
+.room-evidence .room-data-panel__title .deck-bi__th {
+  font-size: clamp(12px, 0.9vw, 15px);
+}
+
+.room-evidence .room-placeholder-badge {
+  padding: 4px 12px;
+}
+
+.room-evidence .room-placeholder-badge__text .deck-bi__en {
+  font-size: clamp(10px, 0.75vw, 12px);
+}
+
+.room-evidence .room-placeholder-badge__text .deck-bi__th {
+  font-size: clamp(10px, 0.7vw, 12px);
+  margin-top: 0;
+}
+
+.room-evidence .room-bars {
+  gap: 7px;
+}
+
+.room-evidence .room-bars__row {
+  grid-template-columns: minmax(96px, 26%) minmax(0, 1fr) auto;
+  gap: 12px;
+}
+
+.room-evidence .room-bars__track {
+  height: clamp(18px, 1.4vw, 24px);
+}
+
+.room-evidence .room-bars__label .deck-bi__en {
+  font-size: clamp(13px, 1vw, 16px);
+  letter-spacing: 0.05em;
+  line-height: 1.15;
+}
+
+.room-evidence .room-bars__label .deck-bi__th {
+  font-size: clamp(12px, 0.88vw, 14px);
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+.room-evidence .room-bars__value {
+  font-size: clamp(19px, 1.7vw, 28px);
+}
+
+.room-decide__vote {
+  min-width: 0;
+}
+
+/* The head is a 2-col grid globally (prompt | clock). In half the screen that leaves the prompt
+   in a gutter, so inside the evidence layout the clock sits above the question instead. */
+.room-decide[data-evidence="true"] .room-decide__head {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: clamp(12px, 1.6vw, 20px);
+}
+
+.room-decide[data-evidence="true"] .room-decide__clock {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  justify-self: start;
+  text-align: left;
+}
+
+/* 12vw is viewport-relative and does not know it is now in half a column. */
+.room-decide[data-evidence="true"] .room-decide__seconds {
+  font-size: clamp(40px, 3.8vw, 64px);
+}
+
+/* The question keeps the loudest type on the screen, one step down from a full-width hero. */
+.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__en {
+  font-size: clamp(28px, 2.5vw, 40px);
+}
+
+.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__th {
+  margin-top: 10px;
+  font-size: clamp(16px, 1.35vw, 22px);
+}
+
+.room-decide[data-evidence="true"] .room-decide__context .deck-bi__en {
+  max-width: 46ch;
+  font-size: clamp(15px, 1.2vw, 19px);
+}
+
+.room-decide[data-evidence="true"] .room-decide__context .deck-bi__th {
+  max-width: 50ch;
+  font-size: clamp(14px, 1.05vw, 17px);
+}
+
+.room-decide[data-evidence="true"] .room-options {
+  margin-top: clamp(12px, 1.3vw, 18px);
+  gap: 8px;
+}
+
+.room-decide[data-evidence="true"] .room-options__track {
+  height: clamp(18px, 1.4vw, 24px);
+}
+
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__en {
+  font-size: clamp(14px, 1.15vw, 19px);
+}
+
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
+  font-size: clamp(12px, 0.95vw, 16px);
+  margin-top: 1px;
+}
+
+.room-decide[data-evidence="true"] .room-options__count {
+  font-size: clamp(18px, 1.6vw, 26px);
+}
+
+.room-decide[data-evidence="true"] .room-decide__votes {
+  margin-top: clamp(10px, 1.1vw, 14px);
+  font-size: clamp(18px, 1.6vw, 26px);
+}
+
+.room-decide[data-evidence="true"] .room-decide__state {
+  margin-top: 0;
+}
+
+/* The 220px label floor collapses the tally track to a stub at this width. */
+.room-decide[data-evidence="true"] .room-options__row {
+  grid-template-columns: minmax(0, 44%) minmax(0, 1fr) auto;
+  gap: clamp(10px, 1.2vw, 18px);
+}
+
 .room-decide__context {
   margin-top: clamp(12px, 1.6vw, 20px);
 }
@@ -731,8 +905,22 @@
   .room-join,
   .room-data,
   .room-decide__head,
+  .room-decide[data-evidence="true"],
   .room-close {
     grid-template-columns: 1fr;
+  }
+
+  /* One column: the charts sit above the question rather than beside it, and the rule that
+     separated them becomes the rule beneath them. */
+  .room-evidence {
+    padding-right: 0;
+    padding-bottom: clamp(16px, 3vw, 26px);
+    border-right: none;
+    border-bottom: 2px solid var(--deck-line);
+  }
+
+  .room-decide[data-evidence="true"] .room-options__row {
+    grid-template-columns: 1fr auto;
   }
 
   .room-decide__clock {

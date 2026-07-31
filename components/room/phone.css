@@ -123,7 +123,7 @@
 .phone-decide {
   display: flex;
   flex-direction: column;
-  gap: clamp(12px, 3vw, 18px);
+  gap: clamp(10px, 2.6vw, 16px);
 }
 
 .phone-decide__head {
@@ -132,9 +132,17 @@
   gap: 8px;
 }
 
+/* The context is read once, at the top; the options are read under time pressure. When the
+   evidence strip is on screen this paragraph gives up the room, not the buttons. */
 .phone-decide__context .deck-bi__en {
-  font-size: 0.92em;
+  font-size: 0.86em;
+  line-height: 1.35;
   color: var(--phone-muted);
+}
+
+.phone-decide__context .deck-bi__th {
+  font-size: 0.8em;
+  line-height: 1.4;
 }
 
 .phone-clock {
@@ -144,7 +152,7 @@
 }
 
 .phone-clock b {
-  font-size: clamp(30px, 9vw, 44px);
+  font-size: clamp(26px, 8vw, 34px);
   font-variant-numeric: tabular-nums;
   color: var(--phone-warn);
   line-height: 1;
@@ -154,20 +162,100 @@
   color: var(--phone-clr);
 }
 
+/*
+ * The evidence strip. Deliberately compact — one horizontal row of counts, not charts: everything
+ * added here pushes four tappable options toward the fold, and a player who has to scroll to vote
+ * loses the round.
+ *
+ * Measured in Chrome at 390x844 on the four-option staffing stage: the fourth button ends at 759,
+ * at 814 with the offline badge up, and at 834 with the "too late" notice — the only notice that
+ * can appear on a decide screen (`roomReset` returns the player to the join screen). The strip
+ * costs about 75px, which is why the sizes here, the option padding and the gaps below were all
+ * taken down a step to pay for it.
+ */
+.phone-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--phone-line);
+  border-left: 3px solid var(--phone-clr);
+  border-radius: 12px;
+  background: var(--phone-card);
+}
+
+.phone-evidence__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.phone-evidence__title .deck-bi__en,
+.phone-evidence__title .deck-bi__th {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.phone-evidence .room-placeholder-badge {
+  align-self: center;
+  padding: 3px 8px;
+}
+
+.phone-evidence .room-placeholder-badge__text .deck-bi__en {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+.phone-evidence .room-placeholder-badge__text .deck-bi__th {
+  font-size: 9px;
+  margin-top: 0;
+}
+
+.phone-evidence__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.phone-evidence__item {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.phone-evidence__value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--phone-clr);
+}
+
+.phone-evidence__label .deck-bi__en,
+.phone-evidence__label .deck-bi__th {
+  font-size: 11.5px;
+  line-height: 1.2;
+}
+
 .phone-options {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(10px, 2.6vw, 14px);
+  gap: clamp(8px, 2.2vw, 12px);
 }
 
 .phone-option {
   /* The whole point of this page. Full width, tall, and impossible to miss in the dark. */
   width: 100%;
-  min-height: 76px;
-  padding: 16px 18px;
+  min-height: 72px;
+  padding: 13px 16px;
   text-align: left;
   border: 2px solid var(--phone-line);
   border-radius: 16px;

@@ -17,6 +17,8 @@
 import { STAGES } from '@/content/room'
 import { KPI_LABELS, PHONE, UI } from '@/content/room-labels'
 import { Bilingual } from '@/components/deck/Bilingual'
+import { evidenceFigures } from './evidence'
+import { PlaceholderBadge } from './PlaceholderBadge'
 import type { PublicRoomState } from '@/lib/room-store'
 import type { DecideStage, Stage } from '@/lib/room-types'
 import type { LocalizedText } from '@/lib/types'
@@ -182,6 +184,40 @@ function YourShop({ you }: { you: PhoneFrame['you'] | null }) {
   )
 }
 
+/**
+ * The evidence, as much of it as belongs on a phone.
+ *
+ * Two or three counts as text — NOT the projector's charts. The options have to stay above the
+ * fold: a player who has to scroll before they can tap misses the round, and the big screen is
+ * already showing the full distributions in a size this one cannot match. The figures come from
+ * the stage's own `evidence` list through `evidenceFigures`, the same list the projector charts,
+ * so the two screens can never quote different numbers at the room.
+ *
+ * `DataPanel` carries the PLACEHOLDER guard for the projector; this strip is not a `DataPanel`,
+ * so it renders the badge itself. Audience figures never appear anywhere without it.
+ */
+function EvidenceStrip({ stage }: { stage: DecideStage }) {
+  const figures = evidenceFigures(stage.evidence)
+  if (figures.length === 0) return null
+
+  return (
+    <section className="phone-evidence" data-testid="phone-evidence">
+      <div className="phone-evidence__head">
+        <Bilingual text={PHONE.fromYourAnswers} as="label" className="phone-evidence__title" />
+        <PlaceholderBadge />
+      </div>
+      <ul className="phone-evidence__list">
+        {figures.map((figure) => (
+          <li className="phone-evidence__item" key={figure.key} data-testid={`phone-evidence-${figure.key}`}>
+            <b className="phone-evidence__value">{num.format(figure.value)}</b>
+            <Bilingual text={figure.label} as="label" className="phone-evidence__label" />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function DecideView({
   stage, frame, remainingMs, picked, onVote,
 }: {
@@ -209,6 +245,8 @@ function DecideView({
           <Bilingual text={UI.seconds} as="label" />
         </p>
       </div>
+
+      <EvidenceStrip stage={stage} />
 
       <ol className="phone-options">
         {stage.options.map((option) => (
