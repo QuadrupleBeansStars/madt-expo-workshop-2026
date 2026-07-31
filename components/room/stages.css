@@ -1216,3 +1216,153 @@
 .room-takeaways__item {
   gap: 10px;
 }
+
+/* ── Fit, measured per stage ─────────────────────────────────────────────────
+ *
+ * `npm run check:projector` reported the tallest element on each stage that still ran past the
+ * fold. In every case it was a bilingual paragraph inside a LIST — bullet points and takeaways
+ * typeset as prose, three lines of English over two of Thai, ~100px per bullet. Bullets are
+ * scanned, not read; the host reads the prose. So the lists drop a step below body copy while
+ * the paragraphs they sit under keep theirs.
+ */
+.room-slide .room-points__item .deck-bi__en,
+.room-slide .room-takeaways__item .deck-bi__en {
+  max-width: 46ch;
+  font-size: min(clamp(11px, 1.1vw, 20px), 1.85vh);
+  line-height: 1.3;
+}
+
+.room-slide .room-points__item .deck-bi__th,
+.room-slide .room-takeaways__item .deck-bi__th {
+  max-width: 50ch;
+  margin-top: 2px;
+  font-size: min(clamp(10px, 0.95vw, 16px), 1.65vh);
+  line-height: 1.35;
+}
+
+.room-points__item::before {
+  width: 10px;
+  height: 10px;
+}
+
+.room-points__item {
+  padding-left: 22px;
+}
+
+/* The outcome headline is the answer to the round, but at 46px over two lines plus its Thai it
+   was 176px — a third of the stage's whole height budget before anything else rendered. */
+.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(22px, 2.9vw, 54px), 5.2vh);
+}
+
+.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(13px, 1.5vw, 28px), 2.3vh);
+}
+
+.room-slide .room-trace__label .deck-bi__en {
+  font-size: min(clamp(9px, 0.8vw, 14px), 1.6vh);
+}
+
+.room-slide .room-trace__label .deck-bi__th {
+  font-size: min(clamp(8px, 0.72vw, 13px), 1.45vh);
+}
+
+/* The evidence charts on a decide stage: 40px per bar row across two panels was the last thing
+   over the edge there. */
+.room-evidence .room-bars {
+  gap: min(0.7vh, 7px);
+}
+
+.room-evidence .room-bars__track {
+  height: min(clamp(12px, 1.2vw, 24px), 2.4vh);
+}
+
+.room-slide .room-evidence .room-bars__label .deck-bi__en {
+  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
+  line-height: 1.15;
+}
+
+.room-slide .room-evidence .room-bars__label .deck-bi__th {
+  font-size: min(clamp(9px, 0.85vw, 14px), 1.65vh);
+  margin-top: 0;
+  line-height: 1.2;
+}
+
+/*
+ * The close stage's board, in a third of the screen.
+ *
+ * The row is a four-column grid (rank | name | KPIs | score) built for a full-width board. At
+ * 371px those four columns squeeze until every caption wraps and a five-row board measures 938px
+ * — taller than the projector, on the one screen the session ends on.
+ *
+ * So the row breaks into two lines here: the ranking on top, the three KPIs beneath it. Nothing
+ * is dropped — this is the screen where the full profit / satisfaction / waste breakdown is the
+ * point, unlike the outcome rail, which hides it.
+ */
+.room-close .room-board__row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "rank name score"
+    "kpis kpis kpis";
+  gap: 2px clamp(8px, 1vw, 14px);
+  align-items: baseline;
+}
+
+.room-close .room-board__rank { grid-area: rank; }
+.room-close .room-board__name { grid-area: name; }
+.room-close .room-board__score { grid-area: score; }
+.room-close .room-board__kpis { grid-area: kpis; }
+
+/* The score caption goes inline beside the number rather than under it: stacked, it set the
+   height of every row on the board. */
+.room-close .room-board__score {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.room-close .room-board__score-th {
+  display: none;
+}
+
+.room-close .room-board__kpi {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 5px;
+  font-size: min(clamp(9px, 0.8vw, 12px), 1.5vh);
+}
+
+.room-close .room-board__kpi-th {
+  display: none;
+}
+
+/* The archetypes are flavour beside the board, and were running 148px each. */
+.room-slide .room-archetypes__sting .deck-bi__en {
+  font-size: min(clamp(9px, 0.85vw, 14px), 1.6vh);
+}
+
+.room-slide .room-archetypes__sting .deck-bi__th {
+  font-size: min(clamp(8px, 0.78vw, 12px), 1.45vh);
+}
+
+.room-slide .room-close .room-archetypes__name {
+  font-size: min(clamp(11px, 1.2vw, 18px), 2vh);
+}
+
+.room-archetypes__item {
+  padding: min(clamp(6px, 0.9vw, 11px), 1.1vh) clamp(8px, 1vw, 13px);
+}
+
+/* Rounds 2 and 3: four signed deltas per card, each a two-line label beside a number. */
+.room-fx__delta {
+  padding: 1px 0;
+}
+
+.room-slide .room-fx__delta dt {
+  font-size: min(clamp(8px, 0.7vw, 12px), 1.35vh);
+  line-height: 1.15;
+}
+
+.room-slide .room-fx__delta dd {
+  font-size: min(clamp(11px, 1.2vw, 22px), 2.2vh);
+}
