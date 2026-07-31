@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "start:lan": "next start -H 0.0.0.0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:projector": "node scripts/check-projector-fit.mjs"
   },
   "dependencies": {
     "next": "16.2.10",
