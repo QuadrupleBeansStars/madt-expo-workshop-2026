@@ -1366,3 +1366,87 @@
 .room-slide .room-fx__delta dd {
   font-size: min(clamp(11px, 1.2vw, 22px), 2.2vh);
 }
+
+/* ── Last pass ───────────────────────────────────────────────────────────────
+ * The outcome stages were the final three over the edge, all by 110–200px, spread evenly across
+ * the headline, the chain and the lesson rather than concentrated anywhere. Trimmed in proportion.
+ */
+.room-outcome {
+  gap: min(1.1vh, 14px) clamp(16px, 2vw, 32px);
+}
+
+.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(20px, 2.6vw, 54px), 4.6vh);
+}
+
+.room-slide .room-outcome__body .deck-bi__en {
+  font-size: min(clamp(10px, 0.95vw, 19px), 1.7vh);
+}
+
+.room-slide .room-outcome__body .deck-bi__th {
+  font-size: min(clamp(9px, 0.85vw, 17px), 1.55vh);
+}
+
+.room-trace {
+  padding: min(1.1vh, 14px) clamp(12px, 1.5vw, 22px);
+}
+
+.room-trace__steps {
+  margin-top: min(1.1vh, 14px);
+}
+
+.room-trace__value {
+  font-size: min(clamp(22px, 2.8vw, 56px), 5.6vh);
+}
+
+.room-trace__staffing b {
+  font-size: min(clamp(18px, 2.2vw, 44px), 3.6vh);
+}
+
+.room-trace__sum {
+  margin-top: min(0.9vh, 11px);
+  padding-top: min(0.8vh, 10px);
+}
+
+.room-lesson {
+  padding: min(1vh, 13px) clamp(12px, 1.8vw, 26px);
+}
+
+/* data-you and decide-staffing were the last two, ~40px each. */
+.room-data__panels {
+  gap: min(1.6vh, 20px);
+}
+
+.room-evidence {
+  gap: min(1.2vh, 15px);
+}
+
+/*
+ * The shell's own reserve. `.deck-chrome` is absolutely positioned ~17px off the bottom and about
+ * 51px tall, but deck.css reserves up to 118px of padding beneath it for a pitch slide's breathing
+ * room. These stages do not have that to spare: 30px of reserve is 30px of board.
+ */
+.room-slide {
+  padding-bottom: min(clamp(46px, 7vh, 92px), 8.4vh);
+}
+
+.room-slide .deck-eyebrow .deck-bi__en {
+  font-size: min(clamp(10px, 1vw, 16px), 1.7vh);
+}
+
+.room-slide .deck-eyebrow .deck-bi__th {
+  font-size: min(clamp(9px, 0.9vw, 14px), 1.55vh);
+}
+
+/* The last ~40px, off the outcome stage's three largest blocks in proportion. */
+.room-trace__value {
+  font-size: min(clamp(20px, 2.6vw, 56px), 5vh);
+}
+
+.room-slide .room-lesson__text .deck-bi__en {
+  font-size: min(clamp(16px, 2.1vw, 44px), 4vh);
+}
+
+.room-slide .room-data .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(20px, 2.8vw, 60px), 5.4vh);
+}
