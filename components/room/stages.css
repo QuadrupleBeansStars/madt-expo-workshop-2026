@@ -24,11 +24,56 @@
   justify-content: flex-start;
   overflow-x: hidden;
   overflow-y: auto;
-  padding-top: clamp(56px, 8vh, 96px);
+  padding-top: clamp(40px, 5.5vh, 84px);
 }
 
 .room-slide .deck-stage {
   max-width: 1500px;
+}
+
+/*
+ * ── THE HEIGHT BUDGET ────────────────────────────────────────────────────────
+ *
+ * deck.css sizes type against viewport WIDTH only (`clamp(34px, 6vw, 84px)`). A pitch slide holds
+ * a headline and a sentence, so width alone is fine. These stages hold a headline, a paragraph,
+ * a chart pair or a six-step chain, a lesson and a live board — and on a 1366x768 projector the
+ * width-only scale spent the whole height on the first two elements. Nine of ten stages ran off
+ * the bottom of the screen; the worst was 2,574px past a 768px fold.
+ *
+ * So every base size is additionally capped in `vh`. On a wide, short screen — which is what a
+ * projector is — the cap binds and the type shrinks to fit. On a tall screen nothing changes.
+ *
+ * Scoped to `.room-slide`, which raises these to (0,3,0) against deck.css's (0,2,0). That is
+ * deliberate: at equal specificity these rules depend on sheet order, and sheet order has already
+ * silently reverted them once (see the import comment in app/biz/page.tsx). Specificity holds
+ * regardless of how the bundler orders the two files.
+ *
+ * `npm run check:projector` is the check. Re-run it after touching anything here.
+ */
+.room-slide .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(28px, 4.4vw, 84px), 8.4vh);
+  line-height: 1.04;
+}
+
+.room-slide .deck-bi--hero .deck-bi__th {
+  margin-top: min(clamp(6px, 1.2vw, 22px), 1.4vh);
+  font-size: min(clamp(15px, 1.8vw, 30px), 4vh);
+  line-height: 1.3;
+}
+
+.room-slide .deck-bi--body .deck-bi__en {
+  font-size: min(clamp(14px, 1.5vw, 30px), 2.9vh);
+  line-height: 1.35;
+}
+
+.room-slide .deck-bi--body .deck-bi__th {
+  margin-top: min(clamp(4px, 0.9vw, 12px), 1vh);
+  font-size: min(clamp(12px, 1.2vw, 22px), 2.5vh);
+  line-height: 1.4;
+}
+
+.room-slide .deck-body {
+  margin-top: min(clamp(10px, 2.6vw, 30px), 2.2vh);
 }
 
 /* ── Join / lobby ────────────────────────────────────────────────────────── */
@@ -456,13 +501,13 @@
 
 /* The host reads this paragraph aloud; on screen it is support, not the message. It is the
    longest element on the stage in both scripts, so it gives up the most. */
-.room-outcome__body .deck-bi__en {
+.room-slide .room-outcome__body .deck-bi__en {
   max-width: 62ch;
   font-size: min(clamp(13px, 1.15vw, 19px), 2.5vh);
   line-height: 1.35;
 }
 
-.room-outcome__body .deck-bi__th {
+.room-slide .room-outcome__body .deck-bi__th {
   max-width: 66ch;
   font-size: min(clamp(12px, 1.05vw, 17px), 2.3vh);
   line-height: 1.4;
@@ -565,14 +610,14 @@
   color: var(--deck-clr);
 }
 
-.room-trace__label .deck-bi__en {
+.room-slide .room-trace__label .deck-bi__en {
   max-width: none;
   font-size: min(clamp(10px, 0.85vw, 14px), 1.9vh);
   font-weight: 600;
   line-height: 1.2;
 }
 
-.room-trace__label .deck-bi__th {
+.room-slide .room-trace__label .deck-bi__th {
   max-width: none;
   font-size: min(clamp(9px, 0.78vw, 13px), 1.75vh);
   line-height: 1.25;
@@ -616,14 +661,14 @@
   background: var(--deck-card);
 }
 
-.room-fx__label .deck-bi__en {
+.room-slide .room-fx__label .deck-bi__en {
   max-width: none;
   font-size: min(clamp(12px, 1.15vw, 18px), 2.4vh);
   font-weight: 700;
   line-height: 1.2;
 }
 
-.room-fx__label .deck-bi__th {
+.room-slide .room-fx__label .deck-bi__th {
   max-width: none;
   font-size: min(clamp(11px, 1vw, 15px), 2.1vh);
   line-height: 1.25;
@@ -672,12 +717,12 @@
   background: color-mix(in srgb, var(--deck-clr) 8%, var(--deck-bg));
 }
 
-.room-lesson__text .deck-bi__en {
+.room-slide .room-lesson__text .deck-bi__en {
   font-size: min(clamp(20px, 2.8vw, 44px), 6vh);
   line-height: 1.1;
 }
 
-.room-lesson__text .deck-bi__th {
+.room-slide .room-lesson__text .deck-bi__th {
   font-size: min(clamp(14px, 1.7vw, 26px), 3.6vh);
 }
 
