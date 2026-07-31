@@ -66,11 +66,17 @@ async function main() {
     for (const viewport of VIEWPORTS) {
       await post('/api/room/reset')
 
-      /* Players matter to the measurement: an empty leaderboard is short, and a leaderboard is the
-       * tallest thing on an outcome stage. Measuring an empty room would clear a layout that
-       * breaks the moment anyone joins. */
+      /* Players matter to the measurement: an empty leaderboard is short, and the board is the
+       * tallest thing on both the outcome and the close stage. Measuring an empty room would
+       * clear a layout that breaks the moment anyone joins.
+       *
+       * MORE PLAYERS THAN THE BOARD SHOWS, deliberately. `Leaderboard` defaults to `limit = 8`
+       * and the close stage takes that default, so a nine-player room is what renders the tallest
+       * board this deck can ever produce. Seating five — which this script used to do — measured a
+       * five-row board and would have passed a close stage that overflows in a real room. */
       const players = []
-      for (const name of ['ปุ๊ก', 'Beam', 'Nott', 'Mint', 'Ohm']) {
+      const NAMES = ['ปุ๊ก', 'Beam', 'Nott', 'Mint', 'Ohm', 'Fern', 'Guide', 'Pim', 'Tar']
+      for (const name of NAMES) {
         const joined = await post('/api/room/join', { name })
         if (joined?.player?.id) players.push(joined.player.id)
       }

@@ -1450,3 +1450,155 @@
 .room-slide .room-data .deck-bi--hero .deck-bi__en {
   font-size: min(clamp(20px, 2.8vw, 60px), 5.4vh);
 }
+
+/* Final calibration: outcome ~110px, close ~65px, taken proportionally rather than from any one
+   element, so nothing on either stage drops a size step relative to its neighbours. */
+.room-outcome {
+  gap: min(0.9vh, 12px) clamp(14px, 1.8vw, 30px);
+}
+
+.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(18px, 2.4vw, 54px), 4vh);
+}
+
+.room-slide .room-outcome__body .deck-bi__en {
+  font-size: min(clamp(10px, 0.9vw, 19px), 1.55vh);
+}
+
+.room-slide .room-outcome__body .deck-bi__th {
+  font-size: min(clamp(9px, 0.8vw, 17px), 1.42vh);
+}
+
+.room-trace__value {
+  font-size: min(clamp(19px, 2.4vw, 56px), 4.4vh);
+}
+
+.room-slide .room-lesson__text .deck-bi__en {
+  font-size: min(clamp(15px, 1.9vw, 44px), 3.5vh);
+}
+
+.room-slide .room-lesson__text .deck-bi__th {
+  font-size: min(clamp(11px, 1.25vw, 26px), 2.2vh);
+}
+
+.room-slide .room-fx__delta dd {
+  font-size: min(clamp(10px, 1.1vw, 22px), 2vh);
+}
+
+.room-slide .room-takeaways__item .deck-bi__en {
+  font-size: min(clamp(10px, 1vw, 20px), 1.7vh);
+}
+
+.room-slide .room-takeaways__item .deck-bi__th {
+  font-size: min(clamp(9px, 0.88vw, 16px), 1.55vh);
+}
+
+.room-slide .room-close .room-archetypes__name {
+  font-size: min(clamp(10px, 1.1vw, 18px), 1.8vh);
+}
+
+.room-slide .room-archetypes__sting .deck-bi__en {
+  font-size: min(clamp(8px, 0.78vw, 14px), 1.45vh);
+}
+
+.room-slide .room-archetypes__sting .deck-bi__th {
+  font-size: min(clamp(8px, 0.72vw, 12px), 1.32vh);
+}
+
+/*
+ * The close board, again — measured at 140px per row.
+ *
+ * Laying the three KPIs out horizontally to save a line backfired: "Happy customers" and its
+ * neighbours wrap inside a 371px column, so each KPI became two or three lines anyway and the
+ * row got taller than it was stacked. Back to a stacked caption over its value, but at label
+ * scale, which is what a caption on a board actually needs to be.
+ */
+.room-close .room-board__kpi {
+  flex-direction: column;
+  gap: 0;
+  font-size: min(clamp(8px, 0.72vw, 11px), 1.3vh);
+  line-height: 1.15;
+}
+
+.room-close .room-board__kpi b {
+  font-size: min(clamp(11px, 1vw, 16px), 1.9vh);
+}
+
+.room-close .room-board__kpis {
+  gap: clamp(8px, 1.2vw, 18px);
+}
+
+/* The lesson strip carries an eyebrow above its sentence; both were sized for a full slide. */
+.room-lesson {
+  padding: min(0.8vh, 10px) clamp(11px, 1.6vw, 24px);
+}
+
+.room-slide .room-lesson__eyebrow .deck-bi__en {
+  font-size: min(clamp(9px, 0.85vw, 13px), 1.4vh);
+}
+
+.room-slide .room-lesson__eyebrow .deck-bi__th {
+  font-size: min(clamp(8px, 0.78vw, 12px), 1.3vh);
+}
+
+/* The accounting line proves nobody vanished; it does not need to be 58px to do that. */
+.room-trace__sum {
+  gap: 10px;
+  margin-top: min(0.7vh, 9px);
+  padding-top: min(0.6vh, 8px);
+}
+
+.room-trace__eq {
+  font-size: min(clamp(13px, 1.4vw, 24px), 2.6vh);
+}
+
+.room-slide .room-trace__sum .deck-bi__en,
+.room-slide .room-trace__sum .deck-bi__th {
+  font-size: min(clamp(8px, 0.75vw, 12px), 1.35vh);
+}
+
+/* The outcome rail board, one step tighter so row 1 stops setting the stage height. */
+.room-outcome .room-board__row {
+  padding: min(0.5vh, 6px) 0;
+}
+
+.room-outcome .room-board__rank,
+.room-outcome .room-board__name {
+  font-size: min(clamp(12px, 1.2vw, 20px), 2.2vh);
+}
+
+.room-outcome .room-board__score b {
+  font-size: min(clamp(13px, 1.3vw, 22px), 2.4vh);
+}
+
+/* Rounds 2 and 3: the three delta cards. */
+.room-fx__card {
+  padding: min(0.8vh, 11px) clamp(9px, 1.1vw, 16px);
+}
+
+.room-fx__deltas {
+  margin-top: min(0.7vh, 9px);
+}
+
+/* Round 1's chain, the last stage over the edge. Trimmed past the line rather than onto it, so a
+   longer player name or a fuller board does not put it back over. */
+.room-trace__step {
+  padding: min(0.7vh, 10px) clamp(6px, 0.7vw, 11px);
+}
+
+.room-trace__value {
+  font-size: min(clamp(18px, 2.2vw, 56px), 4vh);
+}
+
+.room-trace__head {
+  gap: 10px;
+}
+
+.room-slide .room-trace__head .deck-bi__en,
+.room-slide .room-trace__head .deck-bi__th {
+  font-size: min(clamp(9px, 0.8vw, 13px), 1.4vh);
+}
+
+.room-trace__staffing b {
+  font-size: min(clamp(15px, 1.8vw, 44px), 3vh);
+}

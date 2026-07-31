@@ -491,7 +491,12 @@ function CloseView({ stage, frame }: { stage: CloseStage; frame: RoomFrame }) {
           </ul>
         </section>
 
-        <Leaderboard entries={frame.leaderboard} />
+        {/* Six, not the default eight. The close stage runs three columns, so the board gets a
+            third of the screen; at eight rows it is 118px taller than a 1366x768 projector and
+            the bottom two ranks are below a fold nobody can scroll. Six rows fit with room to
+            spare. Everyone else still has a shop and a score — they are just not on the wall.
+            `npm run check:projector` seats nine players precisely to hold this honest. */}
+        <Leaderboard entries={frame.leaderboard} limit={6} />
       </div>
     </div>
   )
