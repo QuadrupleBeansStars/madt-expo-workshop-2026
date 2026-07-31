@@ -244,7 +244,10 @@ export default function PlayPage() {
 
   // Nothing on screen until localStorage has been read, so a phone that already has an identity
   // never flashes the join screen at a player who joined ten minutes ago.
-  if (!ready) return <div className="phone-join" />
+  // `phone-root` is not decoration: phone.css hangs every --phone-* token AND the
+  // .deck-bi stacking rules off it. Without it the join screen loses the token space
+  // and Thai renders inline after English instead of beneath it.
+  if (!ready) return <div className="phone-root phone-join" />
 
   if (!identity) {
     return <JoinScreen onJoin={join} joining={joining} notice={notice} />
@@ -277,7 +280,7 @@ function JoinScreen({
   const [name, setName] = useState('')
 
   return (
-    <main className="phone-join" data-testid="phone-join">
+    <main className="phone-root phone-join" data-testid="phone-join">
       <div>
         <Bilingual text={PHONE.joinTitle} as="hero" />
         <Bilingual text={PHONE.joinBlurb} as="body" />
