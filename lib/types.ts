@@ -70,4 +70,17 @@ export type PublicGameState = {
   answeredCount: number
   playerCount: number
   youAnswered?: boolean
+  /**
+   * Present only when the request carried a playerId that the store still knows — the same
+   * contract as The Decision Room's `you` (lib/room-store.ts). Its ABSENCE is the signal: a
+   * 200 for the id we sent, with no `you`, means the host reset the room and this phone's
+   * identity is gone. `youAnswered` cannot carry that signal, because it is already `false`
+   * for an unknown player and `false` is also the honest answer for a known one who has not
+   * answered yet.
+   */
+  you?: {
+    codename: string
+    /** Spectators are real players who never score. They must NOT be ejected. */
+    spectator: boolean
+  }
 }

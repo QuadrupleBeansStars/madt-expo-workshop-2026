@@ -102,6 +102,35 @@ describe('store game state', () => {
     expect(s.getAnswers()[0].optionId).toBe(opt0)
   })
 
+  /*
+   * `you` is how the phone learns it was ejected. Its ABSENCE is the signal, so these three
+   * cases are the whole contract:
+   *
+   *   - a known player gets `you`
+   *   - a stale id (host reset since this phone joined) gets NO `you` -> the poll sends it back
+   *     to the join screen, instead of it discovering the ejection on a tap, mid-round
+   *   - a SPECTATOR gets `you`. Spectators are known players who never score. If presence were
+   *     derived from the active set they would be ejected once per second, forever.
+   */
+  it('getPublicState reports player presence via `you`: known yes, stale no, spectator yes', () => {
+    const s = new MemoryRoomStore()
+    const p = s.join('Alice', 0)
+    s.startGame(1000)
+    const spec = s.join('Late', 1500)
+
+    expect(s.getPublicState(2000, p.id).you).toEqual({ codename: 'Alice', spectator: false })
+    expect(s.getPublicState(2000, spec.id).you).toEqual({ codename: 'Late', spectator: true })
+    expect(s.getPublicState(2000, 'nobody').you).toBeUndefined()
+
+    // Absent, not `false`: `youAnswered` is already false for an unknown player, so it cannot
+    // carry this signal. Only `you` distinguishes "ejected" from "has not answered yet".
+    expect(s.getPublicState(2000, 'nobody').youAnswered).toBe(false)
+
+    // A reset forgets every player, so the id this phone is still holding goes unknown.
+    s.reset()
+    expect(s.getPublicState(3000, p.id).you).toBeUndefined()
+  })
+
   it('recordAnswer rejects unknown player, spectator, and wrong/closed round', () => {
     const s = new MemoryRoomStore()
     const p = s.join('Alice', 0)

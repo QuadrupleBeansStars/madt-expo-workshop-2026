@@ -11,9 +11,10 @@
 //   1. RESET RECOVERY. `you` is present in every state response for a player the server knows, and
 //      absent for one it does not. An ok response for the id we sent, with no `you`, means the room
 //      was reset — the phone clears its identity and returns to the join screen THERE, in the poll
-//      loop. AI Detective's phone (app/page.tsx) instead waits for a vote to fail with 400: it sits
-//      on "waiting for the host" until the player taps, then ejects them mid-round. That is the
-//      exact failure this file exists to not repeat.
+//      loop. The failure this guards against: waiting for a vote to fail with 400 instead, which
+//      leaves the phone on "waiting for the host" looking healthy and ejects the player mid-round
+//      on their next tap, costing them that round. AI Detective's phone (app/page.tsx) had exactly
+//      that bug and now carries the same check — keep both in step.
 //   2. MONOTONIC `seq`. A frame older than the one on screen is dropped, never rendered.
 //   3. A failed poll KEEPS the last good frame. A stale screen is recoverable in a dark room; a
 //      blank one makes 200 people reload at once.

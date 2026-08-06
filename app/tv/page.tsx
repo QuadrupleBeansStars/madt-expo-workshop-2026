@@ -67,8 +67,15 @@ export default function TvPage() {
 
   const saveToken = (v: string) => { setToken(v); try { localStorage.setItem(HOST_TOKEN_KEY, v) } catch { /* ignore */ } }
 
+  /*
+  Vertical padding is capped by viewport HEIGHT, not left at a flat 2rem. `min-h-screen` plus
+  `p-8` with border-box leaves the content 64px less than the screen, and on a 1366x768
+  projector the lobby needs 714 of the 704 that leaves — so the join QR sat 10px below a fold
+  a projector cannot scroll. Horizontal padding is untouched; width was never the constraint.
+  `npm run check:projector` walks this route at both projector shapes and found exactly this.
+   */
   return (
-    <main className="crt relative min-h-screen overflow-hidden p-8" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
+    <main className="crt relative min-h-screen overflow-hidden px-8 py-[min(2rem,2.2vh)]" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
       <TokenBar token={token} onSave={saveToken} error={tokenError} lang={lang} />
       <Stage state={state} stats={stats} lang={lang} origin={origin} tokenError={tokenError} hasToken={token.trim().length > 0} onStart={() => control('start')} onNext={() => control('next')} />
     </main>

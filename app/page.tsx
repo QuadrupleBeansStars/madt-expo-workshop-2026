@@ -88,6 +88,15 @@ export default function PlayerPage() {
         if (!res.ok) return
         const next = (await res.json()) as PublicGameState
         if (!alive) return
+
+        // RESET RECOVERY. The server answered, for the id we sent, and does not know this
+        // player: the host reset the room. Leave HERE, in the poll, on the join screen — not
+        // mid-round on a failed tap. Before this check the phone sat on "waiting for the host"
+        // looking perfectly healthy and only ejected the player when they answered, costing
+        // them the round they were in. The vote-time 400 below is now the backstop, not the
+        // primary path. Mirrors app/play/page.tsx, which was built with this from the start.
+        if (!next.you) { returnToCodename(true); return }
+
         if (typeof next.seq === 'number' && next.seq >= lastSeqRef.current) {
           lastSeqRef.current = next.seq
           setGameState(next)
@@ -97,7 +106,7 @@ export default function PlayerPage() {
     void poll()
     const id = setInterval(poll, POLL_MS)
     return () => { alive = false; clearInterval(id) }
-  }, [identity])
+  }, [identity, returnToCodename])
 
   const join = async (codenameInput: string) => {
     try {

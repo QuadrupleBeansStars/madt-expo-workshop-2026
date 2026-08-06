@@ -128,6 +128,11 @@ export class MemoryRoomStore implements RoomStore {
     }
     if (playerId !== undefined) {
       pub.youAnswered = caseId != null && this.answers.has(`${playerId}:${caseId}`)
+      /* `this.players`, NOT `activePlayers()`. The latter filters out spectators, who are real
+       * players the store knows and answers for with `'spectator'`. Deriving presence from the
+       * active set would eject every spectator phone on the next poll tick, once a second. */
+      const me = this.players.find((p) => p.id === playerId)
+      if (me) pub.you = { codename: me.codename, spectator: me.spectator }
     }
     return pub
   }
