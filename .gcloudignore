@@ -1,0 +1,40 @@
+# What `deploy/deploy.sh` uploads to Cloud Build (`gcloud run deploy --source .`).
+#
+# WHY THIS FILE EXISTS AT ALL. Without it gcloud silently falls back to `.gitignore`. That
+# happens to work here — .gitignore covers node_modules, .next and the room state files — but it
+# is a coincidence, not a contract: the next line added to .gitignore for a local-tooling reason
+# would change what ships to production. This states the upload set outright.
+#
+# It is deliberately close to .dockerignore. The difference is that .dockerignore trims the build
+# CONTEXT for a build that has already started, while this trims the tarball that crosses the
+# network first. node_modules alone is 445MB.
+
+.git
+.gitignore
+node_modules
+.next
+.worktrees
+.superpowers
+npm-debug.log*
+*.tmp
+.DS_Store
+
+# Live room state. A `.room-state.json` uploaded into the image would restore a stale game —
+# somebody else's half-finished session — on the first cold start of the workshop.
+.room-state.json
+.deck-state.json
+.decision-room-state.json
+*.state.json
+
+# Secrets never ride along in the source upload. FACILITATOR_TOKEN reaches the service through
+# --set-env-vars in deploy/deploy.sh.
+.env*
+
+# Not needed to build or run the image.
+coverage
+docs
+scripts
+**/*.test.ts
+**/*.test.tsx
+vitest.config.ts
+vitest.setup.ts

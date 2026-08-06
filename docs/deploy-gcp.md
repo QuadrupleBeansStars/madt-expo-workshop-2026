@@ -14,10 +14,17 @@ pinned to one instance**. That is not a simplification — it is the only shape 
 ## Deploy
 
 ```bash
-export GCP_PROJECT=your-project-id
+export GCP_PROJECT=agentic-btc
 export FACILITATOR_TOKEN='pick-something-nobody-has-seen'
 ./deploy/deploy.sh
 ```
+
+`agentic-btc` is the target because it is the one project on this account that already has
+`run`, `cloudbuild` and `artifactregistry` enabled, and the account holds `roles/owner` on it.
+
+Note the account's *active* gcloud project is `zpots-496708`, which it cannot access — `gcloud
+projects describe` returns a permission error. `deploy.sh` requires `GCP_PROJECT` explicitly and
+passes `--project` on every call precisely so it can never inherit that.
 
 It prints the four URLs when it finishes. First deploy takes a few minutes (Cloud Build compiles
 the image); later ones are faster.
@@ -73,6 +80,24 @@ object, so the seam exists. Until that is done, raising `--max-instances` breaks
 - [ ] Run `npm run check:projector` against the deployed URL:
       `BASE_URL=https://... FACILITATOR_TOKEN=... npm run check:projector`
 - [ ] Reset the room right before the session: `POST /api/room/reset` with the token header.
+
+## What is verified, and what is not
+
+Verified by hand, in the real container built from this `Dockerfile`:
+
+- all four routes and every CSS chunk and font return 200
+- the room state file is written by the non-root user at runtime
+- a wrong facilitator token is rejected with 403
+- `npm run check:projector` passes against the container, not just a dev server
+
+Not verified: nobody has run `gcloud run deploy` yet. The image was built by local `docker build`;
+`deploy.sh` uses `--source .`, so Cloud Build builds it instead. Cloud Build uses the root
+`Dockerfile` when one is present and only falls back to buildpacks when there is none — so the
+image should be the one tested here, but the first real deploy is where that gets confirmed.
+
+`.gcloudignore` controls what the source upload contains. Without it gcloud falls back to
+`.gitignore`, which happens to exclude the right things; the file makes that explicit so a future
+edit to `.gitignore` cannot change what ships.
 
 ## Local equivalent of the container
 
