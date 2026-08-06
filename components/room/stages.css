@@ -1602,3 +1602,23 @@
 .room-trace__staffing b {
   font-size: min(clamp(15px, 1.8vw, 44px), 3vh);
 }
+
+/*
+ * The last 14px, and they do not come off the type — six rounds of that are already above.
+ *
+ * `outcome-staffing` was the single stage still overflowing 1366x768, by 14.5px, and the measured
+ * cause was not content: the slide reserved 53.8px of bottom padding while `.deck-chrome` — which
+ * is absolutely positioned — only ever occupies the bottom 25px of it. That is ~28px of empty
+ * floor held back for a footer that does not reach it. Sizing the reserve off what the chrome
+ * actually measures (plus a comfortable margin) returns it to the stage, at both projector shapes.
+ *
+ * Verified with `npm run check:projector`, which seats nine players so the leaderboard renders at
+ * its tallest. Do not raise these without re-running it.
+ */
+.room-slide {
+  padding-bottom: min(clamp(36px, 4.8vh, 92px), 8.4vh);
+}
+
+.room-lesson {
+  padding: min(0.7vh, 13px) clamp(12px, 1.8vw, 26px);
+}
