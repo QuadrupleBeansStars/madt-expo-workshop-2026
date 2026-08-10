@@ -1,6 +1,18 @@
-// One-time conversion of the registration platform's CSV export into content/audience.ts.
+// Conversion of the registration platform's CSV export into content/audience.ts.
 //
-// Runs once, by a human, shortly before the event (23 Aug 2026), under time pressure. The
+//     node scripts/import-audience.ts "MADT Expo 2026 - ... - Form Responses 1.csv"
+//
+// USE `node`, NOT `npx tsx`. This file ends in a top-level await; tsx transforms it to CommonJS
+// and dies with ERR_REQUIRE_ASYNC_MODULE. Node 22+ strips the types natively and runs it as an ES
+// module. The output path is optional and defaults to content/audience.ts, which is the intended
+// target — that file is generated and meant to be overwritten.
+//
+// Run by a human, more than once: the survey stays open until the event, so re-import whenever
+// responses have grown. Every derived figure on screen recomputes, and `content/room.test.ts`
+// fails if the script's prose has gone stale against the new numbers — so after re-importing,
+// run `npx vitest run` and fix whatever it names before the day.
+//
+// Runs shortly before the event (23 Aug 2026), often under time pressure. The
 // parser below is pure and exported so it can be unit-tested without touching the filesystem;
 // all file I/O lives in main() at the bottom, which is not exercised by tests.
 //
@@ -449,7 +461,14 @@ export function bucketTotal(rec: Record<string, number>): number {
 async function main() {
   const [, , inputPath, outputPath] = process.argv
   if (!inputPath) {
-    console.error('Usage: npx tsx scripts/import-audience.ts <registration-export.csv> [content/audience.ts]')
+    console.error('Usage: node scripts/import-audience.ts <registration-export.csv> [content/audience.ts]')
+    console.error('')
+    console.error('Use `node`, NOT `npx tsx` — this file ends in a top-level await, which tsx')
+    console.error('cannot transform under its CommonJS output ("ERR_REQUIRE_ASYNC_MODULE").')
+    console.error('Node 22+ strips the TypeScript itself and runs it as an ES module.')
+    console.error('')
+    console.error('The output path is optional and defaults to content/audience.ts, which is')
+    console.error('what you want — that file is GENERATED and is meant to be overwritten.')
     process.exit(1)
   }
 

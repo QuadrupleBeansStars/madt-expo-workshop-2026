@@ -10,12 +10,14 @@
 // `LocalizedText` and both scripts render at once (spec §7).
 
 import { AUDIENCE } from '@/content/audience'
-import { BUCKET_LABELS, QUESTIONS } from '@/content/room-labels'
+import { BUCKET_LABELS, MULTI_SELECT_KEYS, QUESTIONS } from '@/content/room-labels'
 import type { EvidenceKey } from '@/lib/room-types'
 import type { LocalizedText } from '@/lib/types'
 
 export type EvidencePanel = {
   key: EvidenceKey
+  /** One respondent could tick several buckets here, so the bars do not sum to the room. */
+  multiSelect: boolean
   /** The registration question, verbatim from the form. */
   question: LocalizedText
   /** One count per bucket — passed straight to `DataPanel`. */
@@ -25,6 +27,8 @@ export type EvidencePanel = {
 
 export type EvidenceFigure = {
   key: string
+  /** This figure comes from a multi-select question and is NOT a share of the room. */
+  multiSelect: boolean
   /** The count itself: the thing a player reads in the two seconds before they tap. */
   value: number
   /** The bucket this count belongs to, e.g. "07:00–09:00" / "Under 3 minutes". */
@@ -35,6 +39,7 @@ export type EvidenceFigure = {
 export function evidencePanels(evidence: readonly EvidenceKey[] | undefined): EvidencePanel[] {
   return (evidence ?? []).map((key) => ({
     key,
+    multiSelect: (MULTI_SELECT_KEYS as readonly string[]).includes(key),
     question: QUESTIONS[key],
     data: AUDIENCE[key] as Record<string, number>,
     labels: BUCKET_LABELS[key],
@@ -47,6 +52,7 @@ function bucketsBySize(key: EvidenceKey): EvidenceFigure[] {
   return Object.entries(AUDIENCE[key] as Record<string, number>)
     .map(([bucket, value]) => ({
       key: `${key}-${bucket}`,
+      multiSelect: (MULTI_SELECT_KEYS as readonly string[]).includes(key),
       value,
       label: labels[bucket] ?? { en: bucket, th: bucket },
     }))

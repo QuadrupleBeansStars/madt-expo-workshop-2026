@@ -164,6 +164,104 @@ async function checkDetectiveTv(browser, failures) {
   }
 }
 
+
+/*
+ * The PHONES. A different question from the projector's, and it needs saying, because the naive
+ * reading of a phone check is "phones scroll, so nothing can be wrong".
+ *
+ * What is measured here is not overflow — it is whether the LAST VOTE BUTTON is reachable without
+ * scrolling. A player has 40-45 seconds, in a dark room, on a screen they are holding at arm's
+ * length. An option they have to go looking for is an option that gets fewer votes than it should,
+ * and that skews the tally the host is about to read out loud. That is a silent failure: nothing
+ * errors, the round just quietly mis-measures the room.
+ *
+ * This was added after storyboards went in above the question on both phones and a fourth option
+ * went into two Decision Room rounds — all four changes push the buttons down, and none of them
+ * could be seen by a suite that renders in jsdom.
+ *
+ * 390x844 is an iPhone 12/13/14 in portrait, the smallest common screen in a Thai lecture hall.
+ * A warning rather than a failure: unlike a projector, a phone CAN scroll, so this is friction to
+ * be judged, not a fold that hides content forever.
+ */
+const PHONE_VIEWPORT = { width: 390, height: 844 }
+
+async function checkPhones(browser) {
+  console.log('\n\n## Phones  390x844')
+  const warnings = []
+
+  const context = await browser.newContext({ viewport: PHONE_VIEWPORT, isMobile: true, hasTouch: true })
+
+  /* The Decision Room's phone, on its first decide stage — the one that now carries a storyboard,
+   * an evidence strip and four options. */
+  try {
+    await post('/api/room/reset')
+    const joined = await post('/api/room/join', { name: 'ผู้เล่น' })
+    const page = await context.newPage()
+    await page.goto(`${BASE}/play`, { waitUntil: 'domcontentloaded' })
+    await page.evaluate(
+      (id) => localStorage.setItem('decisionroom.player', JSON.stringify({ playerId: id, name: 'ผู้เล่น' })),
+      joined?.player?.id,
+    )
+
+    for (let i = 0; i < 20; i++) {
+      const state = await roomState()
+      if (state.stageKind === 'decide') break
+      await post('/api/room/control', { action: 'advance' })
+      await page.waitForTimeout(150)
+    }
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(1500)
+    await measureLastOption(page, '/play  decide', warnings)
+  } catch (err) {
+    console.log(`  ! /play could not be measured: ${err.message}`)
+  }
+
+  /* AI Detective's phone, mid-case: storyboard, question, the duck, evidence, four answer cards. */
+  try {
+    await post('/api/reset')
+    const joined = await post('/api/join', { codename: 'นักสืบ' })
+    await post('/api/control', { action: 'start' })
+    const page = await context.newPage()
+    await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded' })
+    await page.evaluate(
+      (id) => localStorage.setItem('aidet.run', JSON.stringify({ playerId: id, codename: 'นักสืบ' })),
+      joined?.player?.id,
+    )
+    await page.reload({ waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(2000)
+    await measureLastOption(page, '/  investigate', warnings)
+  } catch (err) {
+    console.log(`  ! / could not be measured: ${err.message}`)
+  }
+
+  await context.close()
+  return warnings
+}
+
+/** How far below the fold the last tappable option sits, if at all. */
+async function measureLastOption(page, label, warnings) {
+  const result = await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll('button')]
+      .filter((b) => b.offsetParent !== null && b.getBoundingClientRect().height > 28)
+    if (buttons.length === 0) return null
+    const last = buttons[buttons.length - 1].getBoundingClientRect()
+    return { count: buttons.length, bottom: Math.round(last.bottom), fold: window.innerHeight }
+  })
+
+  if (!result) {
+    console.log(`  ? ${label}  no tappable options found — check the fixture, not the layout`)
+    return
+  }
+
+  const below = result.bottom - result.fold
+  if (below > 0) {
+    warnings.push({ label, below })
+    console.log(`  ! ${label}  ${result.count} options, last one ${below}px below the fold (scroll needed)`)
+  } else {
+    console.log(`  \u2713 ${label}  ${result.count} options, all reachable without scrolling`)
+  }
+}
+
 async function main() {
   if (!TOKEN) {
     console.error('FACILITATOR_TOKEN is not set. The host controls are disabled without it and')
@@ -179,6 +277,8 @@ async function main() {
 
   const browser = await chromium.launch({ channel: 'chrome' })
   const failures = []
+
+  let phoneWarnings = []
 
   try {
     await checkDetectiveTv(browser, failures)
@@ -256,6 +356,8 @@ async function main() {
 
       await context.close()
     }
+
+    phoneWarnings = await checkPhones(browser)
   } finally {
     await browser.close()
   }
@@ -267,6 +369,16 @@ async function main() {
   }
 
   console.log('\nEvery stage fits on both projector shapes.')
+
+  /* Phones are a WARNING, never an exit code: a phone scrolls, so this is friction to weigh rather
+   * than content lost behind a fold. It still gets said out loud, because an option a player has
+   * to hunt for during a 45-second window collects fewer votes than it deserves — and the host
+   * reads that tally to the room as if it meant something. */
+  if (phoneWarnings.length > 0) {
+    console.log(`\n${phoneWarnings.length} phone screen(s) need a scroll to reach the last option:`)
+    for (const w of phoneWarnings) console.log(`  ${w.label}  +${w.below}px`)
+    console.log('Not fatal — phones scroll — but worth a look before the day.')
+  }
 }
 
 await main()

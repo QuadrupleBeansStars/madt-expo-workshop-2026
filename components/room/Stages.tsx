@@ -272,7 +272,7 @@ function DataView({ stage }: { stage: DataStage }) {
 
       <div className="room-data__panels">
         {panels.map((panel) => (
-          <DataPanel key={panel.key} question={panel.question} data={panel.data} labels={panel.labels} />
+          <DataPanel key={panel.key} question={panel.question} data={panel.data} labels={panel.labels} multiSelect={panel.multiSelect} />
         ))}
       </div>
     </div>
@@ -300,7 +300,7 @@ function DecideEvidence({ evidence }: { evidence: EvidenceKey[] | undefined }) {
       <Bilingual text={UI.whatYouKnow} as="label" className="room-evidence__title" />
       {panels.map((panel) => (
         <div className="room-evidence__panel" key={panel.key} data-testid={`evidence-${panel.key}`}>
-          <DataPanel question={panel.question} data={panel.data} labels={panel.labels} />
+          <DataPanel question={panel.question} data={panel.data} labels={panel.labels} multiSelect={panel.multiSelect} />
         </div>
       ))}
     </section>

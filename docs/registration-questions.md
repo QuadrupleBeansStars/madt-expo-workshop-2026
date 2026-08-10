@@ -1,5 +1,31 @@
 # Registration questions — "You Are the Dataset"
 
+> **⚠️ THIS DOCUMENT IS THE PROPOSAL, NOT THE FORM THAT WENT OUT.**
+>
+> The survey actually sent on 3 Aug 2026 differs from what is specified below, and the differences
+> broke real things. The authoritative record of what people were asked, and what they answered, is
+> **`content/audience.ts`** — which is generated from the live CSV export. Read that first.
+>
+> What changed between this document and the live form:
+>
+> | | Specified here | Actually asked |
+> |---|---|---|
+> | Queue patience | Under 3 / 3–5 / 5–10 / forever | **Under 5 / 10 / 15 / forever** |
+> | Travel | BTS / MRT | **Bus** |
+> | First drink | includes "Nothing" | Nothing option not offered |
+> | — | five questions (B1–B5) | **seven** — see below |
+>
+> Two questions were ADDED that this document never specified, and they now carry the whole of
+> round 1 (see `lib/pricing.ts`):
+>
+> - *How much do you usually spend on a drink?* — Below ฿50 / ฿50–100 / ฿101–200
+> - *What is the main factor when you buy a drink?* — **multi-select**: Taste, Price, Brand,
+>   Promotion & Discount, Convenience & Location
+>
+> The three-minute walk-out figure that the original round 1 script was built on was never on any
+> form a human filled in. Kept below for the record of what was intended, and because the option
+> labels for B1–B4 are still accurate.
+
 For the Data in Business workshop, MADT Expo, 23 Aug 2026.
 
 These replace the three live warm-up polls. Attendees answer them **at event registration**, weeks

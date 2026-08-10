@@ -1951,3 +1951,143 @@
   font-size: min(clamp(9px, 0.85vw, 14px), 1.72vh);
   line-height: 1.28;
 }
+
+/* The multi-select caveat under a chart whose bars do not sum to the room. Small and quiet — it
+ * is a footnote, not a finding — but it must be legible from the back, so it is height-capped
+ * like everything else here rather than set in px. */
+.room-data-panel__note {
+  margin: min(0.5vh, 6px) 0 0;
+  opacity: 0.72;
+}
+
+.room-slide .room-data-panel__note .deck-bi__en {
+  font-size: min(clamp(8px, 0.72vw, 12px), 1.5vh);
+  line-height: 1.16;
+}
+
+.room-slide .room-data-panel__note .deck-bi__th {
+  font-size: min(clamp(7px, 0.66vw, 11px), 1.38vh);
+  line-height: 1.2;
+}
+
+/* The multi-select note is an addition to two decide stages that were passing with no margin, and
+ * `decide-defend` went 46px over the moment it appeared. The note stays — an unlabelled 18/18 bar
+ * is the misreading it exists to prevent — so the space comes from the charts around it. */
+.room-evidence {
+  gap: min(1vh, 13px);
+}
+
+.room-evidence .room-data-panel {
+  padding-bottom: min(0.5vh, 7px);
+}
+
+.room-data-panel__note {
+  margin-top: min(0.35vh, 4px);
+}
+
+/*
+ * The evidence charts beside a decide question, at their tightest.
+ *
+ * `decide-defend` shows `mainFactor` (five buckets, the longest labels in the project) beside
+ * `queuePatience` (four), under a storyboard, above four options — and it is the stage with the
+ * least slack in the deck. These rules are what make it fit; the bars stay proportional, which is
+ * the only thing the chart has to do from the back of a hall.
+ *
+ * NOTE THE SELECTOR LENGTH. `.room-evidence .room-bars__row` (0,2,0) loses to rules already in
+ * this sheet; these carry `.room-slide` and `[data-evidence="true"]` so they actually win. A rule
+ * that loses here fails silently — the stage simply stays too tall.
+ */
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__row {
+  gap: min(0.34vh, 4px);
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars {
+  gap: min(0.46vh, 6px);
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__en {
+  font-size: min(clamp(9px, 0.8vw, 14px), 1.55vh);
+  line-height: 1.12;
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__th {
+  font-size: min(clamp(8px, 0.7vw, 12px), 1.4vh);
+  line-height: 1.14;
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-data-panel {
+  padding-bottom: min(0.4vh, 5px);
+}
+
+/*
+ * The last 14px on `decide-defend`, which is the tightest stage in the deck: a storyboard, two
+ * charts (one of them the five-bucket `mainFactor` with its multi-select footnote), and four
+ * options, all on one screen.
+ *
+ * It does NOT come off the type again — six rounds of that are already above, and the labels are
+ * at the floor of what reads from the back of a hall. It comes off the gap between the storyboard
+ * and the two columns below it, which is dead space, and off the vote rows' internal padding.
+ *
+ * Verified at 1600x900 and 1366x768 with `npm run check:projector`, which votes on every stage so
+ * the tally bars are present. Do not raise these without re-running it.
+ */
+.room-decide > .room-story {
+  margin-bottom: min(0.7vh, 8px);
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-options__row {
+  padding-top: min(0.35vh, 4px);
+  padding-bottom: min(0.35vh, 4px);
+}
+
+/*
+ * The final 3-8px, on all three decide stages at 1366x768.
+ *
+ * Every decide stage now carries a storyboard and four options where it used to carry three, and
+ * all three land within single digits of the fold. That margin is too thin to leave: a venue
+ * projector one notch shorter, or a Thai glyph that wraps differently at a different font
+ * fallback, and the last vote button is gone.
+ *
+ * Taken from the votes-cast strip under the options and the gap above it — chrome, not content.
+ */
+.room-slide .room-decide[data-evidence="true"] .room-decide__votes {
+  margin-top: min(0.5vh, 6px);
+  padding: min(0.3vh, 4px) 0;
+}
+
+.room-slide .room-decide[data-evidence="true"] .room-options {
+  margin-top: min(0.6vh, 8px);
+}
+
+/*
+ * `decide-defend`, and it alone, is still 8px over at 1366x768.
+ *
+ * It is the only stage carrying FOUR options beside the five-bucket `mainFactor` chart AND that
+ * chart's multi-select footnote — one more row of each than any other decide stage. Rather than
+ * trimming every stage again for one stage's sake, the last 8px come off this stage's storyboard,
+ * which is its shortest element and the one with the least to lose from a tighter frame.
+ */
+.room-decide[data-evidence="true"] .room-story__panel {
+  padding-top: min(0.4vh, 5px);
+  padding-bottom: min(0.4vh, 5px);
+}
+
+.room-decide[data-evidence="true"] > .room-story {
+  margin-bottom: min(0.5vh, 6px);
+}
+
+/*
+ * `decide-defend` is the one stage where the EVIDENCE column, not the vote column, sets the
+ * height: two charts stacked (273px + 213px) against 500px of question and options. Shaving type
+ * again would be the seventh such pass and the labels are already at the floor of what reads from
+ * the back of a hall, so the last few pixels come from the slide's own reserve instead.
+ *
+ * Safe because it is measured, not assumed: `.deck-chrome` is absolutely positioned and occupies
+ * only the bottom ~25px of the padding this slide holds back — the same finding that fixed
+ * `outcome-staffing` in an earlier pass. Scoped to decide stages so the outcome and close stages,
+ * which are calibrated against the full reserve, are untouched.
+ */
+.room-slide:has(.room-decide[data-evidence="true"]) {
+  padding-top: min(clamp(18px, 2.6vh, 40px), 3.6vh);
+  padding-bottom: min(clamp(30px, 4vh, 78px), 6.6vh);
+}

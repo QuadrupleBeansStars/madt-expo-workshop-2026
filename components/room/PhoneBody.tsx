@@ -214,6 +214,13 @@ function EvidenceStrip({ stage }: { stage: DecideStage }) {
           </li>
         ))}
       </ul>
+      {/* The phone must not quote a multi-select count as if it were a share of the room — the
+          projector says so beside the same chart, and these are the same numbers. */}
+      {figures.some((f) => f.multiSelect) ? (
+        <p className="phone-evidence__note" data-testid="phone-multi-select-note">
+          <Bilingual text={PHONE.multiSelectNote} as="label" />
+        </p>
+      ) : null}
     </section>
   )
 }

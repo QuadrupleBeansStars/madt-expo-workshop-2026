@@ -8,7 +8,6 @@ import { Countdown } from '@/components/game/Countdown'
 import { AnswerCards } from '@/components/game/AnswerCards'
 import { EvidenceList } from '@/components/game/EvidenceList'
 import { Duck } from '@/components/game/Duck'
-import { Storyboard } from '@/components/game/Storyboard'
 import { t } from '@/lib/i18n'
 
 const RUN_KEY = 'aidet.run'   // identity ONLY: { playerId, codename }
@@ -211,8 +210,12 @@ function PhoneBody({
         {state.phase === 'investigate' ? <Countdown remainingMs={state.remainingMs} /> : <span className="pixel-title text-sm">{t('reveal', lang)}</span>}
       </header>
 
-      <Storyboard panels={round.storyboard} lang={lang} compact />
-
+      {/* NO STORYBOARD HERE, deliberately — it renders on the projector (app/tv/page.tsx) only.
+          The strip cost ~150px above the answer cards on a 390px-wide phone, and
+          `npm run check:projector`'s phone pass measures exactly one thing: how far a player has
+          to scroll to reach the last option inside a 45-second window. The story is something the
+          room reads together off the big screen; the phone is for tapping. The Decision Room's
+          phone makes the same trade for the same reason. */}
       <div className="retro-panel p-3" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
         <div className="mb-1 font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
         <Duck bubble={round.aiAnswer[lang]} size={48} />

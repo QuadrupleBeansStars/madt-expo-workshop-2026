@@ -423,3 +423,11 @@
   opacity: 0.6;
   cursor: default;
 }
+
+/* Same caveat as the projector's, at arm's length. See DataPanel's `multiSelect` prop. */
+.phone-evidence__note {
+  margin: 4px 0 0;
+  opacity: 0.7;
+  font-size: 11px;
+  line-height: 1.25;
+}

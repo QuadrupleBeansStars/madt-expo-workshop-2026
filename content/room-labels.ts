@@ -240,9 +240,13 @@ export const UI = {
   },
   // Sits under the mainFactor chart. Without it, a bar at 18 beside a respondent count of 18
   // reads as "everyone, and only taste" — the question allowed several answers.
+  // Kept to ONE line per script at projector sizes: it is a footnote on a slide with no spare
+  // vertical budget, and a two-line version cost 38px on `decide-defend`, which put the stage
+  // 50px over. The meaning has to survive the compression — "more answers than people" is the
+  // whole point, and it does.
   multiSelectNote: {
-    en: 'People could pick more than one, so these add up to more than the number of people.',
-    th: 'ข้อนี้เลือกได้มากกว่าหนึ่งข้อ ผลรวมจึงมากกว่าจำนวนคนที่ตอบ',
+    en: 'Pick-several question: more answers than people.',
+    th: 'ข้อนี้เลือกได้หลายข้อ ผลรวมจึงเกินจำนวนคน',
   },
   whatEachChoiceDid: { en: 'What each choice did', th: 'แต่ละทางเลือกให้ผลอย่างไร' },
   theLesson: { en: 'The lesson', th: 'บทเรียน' },
@@ -309,6 +313,8 @@ export const PHONE = {
   // The heading on the phone's evidence strip. The figures themselves are the same ones charted
   // on the projector — the phone shows fewer of them, never different ones.
   fromYourAnswers: { en: 'From your answers', th: 'จากคำตอบของพวกคุณ' },
+  // Shorter than the projector's wording (UI.multiSelectNote) — same caveat, read at arm's length.
+  multiSelectNote: { en: 'You could pick more than one.', th: 'ข้อนี้เลือกได้มากกว่าหนึ่งข้อ' },
   tapOne: { en: 'Tap one', th: 'แตะเลือกหนึ่งข้อ' },
   youPicked: { en: 'You picked', th: 'คุณเลือก' },
   locked: { en: 'Voting has closed for this round.', th: 'ปิดโหวตรอบนี้แล้ว' },
