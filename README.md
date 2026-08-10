@@ -1,11 +1,31 @@
-# 🕵️ AI Detective — MADT Expo, 23 Aug 2026
+# MADT Expo 2026 — two workshops, one app
+
+**23 Aug 2026.** Both workshops run from this one repo and one server, on different routes.
+
+| | Workshop | Projector | Phones | Length |
+|---|---|---|---|---|
+| 1 | [**AI Detective**](#ai-detective) — think with AI, not just trust AI | `/tv` | `/` | 5 cases |
+| 2 | [**The Decision Room**](#the-decision-room) — you are the dataset | `/biz` | `/play` | 15 min |
+
+Shared, and worth reading whichever workshop you are running: [Run it](#run-it) ·
+[the LAN gotcha](#the-lan-gotcha-blank-unclickable-pages) ·
+[the projector check](#the-projector-check) · [Deploying](#deploying)
+
+---
+
+# AI Detective
 
 > Think with AI, not just trust AI.
 
 A synchronized, **Kahoot-style** quiz about AI hallucination. One **TV** drives the room through 5
-rounds; players follow on their **phones**. Each round: read the retrieved Case File evidence and
-the AI "duck's" confident answer, then tap A/B/C/D before the timer runs out. The reveal shows the
-punchline — *"73% of you believed the AI."*
+rounds; players follow on their **phones**. Each round opens on a short **storyboard**, then the
+retrieved Case File evidence and the AI "duck's" confident answer — tap A/B/C/D before the timer
+runs out. The reveal shows the punchline (*"73% of you believed the AI"*) **and the running
+standings**, so there is something to play for in the middle of the game rather than only at the
+end.
+
+Answer windows are **45-60 seconds** (45s easy → 60s for the harder cases), and the host can close
+a question early when the room has visibly finished.
 
 📖 **[The five cases — what each one teaches](docs/cases.md)** — per-case sources, the point of each
 failure mode, why every wrong answer is wrong, and which evidence is real vs. deliberately invented.
@@ -28,7 +48,7 @@ ipconfig getifaddr en0               # your IP — players go to http://<that-ip
 | URL | Who | What |
 | --- | --- | --- |
 | `http://<ip>:3000` | Players (phones) | Codename → follow the rounds → tap answers |
-| `http://<ip>:3000/tv` | TV / projector | The stage + host controls (**Start**, **Next**) |
+| `http://<ip>:3000/tv` | TV / projector | The stage + host controls (**Start**, **Close it**, **Next**) |
 | `http://<ip>:3000/dashboard` | Optional 2nd screen | Stats Wall / Leaderboard — press **L** to switch |
 
 ### Running a session
@@ -36,11 +56,19 @@ ipconfig getifaddr en0               # your IP — players go to http://<that-ip
 1. **TV:** open `/tv`, type the `FACILITATOR_TOKEN` into the **Host token** box (top-right).
 2. **Players:** open `http://<ip>:3000` on their phones and pick a codename — they appear in the
    TV lobby.
-3. Press **Start** on the TV. Each round's answer window is timed (75s easy / 90s hard); it
-   auto-advances to the reveal when the timer ends **or** everyone has answered.
-4. Press **Next** on the TV to leave each reveal and begin the next round. After round 5, Next
+3. Press **Start** on the TV. Each round's answer window is timed (**45s** easy / **50s** medium /
+   **60s** for the three hardest cases); it auto-advances to the reveal when the timer ends **or**
+   everyone has answered.
+4. If the room has clearly finished before the clock does, press **⏭ Close it — reveal now**. It
+   sits under the answered count, which is the number you read to decide. It stops on the reveal
+   and never skips a case — cutting a question short and skipping its explanation are different
+   acts, and the button deliberately cannot do the second.
+5. Press **Next** on the TV to leave each reveal and begin the next round. After round 5, Next
    shows the final leaderboard.
-5. Latecomers who open the app mid-game **spectate** until you reset for the next session.
+6. Latecomers who open the app mid-game **spectate** until you reset for the next session.
+
+Total answering time across all five cases is **4m35s**, so budget the session around how long you
+talk over the reveals, not around the clocks.
 
 > The host controls need `FACILITATOR_TOKEN` set in the server environment (`.env.local` is loaded
 > automatically, in production too). Inline alternative:
@@ -56,8 +84,9 @@ curl -X POST http://localhost:3000/api/reset -H "x-facilitator-token: <your-toke
 ```
 
 A `200 {"ok":true}` means the room was cleared and returned to the lobby; every phone drops back to
-the codename screen with a "session was reset" message (expected — players just re-enter a
-codename). If `FACILITATOR_TOKEN` is unset, `/api/reset` and `/api/control` are **disabled** and
+the codename screen with a "session was reset" message **on its own, within about a second**
+(expected — players just re-enter a codename). Nobody has to reload, and nobody is ejected
+mid-round: the phone learns the room was reset from its next poll, not from a tap that fails. If `FACILITATOR_TOKEN` is unset, `/api/reset` and `/api/control` are **disabled** and
 always return `403`.
 
 ### Why control needs a token
@@ -129,14 +158,31 @@ both languages present, real sources cited).
 **Content rules:** never fabricate evidence imitating a real outlet. Real cases cite real URLs;
 fictional evidence (NovaBrew) is flagged `fictional: true` and renders a FICTIONAL badge.
 
+**Storyboards.** Each case has an optional `storyboard` of 2-4 frames — an emoji character and one
+short bilingual caption each — shown above the question **on the projector only**. Two rules, both
+deliberate:
+
+- A board sets up the SITUATION and the DOUBT. It must never name the failure mode; giving away
+  "watch for a fabricated citation" in frame two answers the question the room is there to answer.
+- The phone does **not** render them. The story is what the room reads together off the big screen;
+  the phone is for tapping, and the strip cost ~150px above the answer cards.
+
+To swap emoji for real artwork later, drop a file in `public/` and set `art: '/story/x.png'` on the
+panel. No code change — the renderer prefers `art` when present.
+
 ---
 
-# ☕ The Decision Room — the second workshop
+# The Decision Room
 
-Fifteen minutes. The audience runs a cafe using data **they supplied at event registration**, and
+*The second workshop.* Fifteen minutes. The audience runs a cafe using data **they supplied at event registration**, and
 competes on profit. Same app, same server, different routes.
 
-## Run it
+Three decisions, one tap each, four options each. Every player carries their own shop, and its
+numbers accumulate across all three rounds. The board ranks revenue, profit, satisfaction and
+waste — with **waste inverted**, so a player who pushes every bar upward loses. That inversion is
+the workshop's argument compressed into a scoreboard.
+
+## Run the Decision Room
 
 ```bash
 FACILITATOR_TOKEN='<your-token>' npm run start:lan     # after npm run build
@@ -158,7 +204,8 @@ curl -X POST -H "x-facilitator-token: $FACILITATOR_TOKEN" http://<your-ip>:3000/
 ```
 
 Phones detect the reset from their next poll and return to the join screen on their own — they do
-**not** have to be reloaded, and they are not ejected mid-round the way AI Detective's are.
+**not** have to be reloaded, and nobody is ejected mid-round by a tap that fails. AI Detective's
+phones now behave identically; if you change one, change both.
 
 ## The fifteen minutes
 
@@ -166,10 +213,41 @@ Ten stages: intro → their data → decide → outcome → new data → decide 
 → close. Voting takes 2:10 of it; the rest is the host talking. Budgeted at 12:40, leaving 2:20 of
 slack.
 
-**The teaching lives in the `outcome` stages**, never in a lecture slide. Round 1's outcome is the
-one that matters: two baristas produce a 3.7-minute wait, and nineteen people who told you at
-registration they would not wait three minutes walk out. Three baristas is the right answer, worth
-฿1,700 against ฿610.
+**The teaching lives in the `outcome` stages**, never in a lecture slide.
+
+### Round 1 — what do you charge?
+
+The one round resolved by simulation, and the one that carries the workshop. A competitor puts ฿45
+on a board across the street; the room prices a cup at ฿45 / ฿65 / ฿85 / ฿120. The result is
+computed from what the audience said **they** usually spend, at registration.
+
+| | ฿45 | ฿65 | **฿85** | ฿120 |
+|---|---|---|---|---|
+| Customers (of 120) | 120 | 113 | **113** | 27 |
+| Profit | ฿2,760 | ฿4,719 | **฿6,979** | ฿786 |
+
+Matching the competitor's ฿45 wins **7 customers** and costs **฿4,219** — because only one
+respondent in 18 said they spend under ฿50. Almost nobody was priced out, so there was almost
+nothing for a discount to win back.
+
+The second half of the lesson is in the other new question: 11 of 18 named **price** as a deciding
+factor, but **all 18 named taste**. The people leaving were not leaving over price. That is the
+answer to *"why doesn't cutting the price work?"* and it comes from the audience, not from a slide.
+
+**Say this out loud:** ฿85 is the best price *on the board*, not the optimal price. What the data
+actually says is that the ceiling sits at ฿100 — 13 of 18 answered "฿50–100" — so the winner is
+simply the highest option under it. Claiming ฿85 is optimal overstates what 18 answers support.
+
+### Rounds 2 and 3 — fixed outcomes
+
+Both apply hand-written KPI deltas; price sensitivity and capital allocation are not in the
+registration questions, so there is nothing honest to simulate them from.
+
+Round 2's four options are **ordered by the audience's own answers** — taste (18 of 18) beats
+promotion (8) beats convenience (6) beats a price cut (11 named it, and it still loses, which is
+round 1's lesson arriving in a different costume). A test asserts that ordering, because the
+outcome copy claims it out loud. The *magnitudes* are still hand-chosen and are flagged as such in
+`content/room.ts` — see "Before the day" below.
 
 Round 2 is the **designated cut** if you are running long. Rounds are self-contained; dropping it
 needs no code change, just advance past it.
@@ -177,46 +255,78 @@ needs no code change, just advance past it.
 ## ⚠️ Before the day
 
 1. **Change `FACILITATOR_TOKEN`.** It is `madt2026` in these docs, which are public.
-2. **Import the registration CSV**, then clear the placeholder flag:
+2. **Re-import the survey.** It stays open until the event, so do this as late as you can:
    ```bash
-   node scripts/import-audience.ts registration-export.csv
-   # then set IS_PLACEHOLDER = false in content/audience.ts
+   node scripts/import-audience.ts "MADT Expo 2026 - ... - Form Responses 1.csv"
+   npx vitest run          # fails, by design, if the on-screen copy is now stale
    ```
-   Until you do, every data screen carries a loud **PLACEHOLDER DATA** badge. That badge is driven
-   by the flag, not by hand — it cannot be forgotten, only cleared deliberately.
-3. **Expect to re-tune the simulator.** `lib/sim.ts`'s constants (ticket ฿70, wage ฿600/shift,
-   service rate, waste ฿20) are tuned so three baristas wins by 54%. That answer sits on a knife
-   edge: one fewer respondent in the 7–9 bucket, or a 1% change to the service rate, flips it to
-   two. `lib/sim.test.ts` fails loudly if the curve goes flat or the winner changes — treat that
-   failure as a signal to re-tune, not to relax the test.
-4. **Round 1's on-screen copy quotes figures from the placeholder data** (50 arrivals, 3.7 minutes,
-   19 walkouts, ฿1,700, 54%). A test recomputes them through the simulator, so real data will fail
-   loudly and four sentences in `content/room.ts` need rewriting — plus `NARRATED_BARISTAS` in
-   `content/room-labels.ts`.
+   Use **`node`, not `npx tsx`** — this script ends in a top-level await and tsx cannot run it.
+   The output path is optional and defaults to `content/audience.ts`, which is generated and meant
+   to be overwritten. `IS_PLACEHOLDER` is set by the importer; you do not edit it by hand.
+
+   Every figure on screen is recomputed from the aggregate, and `content/room.test.ts` pins the
+   round 1 script to the simulator. **A failure there is the system working** — it means a sentence
+   on the projector no longer matches the data. Fix the sentence, don't relax the test.
+3. **Review the economics.** These are still unreviewed guesses and they decide whether the game is
+   interesting:
+   - `lib/pricing.ts` — `cogsPerDrinkBaht` (฿22) and `footfallPerDay` (120). Note which matters:
+     footfall scales every number on screen and **cannot change the winner**; cost-per-cup could in
+     principle, and a test asserts it does not across ฿10-40. Review footfall for plausibility,
+     cost for correctness.
+   - `content/room.ts` — the `fx` values on rounds 2 and 3. Their *ordering* is grounded in the
+     survey; their sizes are mine.
+4. **Run the projector check** after any content or layout edit (see below). The deck now fits at
+   1366×768 with only a few pixels to spare on the decide stages.
 
 ## Things not to say on stage
 
 - **Never call the simulator AI, ML, or a model.** It is arithmetic over the audience's own
   answers. A workshop about data honesty should not oversell its own machinery.
-- **Never narrate `waitMinutes` as "your drink takes X minutes."** It is a shop-throughput figure,
-  not individual service time. Correcting the arithmetic collapses the profit curve, so it is
-  deferred to the post-CSV re-tune; until then, do not put that reading in anyone's head.
+- **Never present a multi-select bar as a share of the room.** "18 of 18 chose taste" does not mean
+  taste was the only thing anyone cared about — people could tick several. Both the projector and
+  the phone print that caveat under the chart automatically; don't contradict it.
+- **Say the sample size.** 18 people, and registrants rather than the room in front of you. The
+  script does this on `data-you`; deciding on a small sample is part of the lesson, not something
+  to smooth over.
+
+## A note on the survey that shipped
+
+The form actually sent on 3 Aug differs from `docs/registration-questions.md`, which is the
+proposal. Queue patience thresholds are 5/10/15 minutes — **there was never a 3-minute option** —
+`Bus` replaced BTS/MRT, and two questions were added (spend, and the multi-select deciding factor)
+that now carry round 1 entirely. `content/audience.ts` is the authoritative record.
+
+The original round 1 asked how many baristas to staff. On the real responses that round is
+unplayable: 8 people buy at 7-9, scaled by 6-of-18 coffee drinkers, is **three customers** against
+one barista's capacity of 25. No queue forms, nobody walks out, every option loses money.
+`lib/sim.ts` is kept and still tested — at a few hundred responses the round works again, and
+`lib/sim.test.ts` says so — but it is not currently in the deck.
 
 ## Editing the workshop
 
 `content/room.ts` holds every stage and every word, bilingual (th/en), both languages rendered at
 once — there is no language toggle anywhere. `content/audience.ts` is the only file that knows
-about registration data. `lib/sim.ts` holds the economics.
+about registration data, and it is **generated** — edit the CSV and re-import, never the numbers.
+`lib/pricing.ts` holds round 1's economics.
+
+Decide and data stages take an optional `storyboard` of 2-4 frames, same shape as AI Detective's.
+Unlike AI Detective, The Decision Room renders both languages at once, so the two workshops share
+the `StoryPanel` **type** but not the renderer.
 
 `npx vitest run content/room.test.ts` validates the script: unique stage ids, every outcome points
-at a real decision, both languages present, the time budget fits fifteen minutes, and round 3's
-recurring option still beats the flashy one.
+at a real decision, both languages present, the time budget fits fifteen minutes, round 3's
+recurring option still beats the flashy one, round 2's ordering matches the survey, and every
+figure quoted in the round 1 copy still matches what the simulator produces.
 
 ## Superseded / dead code (safe to delete later)
 
 `app/reveal/`, `components/CaseScreen.tsx`, `components/ResultScreen.tsx` are from the v1 free-roam
 flow and are no longer routed to by the Kahoot phone/TV. `/dashboard` remains as an optional
 second-screen stats view.
+
+`lib/sim.ts` (the staffing simulator) is **not dead** and should not be deleted — see "A note on
+the survey that shipped" above. It is out of the deck because the sample is too small, not because
+it is wrong, and it is still tested.
 
 ## Development
 
@@ -225,8 +335,52 @@ npm run dev        # localhost only, for local development
 npm run dev:lan    # binds 0.0.0.0 — for editing code with phones connected
 npm run build      # production build (also bundles fonts)
 npm run start:lan  # production server on 0.0.0.0 — USE THIS ON THE DAY
-npm test           # vitest run — full suite (22 files, 168 tests)
+npm test           # vitest run — full suite (36 files, 393 tests)
 ```
 
 Type-check with `npx tsc --noEmit`. Styling is Tailwind v4 (CSS-first): the theme lives in
 `app/globals.css` (`@import "tailwindcss"` + `@theme inline`), including the retro/CRT game theme.
+
+### The projector check
+
+**Run this after any change to a stage, a slide, or the length of anything on one.**
+
+```bash
+npm run build
+FACILITATOR_TOKEN=<token> npm run start:lan &
+FACILITATOR_TOKEN=<token> npm run check:projector
+```
+
+It drives both workshops through every stage in a real browser at **1600×900 and 1366×768** and
+fails if anything lands below the fold. This exists because the unit suite structurally cannot
+catch it: jsdom performs no layout, so no assertion written against it can measure a height. Nine
+of ten stages once overflowed — putting the lesson and the leaderboard off-screen — with the full
+suite passing and `next build` reporting success.
+
+It also walks **390×844** and reports how far a player must scroll to reach the last vote button.
+That one is a **warning, not a failure** — phones scroll — but an option someone has to hunt for
+inside a 45-second window collects fewer votes than it deserves. AI Detective's phone currently
+needs ~420px of scroll past the four answer cards; The Decision Room's phone needs none.
+
+Known traps, each paid for:
+
+- **Kill the old server by port, not by `pkill`.** `npm start` spawning failures leave port 3000
+  held; every measurement then comes from a stale build and looks like a catastrophic CSS bug.
+  `lsof -ti:3000 | xargs kill -9`.
+- **`cssChunking: 'strict'` in `next.config.ts` is load-bearing.** The default chunker once emitted
+  a `<link>` to a chunk it never wrote, and the projector rendered the entire deck as unstyled 16px
+  text. `next build` said success.
+- **Height, not width.** These slides are sized with `min(clamp(px, vw, px), Nvh)`. A projector is
+  wide and *short*, so the height cap is what binds — Tailwind's `lg:` breakpoints cannot see the
+  problem at all.
+- **Watch specificity.** Several rules in `stages.css` are 0,4,0. A new rule written the obvious way
+  loses silently, and the only symptom is that a stage stays too tall.
+
+## Deploying
+
+For running this on Cloud Run instead of a laptop on the venue LAN, see
+**[docs/deploy-gcp.md](docs/deploy-gcp.md)**. Two things that matter there and nowhere else:
+
+- `--max-instances=1` is a **correctness** constraint, not cost control. Two instances mean two
+  independent rooms, with phones split between them and no error surfaced anywhere.
+- **A redeploy wipes the room back to the lobby.** Do not deploy on the day once people have joined.
