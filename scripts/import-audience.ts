@@ -67,47 +67,26 @@ function splitCsvLine(line: string): string[] {
   return fields
 }
 
-// --- column header candidates (B1-B5, English or Thai, or the short code) -----------------
+// --- column matching --------------------------------------------------------------------
 
-// Question text may show up as English-only, Thai-only, or the combined "English / Thai" form
-// the registration doc itself uses verbatim (e.g. "How will you travel to the expo? /
-// คุณจะเดินทางมางานอย่างไร?") — accept all three, plus the short B1-B5 code as a fallback.
-const HEADER_CANDIDATES: Record<keyof BucketColumns, string[]> = {
-  arrivalMode: [
-    'b1',
-    'arrivalmode',
-    'how will you travel to the expo?',
-    'คุณจะเดินทางมางานอย่างไร?',
-    'how will you travel to the expo? / คุณจะเดินทางมางานอย่างไร?',
-  ],
-  wakeTime: [
-    'b2',
-    'waketime',
-    'what time do you usually wake up on a weekday?',
-    'ปกติวันธรรมดาคุณตื่นกี่โมง?',
-    'what time do you usually wake up on a weekday? / ปกติวันธรรมดาคุณตื่นกี่โมง?',
-  ],
-  firstDrink: [
-    'b3',
-    'firstdrink',
-    'what is the first thing you drink in the morning?',
-    'เช้ามาคุณดื่มอะไรเป็นอย่างแรก?',
-    'what is the first thing you drink in the morning? / เช้ามาคุณดื่มอะไรเป็นอย่างแรก?',
-  ],
-  buyTime: [
-    'b4',
-    'buytime',
-    'when do you usually buy your first drink of the day?',
-    'ปกติคุณซื้อเครื่องดื่มแก้วแรกของวันตอนกี่โมง?',
-    'when do you usually buy your first drink of the day? / ปกติคุณซื้อเครื่องดื่มแก้วแรกของวันตอนกี่โมง?',
-  ],
-  queuePatience: [
-    'b5',
-    'queuepatience',
-    'how long would you wait in line for coffee before giving up?',
-    'คุณจะยอมต่อคิวกาแฟนานแค่ไหนก่อนจะเลิกซื้อ?',
-    'how long would you wait in line for coffee before giving up? / คุณจะยอมต่อคิวกาแฟนานแค่ไหนก่อนจะเลิกซื้อ?',
-  ],
+// The form has ALREADY been edited once between being specified and being sent: option labels
+// changed, two questions were added, and the bilingual header lost the " / " separator the old
+// exact-match candidates required. So headers are matched by a distinctive SUBSTRING rather than
+// by equality — "how much do you usually spend" identifies its column whether the Thai half is
+// appended with a slash, a space, two spaces, or not at all. The survey is still open; it may be
+// edited again before 23 Aug.
+//
+// Substrings must stay distinctive enough not to collide. `findColumn` throws if one matches more
+// than one column, so an ambiguous key fails loudly at import time rather than silently binding
+// to whichever column came first.
+const HEADER_KEYS: Record<keyof BucketColumns, string[]> = {
+  arrivalMode: ['b1', 'arrivalmode', 'how will you travel', 'เดินทางมางาน'],
+  wakeTime: ['b2', 'waketime', 'what time do you usually wake', 'ตื่นกี่โมง'],
+  firstDrink: ['b3', 'firstdrink', 'first thing you drink', 'ดื่มอะไรเป็นอย่างแรก'],
+  buyTime: ['b4', 'buytime', 'when do you usually buy', 'แก้วแรกของวันตอนกี่โมง'],
+  queuePatience: ['b5', 'queuepatience', 'wait in line', 'ต่อคิว'],
+  spend: ['b6', 'spend', 'how much do you usually spend', 'ในราคาเท่าไหร่'],
+  mainFactor: ['b7', 'mainfactor', 'main factor', 'ปัจจัยหลัก'],
 }
 
 type BucketColumns = {
@@ -116,19 +95,26 @@ type BucketColumns = {
   firstDrink: number
   buyTime: number
   queuePatience: number
+  spend: number
+  mainFactor: number
 }
 
-// --- option label -> bucket key maps (Thai and English, verbatim from the registration doc) --
+// --- option label -> bucket key maps ---------------------------------------------------------
 
-// Each map accepts the English-only label, the Thai-only label, and the combined "English /
-// Thai" form printed verbatim in docs/registration-questions.md — the form itself is bilingual,
-// so a real export is likely to contain the combined form rather than either half alone.
+// Every map accepts the English-only label, the Thai-only label, and the combined "English /
+// Thai" form the live export actually contains. `normalizeLabel` has already folded en/em dashes
+// to hyphens, collapsed whitespace, and lowercased, so entries here are written post-normalisation.
 const ARRIVAL_MAP: Record<string, keyof AudienceAggregate['arrivalMode']> = {
   'walk': 'walk',
   'เดินมา': 'walk',
   'walk / เดินมา': 'walk',
-  'bts / mrt': 'train',
-  'bts/mrt': 'train',
+  // The sent form offers Bus, not BTS/MRT. The old keys are kept so a re-export of an older
+  // sheet still imports rather than throwing on row 2.
+  'bus': 'bus',
+  'รถเมล์ รถสาธารณะ': 'bus',
+  'bus / รถเมล์ รถสาธารณะ': 'bus',
+  'bts / mrt': 'bus',
+  'bts/mrt': 'bus',
   'car': 'car',
   'รถยนต์': 'car',
   'car / รถยนต์': 'car',
@@ -162,6 +148,7 @@ const DRINK_MAP: Record<string, keyof AudienceAggregate['firstDrink']> = {
   'water': 'water',
   'น้ำเปล่า': 'water',
   'water / น้ำเปล่า': 'water',
+  // Not offered on the sent form. Kept so an older export still imports.
   'nothing': 'nothing',
   'ยังไม่ได้ดื่มอะไร': 'nothing',
   'nothing / ยังไม่ได้ดื่มอะไร': 'nothing',
@@ -184,36 +171,125 @@ const BUY_MAP: Record<string, keyof AudienceAggregate['buyTime']> = {
   'i dont buy': 'never',
   'ไม่ได้ซื้อ': 'never',
   "i don't buy / ไม่ได้ซื้อ": 'never',
+  'i dont buy / ไม่ได้ซื้อ': 'never',
 }
 
+// The sent form's thresholds are 5 / 10 / 15 / forever. There is NO three-minute option and there
+// never was one on the live form — the round-1 script that quoted "three minutes" was written
+// against the spec, not against what people were asked.
 const QUEUE_MAP: Record<string, keyof AudienceAggregate['queuePatience']> = {
-  'under 3 minutes': 'under3',
-  'ไม่เกิน 3 นาที': 'under3',
-  'under 3 minutes / ไม่เกิน 3 นาที': 'under3',
-  '3-5 minutes': '3to5',
-  '3-5 นาที': '3to5',
-  '3-5 minutes / 3-5 นาที': '3to5',
-  '5-10 minutes': '5to10',
-  '5-10 นาที': '5to10',
-  '5-10 minutes / 5-10 นาที': '5to10',
+  'under 5 minutes': 'under5',
+  'ไม่เกิน 5 นาที': 'under5',
+  'under 5 minutes / ไม่เกิน 5 นาที': 'under5',
+  '10 minutes': 'under10',
+  '10 นาที': 'under10',
+  '10 minutes / 10 นาที': 'under10',
+  '15 minutes': 'under15',
+  '15 นาที': 'under15',
+  '15 minutes / 15 นาที': 'under15',
   'as long as it takes': 'any',
   'รอได้เรื่อย ๆ': 'any',
-  'รอได้เรื่อยๆ': 'any', // common typing without the space before ๆ
+  'รอได้เรื่อยๆ': 'any',
   'as long as it takes / รอได้เรื่อย ๆ': 'any',
+  'as long as it takes / รอได้เรื่อยๆ': 'any',
 }
 
+// NOTE the deliberate asymmetry in the middle band: the live form reads "101 - 200 Baht /
+// 100 - 200 บาท" — the English half starts at 101, the Thai half at 100. That is a typo in the
+// form, it cannot be fixed retroactively for answers already given, and both halves are therefore
+// accepted verbatim. Do not "tidy" this.
+const SPEND_MAP: Record<string, keyof AudienceAggregate['spend']> = {
+  'below 50 baht': 'under50',
+  'น้อยกว่า 50 บาท': 'under50',
+  'below 50 baht / น้อยกว่า 50 บาท': 'under50',
+  '50 - 100 baht': '50to100',
+  '50 - 100 บาท': '50to100',
+  '50 - 100 baht / 50 - 100 บาท': '50to100',
+  '101 - 200 baht': '101to200',
+  '100 - 200 บาท': '101to200',
+  '101 - 200 บาท': '101to200',
+  '101 - 200 baht / 100 - 200 บาท': '101to200',
+  '101 - 200 baht / 101 - 200 บาท': '101to200',
+}
+
+const FACTOR_MAP: Record<string, keyof AudienceAggregate['mainFactor']> = {
+  'taste': 'taste',
+  'รสชาติ': 'taste',
+  'taste / รสชาติ': 'taste',
+  'price': 'price',
+  'ราคา': 'price',
+  'price / ราคา': 'price',
+  'brand': 'brand',
+  'แบรนด์': 'brand',
+  'brand / แบรนด์': 'brand',
+  'promotion & discount': 'promotion',
+  'โปรโมชันและส่วนลด': 'promotion',
+  'promotion & discount / โปรโมชันและส่วนลด': 'promotion',
+  'convenience & location': 'convenience',
+  'ความสะดวกและทำเลที่ตั้ง': 'convenience',
+  'convenience & location / ความสะดวกและทำเลที่ตั้ง': 'convenience',
+}
+
+/**
+ * Locate a column by distinctive substring.
+ *
+ * Two failure modes, both loud. Missing means the form dropped or renamed a question — the import
+ * stops rather than silently producing a bucket of zeros that would look like "nobody chose that".
+ * Ambiguous means a key is not distinctive enough and matched two columns; binding to whichever
+ * came first would miscount an entire question, so that also stops.
+ */
 function findColumn(
   header: string[],
   bucketName: string,
-  candidates: string[],
+  keys: string[],
 ): number {
-  const idx = header.findIndex((h) => candidates.includes(normalizeLabel(h)))
-  if (idx === -1) {
+  const matches: number[] = []
+  header.forEach((h, i) => {
+    const norm = normalizeLabel(h)
+    if (keys.some((k) => norm.includes(k))) matches.push(i)
+  })
+
+  if (matches.length === 0) {
     throw new Error(
-      `import-audience: missing required column for "${bucketName}" — expected a header matching one of: ${candidates.join(', ')}`,
+      `import-audience: missing required column for "${bucketName}" — no header contained any of: ${keys.join(' | ')}`,
     )
   }
-  return idx
+  if (matches.length > 1) {
+    throw new Error(
+      `import-audience: ambiguous column for "${bucketName}" — ${matches.length} headers matched: ` +
+      matches.map((i) => `"${header[i].trim()}"`).join(', ') +
+      '. Narrow the key so it identifies exactly one column.',
+    )
+  }
+  return matches[0]
+}
+
+/**
+ * Parse one answer to the multi-select "what decides your purchase" question.
+ *
+ * Google Forms joins the chosen options with ", ". None of the option labels contain a comma
+ * themselves, so splitting on it is safe — but the labels DO contain " / " and "&", which is why
+ * splitting happens before `matchLabel`, not inside it.
+ *
+ * An empty answer is allowed and contributes nothing: the question is not required on the form,
+ * and a blank is a real "did not say", not a malformed row. Every non-blank fragment must still
+ * resolve, so a new option added to the form throws rather than being dropped.
+ */
+function parseMultiSelect<K extends string>(
+  raw: string,
+  map: Record<string, K>,
+  rowNum: number,
+  columnName: string,
+): K[] {
+  const trimmed = raw.trim()
+  if (trimmed === '') return []
+  const seen = new Set<K>()
+  for (const part of trimmed.split(',')) {
+    if (part.trim() === '') continue
+    // Deduped: a respondent cannot count twice toward one factor even if the export repeats it.
+    seen.add(matchLabel(part, map, rowNum, columnName))
+  }
+  return [...seen]
 }
 
 function matchLabel<K extends string>(
@@ -243,11 +319,13 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
 
   const header = splitCsvLine(lines[0]).map((h) => h.trim())
 
-  const colArrival = findColumn(header, 'arrivalMode (B1: how will you travel to the expo?)', HEADER_CANDIDATES.arrivalMode)
-  const colWake = findColumn(header, 'wakeTime (B2: what time do you usually wake up?)', HEADER_CANDIDATES.wakeTime)
-  const colDrink = findColumn(header, 'firstDrink (B3: first thing you drink)', HEADER_CANDIDATES.firstDrink)
-  const colBuy = findColumn(header, 'buyTime (B4: when do you buy your first drink?)', HEADER_CANDIDATES.buyTime)
-  const colQueue = findColumn(header, 'queuePatience (B5: how long would you wait?)', HEADER_CANDIDATES.queuePatience)
+  const colArrival = findColumn(header, 'arrivalMode (how will you travel to the expo?)', HEADER_KEYS.arrivalMode)
+  const colWake = findColumn(header, 'wakeTime (what time do you usually wake up?)', HEADER_KEYS.wakeTime)
+  const colDrink = findColumn(header, 'firstDrink (first thing you drink)', HEADER_KEYS.firstDrink)
+  const colBuy = findColumn(header, 'buyTime (when do you buy your first drink?)', HEADER_KEYS.buyTime)
+  const colQueue = findColumn(header, 'queuePatience (how long would you wait in line?)', HEADER_KEYS.queuePatience)
+  const colSpend = findColumn(header, 'spend (how much do you usually spend?)', HEADER_KEYS.spend)
+  const colFactor = findColumn(header, 'mainFactor (what is the main factor?)', HEADER_KEYS.mainFactor)
 
   if (lines.length === 1) {
     throw new Error('import-audience: CSV has a header row but no data rows')
@@ -255,11 +333,13 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
 
   const result: AudienceAggregate = {
     respondents: 0,
-    arrivalMode: { walk: 0, train: 0, car: 0, moto: 0 },
+    arrivalMode: { walk: 0, bus: 0, car: 0, moto: 0 },
     wakeTime: { before6: 0, '6to8': 0, '8to10': 0, after10: 0 },
     firstDrink: { coffee: 0, tea: 0, water: 0, nothing: 0 },
     buyTime: { before7: 0, '7to9': 0, '9to11': 0, after11: 0, never: 0 },
-    queuePatience: { under3: 0, '3to5': 0, '5to10': 0, any: 0 },
+    queuePatience: { under5: 0, under10: 0, under15: 0, any: 0 },
+    spend: { under50: 0, '50to100': 0, '101to200': 0 },
+    mainFactor: { taste: 0, price: 0, brand: 0, promotion: 0, convenience: 0 },
   }
 
   for (let i = 1; i < lines.length; i++) {
@@ -277,12 +357,18 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
     const drink = matchLabel(fields[colDrink], DRINK_MAP, rowNum, header[colDrink])
     const buy = matchLabel(fields[colBuy], BUY_MAP, rowNum, header[colBuy])
     const queue = matchLabel(fields[colQueue], QUEUE_MAP, rowNum, header[colQueue])
+    const spend = matchLabel(fields[colSpend], SPEND_MAP, rowNum, header[colSpend])
+    const factors = parseMultiSelect(fields[colFactor], FACTOR_MAP, rowNum, header[colFactor])
 
     result.arrivalMode[arrival]++
     result.wakeTime[wake]++
     result.firstDrink[drink]++
     result.buyTime[buy]++
     result.queuePatience[queue]++
+    result.spend[spend]++
+    // Multi-select: one respondent increments as many factors as they named, so this bucket
+    // sums to more than `respondents`. That is correct, and asserted nowhere against a total.
+    for (const f of factors) result.mainFactor[f]++
     result.respondents++
   }
 
@@ -294,25 +380,60 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
 function renderModule(aggregate: AudienceAggregate): string {
   // Valid JSON is valid TypeScript, so this is a complete, correctly-typed object literal as-is.
   const json = JSON.stringify(aggregate, null, 2)
+  const factorTotal = Object.values(aggregate.mainFactor).reduce((a, b) => a + b, 0)
 
   return `// The audience aggregate — the single seam where real registration data enters The Decision
 // Room. Every downstream module (simulator, dashboards, game store) reads AUDIENCE from here
 // and nothing else touches the registration CSV.
 //
-// The registration form is documented in docs/registration-questions.md (Group B, questions
-// B1-B5). Each bucket below corresponds to one question's answer options.
+// GENERATED by scripts/import-audience.ts from the real registration export. Do not hand-edit the
+// numbers; re-run the import against a fresh CSV instead. The survey stays open until the event,
+// so this file is expected to be regenerated more than once.
 //
-// GENERATED by scripts/import-audience.ts from the real registration export. Do not hand-edit;
-// re-run the import script against a corrected CSV instead.
+// THE SHAPE BELOW IS THE FORM THAT WAS ACTUALLY SENT, not the one this project was first written
+// against. The live form differs from docs/registration-questions.md in ways that each broke
+// something:
+//
+//   - Queue patience thresholds are 5 / 10 / 15 / forever. The old schema floor was 3 minutes and
+//     the original round-1 script was built on "you said you walk away after three minutes".
+//     Nobody was ever offered three minutes.
+//   - \`Bus\` replaced \`BTS / MRT\`.
+//   - Two questions were ADDED — what people usually SPEND, and what actually DECIDES their
+//     purchase. Those two now carry round 1 (see lib/pricing.ts); they have far more signal than
+//     the five they were added to.
+//   - \`nothing\` is no longer offered as a first drink. Kept in the type, so a zero is honest
+//     and the option can return, but nobody can currently land in it.
 
 export type AudienceAggregate = {
   respondents: number
-  arrivalMode: Record<'walk' | 'train' | 'car' | 'moto', number>
+  arrivalMode: Record<'walk' | 'bus' | 'car' | 'moto', number>
   wakeTime: Record<'before6' | '6to8' | '8to10' | 'after10', number>
   firstDrink: Record<'coffee' | 'tea' | 'water' | 'nothing', number>
   buyTime: Record<'before7' | '7to9' | '9to11' | 'after11' | 'never', number>
-  queuePatience: Record<'under3' | '3to5' | '5to10' | 'any', number>
+  /** Minutes they will stand in a queue before giving up. \`any\` never leaves. */
+  queuePatience: Record<'under5' | 'under10' | 'under15' | 'any', number>
+  /**
+   * What they say they usually pay for a drink, ฿. Round 1 reads the TOP of each band as that
+   * person's ceiling, which is what puts the profit optimum where it is — see lib/pricing.ts.
+   */
+  spend: Record<'under50' | '50to100' | '101to200', number>
+  /**
+   * What decides the purchase. MULTI-SELECT: these DO NOT sum to \`respondents\` (here they sum
+   * to ${factorTotal} across ${aggregate.respondents} people), and \`bucketTotal\` must never be
+   * asserted against this field. content/audience.test.ts exempts it by name rather than relaxing
+   * the check for the others.
+   *
+   * This is the column that answers "why would cutting the price not work?" — it is deliberately
+   * NOT a term in the round-1 simulation, where a coefficient would bury it. It is evidence on
+   * the outcome screen, explaining the volume that did not move.
+   */
+  mainFactor: Record<'taste' | 'price' | 'brand' | 'promotion' | 'convenience', number>
 }
+
+/** Single-choice fields, which must sum to \`respondents\`. \`mainFactor\` is deliberately absent. */
+export const SINGLE_CHOICE_FIELDS = [
+  'arrivalMode', 'wakeTime', 'firstDrink', 'buyTime', 'queuePatience', 'spend',
+] as const
 
 // Real registration data has been imported — the placeholder badge is off.
 export const IS_PLACEHOLDER = false
