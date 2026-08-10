@@ -78,12 +78,12 @@ describe('room API', () => {
     const stageId = stateBefore.stageId as string
 
     const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId, optionId: 'b2',
+      playerId: player.id, stageId, optionId: 'p65',
     }))
     expect(res.status).toBe(200)
 
     const body = await (await getState(req(`http://localhost/api/room/state?playerId=${player.id}`))).json()
-    expect(body.you.votedOptionId).toBe('b2')
+    expect(body.you.votedOptionId).toBe('p65')
     expect(body.voteCount).toBe(1)
   })
 
@@ -91,7 +91,7 @@ describe('room API', () => {
     await advanceToFirstDecide()
     const stateBefore = await (await getState(req('http://localhost/api/room/state'))).json()
     const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: 'ghost', stageId: stateBefore.stageId, optionId: 'b2',
+      playerId: 'ghost', stageId: stateBefore.stageId, optionId: 'p65',
     }))
     expect(res.status).toBe(400)
   })
@@ -99,7 +99,7 @@ describe('room API', () => {
   it('vote in the lobby (no open decide stage) returns 409', async () => {
     const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
     const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId: 'decide-staffing', optionId: 'b2',
+      playerId: player.id, stageId: 'decide-price', optionId: 'p65',
     }))
     expect(res.status).toBe(409)
   })
@@ -111,7 +111,7 @@ describe('room API', () => {
     const stageId = stateBefore.stageId as string
     await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH))
     const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId, optionId: 'b2',
+      playerId: player.id, stageId, optionId: 'p65',
     }))
     expect(res.status).toBe(409)
   })

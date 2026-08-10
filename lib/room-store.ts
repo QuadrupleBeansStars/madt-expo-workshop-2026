@@ -25,6 +25,7 @@ import {
 import type { RoomState } from './room'
 import { KpiSchema, SHOP_VALUE_WEIGHTS } from './room-types'
 import type { DecideStage, Kpi, StageKind } from './room-types'
+import { simulatePricing } from './pricing'
 import { simulateStaffing } from './sim'
 
 /** A shop that has not traded yet. */
@@ -283,6 +284,15 @@ export class MemoryDecisionRoomStore implements DecisionRoomStore {
       if (stage.resolve === 'simulate-staffing') {
         const option = stage.options.find((o) => o.id === chosen) ?? stage.options[0]
         const sim = simulateStaffing(option.baristas, AUDIENCE)
+        player.kpi = {
+          revenue: player.kpi.revenue + sim.revenue,
+          profit: player.kpi.profit + sim.profit,
+          satisfaction: player.kpi.satisfaction + sim.satisfaction,
+          waste: player.kpi.waste + sim.waste,
+        }
+      } else if (stage.resolve === 'simulate-pricing') {
+        const option = stage.options.find((o) => o.id === chosen) ?? stage.options[0]
+        const sim = simulatePricing(option.priceBaht, AUDIENCE)
         player.kpi = {
           revenue: player.kpi.revenue + sim.revenue,
           profit: player.kpi.profit + sim.profit,

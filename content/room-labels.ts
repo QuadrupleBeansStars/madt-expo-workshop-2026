@@ -32,9 +32,24 @@ type Labels = Record<string, LocalizedText>
  */
 export const NARRATED_BARISTAS = 2
 
-/** The five registration questions, as they appeared on the form. */
+/**
+ * The price the round 1 outcome screen narrates — the discount, NOT the winner.
+ *
+ * The screen exists to show what the tempting wrong answer actually cost, so the causal chain is
+ * drawn at ฿45 and compared against the price that held. `content/room.test.ts` pins the body
+ * copy's figures to `simulatePricing` at exactly these two numbers, so moving either one here
+ * fails the copy check rather than silently desynchronising the screen from the script.
+ */
+export const NARRATED_DISCOUNT_PRICE = 45
+export const NARRATED_HELD_PRICE = 85
+
+/**
+ * The registration questions, worded as they appeared on the LIVE form — not as the spec drafted
+ * them. The room is being asked to recognise a question it answered weeks ago, so a tidied-up
+ * paraphrase here would quietly break the one thing this screen is for.
+ */
 export const QUESTIONS: Record<
-  'arrivalMode' | 'wakeTime' | 'firstDrink' | 'buyTime' | 'queuePatience',
+  'arrivalMode' | 'wakeTime' | 'firstDrink' | 'buyTime' | 'queuePatience' | 'spend' | 'mainFactor',
   LocalizedText
 > = {
   arrivalMode: {
@@ -53,16 +68,25 @@ export const QUESTIONS: Record<
     en: 'When do you usually buy your first drink of the day?',
     th: 'ปกติคุณซื้อเครื่องดื่มแก้วแรกของวันตอนกี่โมง?',
   },
+  // The live form says "drinks", not "coffee" — and asks about giving up, not about not buying.
   queuePatience: {
-    en: 'How long would you wait in line for coffee before giving up?',
-    th: 'คุณจะยอมต่อคิวกาแฟนานแค่ไหนก่อนจะเลิกซื้อ?',
+    en: 'How long would you wait in line for drinks before giving up?',
+    th: 'คุณจะยอมต่อคิวซื้อน้ำนานแค่ไหนก่อนจะล้มเลิก?',
+  },
+  spend: {
+    en: 'How much do you usually spend on a drink?',
+    th: 'ปกติคุณซื้อเครื่องดื่มในราคาเท่าไหร่?',
+  },
+  mainFactor: {
+    en: 'What is the main factor when you buy a drink?',
+    th: 'ปัจจัยหลักในการเลือกซื้อเครื่องดื่มของคุณคืออะไร?',
   },
 }
 
-/** B1 — travel mode. */
+/** Travel mode. The live form offers Bus, not BTS/MRT. */
 export const ARRIVAL_MODE_LABELS: Labels = {
   walk: { en: 'Walk', th: 'เดินมา' },
-  train: { en: 'BTS / MRT', th: 'รถไฟฟ้า BTS / MRT' },
+  bus: { en: 'Bus', th: 'รถเมล์ รถสาธารณะ' },
   car: { en: 'Car', th: 'รถยนต์' },
   moto: { en: 'Motorbike', th: 'มอเตอร์ไซค์' },
 }
@@ -92,12 +116,39 @@ export const BUY_TIME_LABELS: Labels = {
   never: { en: 'I don’t buy', th: 'ไม่ได้ซื้อ' },
 }
 
-/** B5 — queue patience. The answer that decides who walks out. */
+/**
+ * Queue patience. The live thresholds are 5 / 10 / 15 / forever — there is no three-minute
+ * option and there never was one on the form people actually filled in.
+ */
 export const QUEUE_PATIENCE_LABELS: Labels = {
-  under3: { en: 'Under 3 minutes', th: 'ไม่เกิน 3 นาที' },
-  '3to5': { en: '3–5 minutes', th: '3–5 นาที' },
-  '5to10': { en: '5–10 minutes', th: '5–10 นาที' },
+  under5: { en: 'Under 5 minutes', th: 'ไม่เกิน 5 นาที' },
+  under10: { en: '10 minutes', th: '10 นาที' },
+  under15: { en: '15 minutes', th: '15 นาที' },
   any: { en: 'As long as it takes', th: 'รอได้เรื่อย ๆ' },
+}
+
+/**
+ * What they usually pay. This is the distribution round 1 is resolved against: the top of each
+ * band is read as that person's ceiling, and the cliff between ฿100 and ฿101 is what decides the
+ * round. See lib/pricing.ts.
+ */
+export const SPEND_LABELS: Labels = {
+  under50: { en: 'Below ฿50', th: 'น้อยกว่า 50 บาท' },
+  '50to100': { en: '฿50–100', th: '50–100 บาท' },
+  '101to200': { en: '฿101–200', th: '101–200 บาท' },
+}
+
+/**
+ * What decides the purchase — MULTI-SELECT, so these bars sum to more than the number of people.
+ * Any screen showing this chart must say so; a bar at 18/18 next to a respondent count of 18 reads
+ * as "everyone and only taste" unless the reader is told they could pick several.
+ */
+export const MAIN_FACTOR_LABELS: Labels = {
+  taste: { en: 'Taste', th: 'รสชาติ' },
+  price: { en: 'Price', th: 'ราคา' },
+  brand: { en: 'Brand', th: 'แบรนด์' },
+  promotion: { en: 'Promotion & discount', th: 'โปรโมชันและส่วนลด' },
+  convenience: { en: 'Convenience & location', th: 'ความสะดวกและทำเลที่ตั้ง' },
 }
 
 /**
@@ -108,7 +159,7 @@ export const QUEUE_PATIENCE_LABELS: Labels = {
  * to recognise the answer it tapped weeks ago.
  */
 export const BUCKET_LABELS: Record<
-  'arrivalMode' | 'wakeTime' | 'firstDrink' | 'buyTime' | 'queuePatience',
+  'arrivalMode' | 'wakeTime' | 'firstDrink' | 'buyTime' | 'queuePatience' | 'spend' | 'mainFactor',
   Labels
 > = {
   arrivalMode: ARRIVAL_MODE_LABELS,
@@ -116,7 +167,15 @@ export const BUCKET_LABELS: Record<
   firstDrink: FIRST_DRINK_LABELS,
   buyTime: BUY_TIME_LABELS,
   queuePatience: QUEUE_PATIENCE_LABELS,
+  spend: SPEND_LABELS,
+  mainFactor: MAIN_FACTOR_LABELS,
 }
+
+/**
+ * Distributions where one respondent can appear in several buckets. A screen rendering one of
+ * these must not present the bars as shares of the room — see `MAIN_FACTOR_LABELS`.
+ */
+export const MULTI_SELECT_KEYS = ['mainFactor'] as const
 
 /**
  * The causal chain on the round 1 outcome screen — the most important screen in the workshop.
@@ -130,29 +189,30 @@ export const BUCKET_LABELS: Record<
  *     one drink takes to make (see the note at lib/sim.ts's `averageWait`). The label says queue.
  */
 export const TRACE_LABELS = {
-  arrivals: {
-    en: 'wanted coffee between 07:00 and 09:00',
-    th: 'อยากได้กาแฟช่วง 7 ถึง 9 โมงเช้า',
+  footfall: {
+    en: 'people walked past your counter',
+    th: 'คนเดินผ่านหน้าเคาน์เตอร์ของคุณ',
   },
-  capacity: {
-    en: 'drinks the bar could make in those two hours',
-    th: 'จำนวนแก้วที่บาร์ทำได้จริงในสองชั่วโมงนั้น',
+  buyers: {
+    en: 'could afford it, and bought',
+    th: 'จ่ายไหว และซื้อจริง',
   },
-  served: {
-    en: 'got their coffee',
-    th: 'ได้กาแฟกลับไป',
+  pricedOut: {
+    en: 'walked past — the price was above what they told you they pay',
+    th: 'เดินผ่านไป เพราะราคาสูงกว่าที่เขาบอกไว้เองว่าจ่ายเท่าไร',
   },
-  lostToQueue: {
-    en: 'walked out — the queue passed the wait they told you they would accept',
-    th: 'เดินออกไป เพราะคิวนานเกินเวลาที่เขาบอกไว้เองว่ารอได้',
+  unsold: {
+    en: 'cups prepped for them and binned',
+    th: 'แก้วที่เตรียมไว้ให้เขา แล้วต้องเททิ้ง',
   },
-  stillQueuing: {
-    en: 'still in line when the rush ended',
-    th: 'ยังต่อคิวอยู่ตอนที่ชั่วโมงเร่งด่วนจบลง',
+  // The comparison the whole screen is built to make.
+  extraCustomers: {
+    en: 'extra customers the discount actually won',
+    th: 'ลูกค้าที่เพิ่มขึ้นจริงจากการลดราคา',
   },
-  waitMinutes: {
-    en: 'minutes in the queue, on average',
-    th: 'นาที คือเวลารอคิวโดยเฉลี่ย',
+  profitGivenUp: {
+    en: '฿ of profit given up to win them',
+    th: 'บาท คือกำไรที่ต้องยอมเสียไปเพื่อให้ได้ลูกค้ากลุ่มนั้นมา',
   },
 } satisfies Record<string, LocalizedText>
 
@@ -170,12 +230,19 @@ export const UI = {
   // Sits over the charts on the decide screen. It says "already" because the room gave these
   // answers weeks ago — the decision is not a guess unless they choose to make it one.
   whatYouKnow: { en: 'What you already know', th: 'ข้อมูลที่คุณมีอยู่แล้ว' },
-  // Rendered after the staffing number so the copy never hardcodes a level that NARRATED_BARISTAS
-  // could move away from: "2 baristas on the bar".
-  baristasOnBar: { en: 'baristas on the bar', th: 'บาริสต้ายืนประจำหน้าร้าน' },
+  // Rendered after the price so the copy never hardcodes a number the constants could move away
+  // from: "฿45 on the board".
+  onTheBoard: { en: 'on the board', th: 'บาท บนกระดานหน้าร้าน' },
+  heldAt: { en: 'against holding at', th: 'เทียบกับการยืนราคาไว้ที่' },
   accounting: {
-    en: 'Everyone is accounted for: served + walked out + still in line = arrived.',
-    th: 'ทุกคนถูกนับครบ คนที่ได้กาแฟ + คนที่เดินออก + คนที่ยังต่อคิว = คนที่มาทั้งหมด',
+    en: 'Everyone is accounted for: bought + walked past = walked in.',
+    th: 'ทุกคนถูกนับครบ คนที่ซื้อ + คนที่เดินผ่านไป = คนที่เดินเข้ามาทั้งหมด',
+  },
+  // Sits under the mainFactor chart. Without it, a bar at 18 beside a respondent count of 18
+  // reads as "everyone, and only taste" — the question allowed several answers.
+  multiSelectNote: {
+    en: 'People could pick more than one, so these add up to more than the number of people.',
+    th: 'ข้อนี้เลือกได้มากกว่าหนึ่งข้อ ผลรวมจึงมากกว่าจำนวนคนที่ตอบ',
   },
   whatEachChoiceDid: { en: 'What each choice did', th: 'แต่ละทางเลือกให้ผลอย่างไร' },
   theLesson: { en: 'The lesson', th: 'บทเรียน' },

@@ -40,7 +40,7 @@ const YOU = { kpi: { ...ZERO, profit: 1700, satisfaction: 40, waste: 200 }, scor
 
 function decideFrame(over: Partial<PhoneFrame> = {}): PhoneFrame {
   return frame({
-    stageId: 'decide-staffing',
+    stageId: 'decide-price',
     stageKind: 'decide',
     stageIndex: 2,
     votingOpen: true,
@@ -80,11 +80,11 @@ describe('PhoneBody', () => {
   it('renders one large button per option on a decide stage, in both languages', () => {
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
     expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-    for (const id of ['b1', 'b2', 'b3', 'b4']) {
+    for (const id of ['p45', 'p65', 'p85', 'p120']) {
       expect(screen.getByTestId(`option-${id}`)).toBeInTheDocument()
     }
-    expect(screen.getByText('3 baristas')).toBeInTheDocument()
-    expect(screen.getByText('บาริสต้า 3 คน')).toBeInTheDocument()
+    expect(screen.getByText('฿85 — hold your price')).toBeInTheDocument()
+    expect(screen.getByText('85 บาท — ยืนราคาเดิมไว้')).toBeInTheDocument()
   })
 
   // The phone must carry the evidence too — but as figures, never as charts, and never at the
@@ -93,35 +93,38 @@ describe('PhoneBody', () => {
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
     const strip = screen.getByTestId('phone-evidence')
 
-    // 90 buy between 07:00 and 09:00; 70 will not wait three minutes.
-    expect(strip).toHaveTextContent('90')
-    expect(strip).toHaveTextContent('07:00–09:00')
-    expect(strip).toHaveTextContent('70')
-    expect(strip).toHaveTextContent('Under 3 minutes')
+    // The two figures round 1 turns on: what most people pay, and what most people decide on.
+    // Read from the aggregate rather than pasted, so a CSV re-import moves the test with the copy.
+    expect(strip).toHaveTextContent(String(AUDIENCE.spend['50to100']))
+    expect(strip).toHaveTextContent('฿50–100')
+    expect(strip).toHaveTextContent(String(AUDIENCE.mainFactor.taste))
+    expect(strip).toHaveTextContent('Taste')
     // Both languages, as everywhere else in this workshop.
-    expect(strip).toHaveTextContent('7–9 โมง')
-    expect(strip).toHaveTextContent('ไม่เกิน 3 นาที')
+    expect(strip).toHaveTextContent('50–100 บาท')
+    expect(strip).toHaveTextContent('รสชาติ')
 
     // Figures, not charts: a bar track on a 390px screen is what pushes the vote below the fold.
     expect(strip.querySelector('.room-bars')).toBeNull()
 
-    for (const id of ['b1', 'b2', 'b3', 'b4']) {
+    for (const id of ['p45', 'p65', 'p85', 'p120']) {
       expect(screen.getByTestId(`option-${id}`)).toBeEnabled()
     }
   })
 
   it('never shows audience figures on the phone without the placeholder guard', () => {
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    expect(IS_PLACEHOLDER).toBe(true)
-    expect(screen.getByTestId('phone-evidence').querySelector('.room-placeholder-badge')).not.toBeNull()
+    // The real CSV is imported, so the badge is off. Kept inverted rather than deleted: if a
+    // future import ever sets the flag again, the guard must still be wired to the phone strip.
+    expect(IS_PLACEHOLDER).toBe(false)
+    expect(screen.getByTestId('phone-evidence').querySelector('.room-placeholder-badge')).toBeNull()
   })
 
   it('quotes the same figures the projector charts — never a second set of numbers', () => {
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
     const strip = screen.getByTestId('phone-evidence')
     // Read straight out of the aggregate the big screen draws from, so a CSV import moves both.
-    expect(strip).toHaveTextContent(String(AUDIENCE.buyTime['7to9']))
-    expect(strip).toHaveTextContent(String(AUDIENCE.queuePatience.under3))
+    expect(strip).toHaveTextContent(String(AUDIENCE.spend['50to100']))
+    expect(strip).toHaveTextContent(String(AUDIENCE.mainFactor.taste))
   })
 
   // A stage that names ONE distribution shows that distribution's two largest buckets, not one.
@@ -139,23 +142,25 @@ describe('PhoneBody', () => {
     )
     const items = screen.getByTestId('phone-evidence').querySelectorAll('.phone-evidence__item')
     expect(items).toHaveLength(2)
-    expect(screen.getByTestId('phone-evidence-buyTime-7to9')).toHaveTextContent('90')
-    expect(screen.getByTestId('phone-evidence-buyTime-9to11')).toHaveTextContent('40')
+    expect(screen.getByTestId('phone-evidence-buyTime-7to9'))
+      .toHaveTextContent(String(AUDIENCE.buyTime['7to9']))
+    expect(screen.getByTestId('phone-evidence-buyTime-never'))
+      .toHaveTextContent(String(AUDIENCE.buyTime.never))
   })
 
   it('calls onVote exactly once with the stage and option tapped', () => {
     const onVote = vi.fn()
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={onVote} />)
-    fireEvent.click(screen.getByTestId('option-b3'))
+    fireEvent.click(screen.getByTestId('option-p85'))
     expect(onVote).toHaveBeenCalledTimes(1)
-    expect(onVote).toHaveBeenCalledWith('decide-staffing', 'b3')
+    expect(onVote).toHaveBeenCalledWith('decide-price', 'p85')
   })
 
   it('disables every option once the timer has expired, even while the frame still says open', () => {
     render(
       <PhoneBody name="Ada" frame={decideFrame()} remainingMs={0} picked={null} onVote={() => {}} />,
     )
-    for (const id of ['b1', 'b2', 'b3', 'b4']) {
+    for (const id of ['p45', 'p65', 'p85', 'p120']) {
       expect(screen.getByTestId(`option-${id}`)).toBeDisabled()
     }
   })
@@ -163,7 +168,7 @@ describe('PhoneBody', () => {
   it('does not fire onVote after the timer has expired', () => {
     const onVote = vi.fn()
     render(<PhoneBody name="Ada" frame={decideFrame()} remainingMs={0} picked={null} onVote={onVote} />)
-    fireEvent.click(screen.getByTestId('option-b2'))
+    fireEvent.click(screen.getByTestId('option-p65'))
     expect(onVote).not.toHaveBeenCalled()
   })
 
@@ -171,26 +176,26 @@ describe('PhoneBody', () => {
     render(
       <PhoneBody name="Ada" frame={decideFrame({ votingOpen: false })} picked={null} onVote={() => {}} />,
     )
-    expect(screen.getByTestId('option-b1')).toBeDisabled()
+    expect(screen.getByTestId('option-p45')).toBeDisabled()
   })
 
   it('shows the player what they picked, from the server answer', () => {
     render(
       <PhoneBody
         name="Ada"
-        frame={decideFrame({ you: { ...YOU, votedOptionId: 'b3' } })}
+        frame={decideFrame({ you: { ...YOU, votedOptionId: 'p85' } })}
         picked={null}
         onVote={() => {}}
       />,
     )
-    expect(screen.getByTestId('your-pick')).toHaveTextContent('3 baristas')
-    expect(screen.getByTestId('option-b3')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('your-pick')).toHaveTextContent('฿85 — hold your price')
+    expect(screen.getByTestId('option-p85')).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('falls back to the local pick while the vote is still in flight', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked="b1" onVote={() => {}} />)
+    render(<PhoneBody name="Ada" frame={decideFrame()} picked="p45" onVote={() => {}} />)
     expect(screen.getByTestId('your-pick')).toBeInTheDocument()
-    expect(screen.getByTestId('option-b1')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('option-p45')).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('holds in the lobby and closes on the final phase', () => {
@@ -327,10 +332,10 @@ describe('the phone (app/play)', () => {
     render(<PlayPage />)
     await tick(0)
 
-    fireEvent.click(screen.getByTestId('option-b3'))
+    fireEvent.click(screen.getByTestId('option-p85'))
     await tick(0)
     expect(votes()).toHaveLength(1)
-    expect(bodyOf(votes()[0])).toEqual({ playerId: 'p-9', stageId: 'decide-staffing', optionId: 'b3' })
+    expect(bodyOf(votes()[0])).toEqual({ playerId: 'p-9', stageId: 'decide-price', optionId: 'p85' })
 
     // Several polls later it is still one vote — nothing re-posts a vote the server accepted.
     await tick(5000)
@@ -362,7 +367,7 @@ describe('the phone (app/play)', () => {
     await tick(0)
 
     voteStatus = 409
-    fireEvent.click(screen.getByTestId('option-b2'))
+    fireEvent.click(screen.getByTestId('option-p65'))
     await tick(0)
     expect(votes()).toHaveLength(1)
 
@@ -378,11 +383,11 @@ describe('the phone (app/play)', () => {
     await tick(0)
 
     voteStatus = 409
-    fireEvent.click(screen.getByTestId('option-b2'))
+    fireEvent.click(screen.getByTestId('option-p65'))
     await tick(0)
     expect(screen.getByTestId('phone-notice')).toBeInTheDocument()
 
-    stateBody = frame({ seq: 30, stageId: 'outcome-staffing', stageKind: 'outcome', you: YOU })
+    stateBody = frame({ seq: 30, stageId: 'outcome-price', stageKind: 'outcome', you: YOU })
     await tick(1200)
     expect(screen.queryByTestId('phone-notice')).not.toBeInTheDocument()
   })
@@ -394,7 +399,7 @@ describe('the phone (app/play)', () => {
     await tick(0)
 
     voteThrows = true
-    fireEvent.click(screen.getByTestId('option-b2'))
+    fireEvent.click(screen.getByTestId('option-p65'))
     await tick(0)
     expect(JSON.parse(localStorage.getItem(PENDING_KEY)!)).toHaveLength(1)
 

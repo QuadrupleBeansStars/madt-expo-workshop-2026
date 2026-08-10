@@ -1622,3 +1622,332 @@
 .room-lesson {
   padding: min(0.7vh, 13px) clamp(12px, 1.8vw, 26px);
 }
+
+/*
+ * ── Storyboards ─────────────────────────────────────────────────────────────────────────────
+ *
+ * The team's note after the 3 Aug run-through, for both workshops: a bilingual question reads as
+ * a wall of text on a projector at the back of a hall. Two to four captioned frames do not.
+ *
+ * Sized off viewport HEIGHT, like everything else that shares a slide here. A storyboard is an
+ * ADDITION to screens that already fit at 1366x768 — the decide stage carries a prompt, context,
+ * a clock, charts and four vote buttons — so its whole job is to be legible while taking as
+ * little vertical budget as it can. `npm run check:projector` is the gate; do not raise these
+ * numbers without re-running it.
+ *
+ * `grid-auto-flow: column` with equal tracks keeps the frames the same width whatever the caption
+ * lengths are, so the strip reads as a comic rather than as a ragged row of boxes.
+ */
+.room-story {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: clamp(8px, 1.2vw, 18px);
+  margin: 0 0 min(1.4vh, 14px);
+  padding: 0;
+  list-style: none;
+}
+
+.room-story__panel {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 12px);
+  padding: min(0.9vh, 12px) clamp(8px, 1vw, 14px);
+  border: 1px solid var(--deck-rule, rgba(255, 255, 255, 0.16));
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-story__art {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+}
+
+/* The character, today. Capped by height so a three-panel strip cannot push a slide over. */
+.room-story__emoji {
+  font-size: min(clamp(20px, 2.6vw, 40px), 4.4vh);
+  line-height: 1;
+}
+
+/* Real artwork, when it arrives. Same height budget as the emoji it replaces, so dropping a file
+ * into /public and pointing `art` at it cannot change whether the slide fits. */
+.room-story__img {
+  width: auto;
+  height: min(clamp(24px, 3vw, 46px), 5vh);
+  object-fit: contain;
+  display: block;
+}
+
+.room-story__caption {
+  min-width: 0;   /* let long captions wrap instead of widening the grid track */
+}
+
+.room-story__caption .deck-bi__en {
+  font-size: min(clamp(11px, 1.05vw, 17px), 2.1vh);
+  line-height: 1.25;
+}
+
+.room-story__caption .deck-bi__th {
+  font-size: min(clamp(10px, 0.95vw, 15px), 1.9vh);
+  line-height: 1.3;
+  opacity: 0.82;
+}
+
+/*
+ * The phone. One column, not three: 390px of width divided by three frames is not a comic, it is
+ * three columns of single words. The strip becomes a vertical run of captions, which is what a
+ * storyboard degrades to gracefully.
+ */
+.phone-root .room-story {
+  grid-auto-flow: row;
+  grid-auto-columns: auto;
+  gap: 6px;
+}
+
+/*
+ * ── Absorbing a fourth option, and a storyboard above it ────────────────────────────────────
+ *
+ * Both are the team's asks from the run-through, and both cost vertical space on slides that were
+ * already calibrated to the pixel. Measured with `npm run check:projector`; the numbers below are
+ * what makes all twelve stages fit at 1366x768 with the storyboards and four options present.
+ */
+
+/* The storyboard spans the full slide, rather than sitting in the half-width text column it is
+ * written next to. In half a screen, three captions wrap to three lines each and cost ~200px;
+ * across the full width they cost about a third of that and read as a strip rather than a stack. */
+/*
+ * The strip must span the SLIDE, not the column it is written beside. It sits above
+ * `.room-decide__head` rather than inside it because that header is `display: flex` further down
+ * this sheet — `grid-column` is inert there, and the storyboard was being squeezed into a 582px
+ * flex item, wrapping every caption to four lines and costing 295px instead of ~90px.
+ *
+ * `.room-data` IS a grid, so the data stage spans it the normal way.
+ */
+.room-data > .room-story {
+  grid-column: 1 / -1;
+}
+
+/*
+ * Direct child of `.room-decide`, spanning both of its columns. Not inside `.room-decide__vote`:
+ * on a stage that carries evidence, that column is HALF the slide, and a three-frame strip in
+ * half a slide wraps every caption and costs 295px instead of ~90px.
+ */
+.room-decide > .room-story {
+  grid-column: 1 / -1;
+}
+
+/*
+ * ONE ROW, whatever the option count. This was `repeat(3, ...)`, which silently wrapped the
+ * moment round 3 gained a fourth option — putting it on a second row, 205px below the fold, where
+ * the room could not compare it to the other three. The whole purpose of this panel is
+ * side-by-side comparison, so the column count has to follow the content.
+ */
+.room-fx__list {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: clamp(6px, 0.7vw, 12px);
+}
+
+/* Four cards in the width that held three: the padding has to come back, or the text does. */
+.room-fx__card {
+  padding: min(1vh, 12px) clamp(7px, 0.8vw, 12px);
+}
+
+.room-slide .room-fx__label .deck-bi__en {
+  font-size: min(clamp(9px, 0.85vw, 15px), 1.7vh);
+}
+
+.room-slide .room-fx__label .deck-bi__th {
+  font-size: min(clamp(8px, 0.78vw, 13px), 1.55vh);
+}
+
+/* Four vote rows instead of three, on a slide that also gained a storyboard. */
+.room-decide[data-evidence="true"] .room-options {
+  gap: min(0.7vh, 9px);
+}
+
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__en {
+  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
+}
+
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
+  font-size: min(clamp(9px, 0.85vw, 14px), 1.7vh);
+}
+
+/*
+ * ── The last of the fourth-option / storyboard budget ───────────────────────────────────────
+ *
+ * What was still over, and why, measured rather than guessed:
+ *
+ *   - The storyboard strip cost 137px. It is an addition to slides that already fit, so it has to
+ *     earn its place in about 90.
+ *   - `mainFactor` is a FIVE-bucket chart with the longest labels in the project ("Convenience &
+ *     location" / "ความสะดวกและทำเลที่ตั้ง"), rendered bilingually. At 258px it was two-thirds
+ *     taller than the three-bucket `spend` chart beside it, and it appears on both `data-you` and
+ *     `decide-price` — the two worst stages. Rows and labels come down; the bars stay
+ *     proportional, which is the only thing the chart has to do from the back of a hall.
+ *
+ * Re-run `npm run check:projector` after touching any of this.
+ */
+.room-story__panel {
+  padding: min(0.6vh, 8px) clamp(6px, 0.8vw, 11px);
+  gap: clamp(5px, 0.6vw, 9px);
+}
+
+.room-story__emoji {
+  font-size: min(clamp(17px, 2.1vw, 32px), 3.4vh);
+}
+
+.room-story__img {
+  height: min(clamp(20px, 2.4vw, 36px), 3.8vh);
+}
+
+.room-slide .room-story__caption .deck-bi__en {
+  font-size: min(clamp(10px, 0.92vw, 15px), 1.75vh);
+  line-height: 1.2;
+}
+
+.room-slide .room-story__caption .deck-bi__th {
+  font-size: min(clamp(9px, 0.82vw, 13px), 1.6vh);
+  line-height: 1.24;
+}
+
+/* Five buckets where the other charts have three or four. */
+.room-data .room-bars__row,
+.room-evidence .room-bars__row {
+  gap: min(0.5vh, 6px);
+}
+
+.room-data .room-bars,
+.room-evidence .room-bars {
+  gap: min(0.62vh, 8px);
+}
+
+.room-slide .room-data .room-bars__label .deck-bi__en,
+.room-slide .room-evidence .room-bars__label .deck-bi__en {
+  font-size: min(clamp(9px, 0.86vw, 15px), 1.72vh);
+  line-height: 1.18;
+}
+
+.room-slide .room-data .room-bars__label .deck-bi__th,
+.room-slide .room-evidence .room-bars__label .deck-bi__th {
+  font-size: min(clamp(8px, 0.76vw, 13px), 1.56vh);
+  line-height: 1.2;
+}
+
+/* The scripted points under the data headline: three sentences, bilingual, and the stage now
+ * carries a storyboard above them saying some of the same work. */
+.room-slide .room-points__item .deck-bi__en {
+  font-size: min(clamp(11px, 1.05vw, 18px), 2vh);
+  line-height: 1.26;
+}
+
+.room-slide .room-points__item .deck-bi__th {
+  font-size: min(clamp(10px, 0.92vw, 15px), 1.82vh);
+  line-height: 1.3;
+}
+
+.room-points__item {
+  margin-bottom: min(0.7vh, 9px);
+}
+
+/*
+ * The remaining budget, and it is all TEXT — the structure is settled by now.
+ *
+ * Round 1 was rewritten against the real survey and its copy is longer than what it replaced: the
+ * outcome body has to say what the discount won, what it cost, AND why the discount was aimed at
+ * the wrong thing, which the old two-clause sentence did not. `data-you` gained a third scripted
+ * point naming the sample size out loud. Neither is padding — they are the argument — so the type
+ * comes down instead of the words.
+ *
+ * Everything below is capped by viewport HEIGHT (`min(clamp(...), Nvh)`), which is the idiom this
+ * whole sheet uses: a projector that is wide and short is the binding case, and Tailwind's
+ * width-based breakpoints cannot see it. Measured at 1600x900 and 1366x768 with
+ * `npm run check:projector`; do not raise them without re-running it.
+ */
+/*
+ * NOTE THE SELECTOR LENGTH, which is not decoration. `.room-slide .room-outcome .deck-bi--hero
+ * .deck-bi__en` already exists further up this sheet at specificity 0,4,0; a rule written the
+ * obvious way (`.room-slide .room-outcome__words .deck-bi__en`, 0,3,0) loses to it silently and
+ * the headline keeps rendering at 4vh. That is exactly what happened on the first attempt here —
+ * the stage got TALLER, because the line-height applied and the font-size did not.
+ */
+.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(15px, 1.5vw, 26px), 2.75vh);
+  line-height: 1.14;
+}
+
+.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(12px, 1.12vw, 19px), 2.2vh);
+  line-height: 1.22;
+}
+
+.room-slide .room-outcome .room-outcome__body .deck-bi__en {
+  font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
+  line-height: 1.24;
+}
+
+.room-slide .room-outcome .room-outcome__body .deck-bi__th {
+  font-size: min(clamp(10px, 0.88vw, 14px), 1.76vh);
+  line-height: 1.28;
+}
+
+.room-lesson {
+  padding: min(0.55vh, 10px) clamp(10px, 1.6vw, 22px);
+}
+
+.room-slide .room-lesson__text .deck-bi__en {
+  font-size: min(clamp(13px, 1.3vw, 23px), 2.5vh);
+}
+
+.room-slide .room-lesson__text .deck-bi__th {
+  font-size: min(clamp(11px, 1.05vw, 18px), 2.1vh);
+}
+
+/* The data stage headline and lead, above three scripted points and two charts. */
+.room-slide .room-data__words > .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(15px, 1.5vw, 27px), 2.9vh);
+  line-height: 1.16;
+}
+
+.room-slide .room-data__words > .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(12px, 1.15vw, 20px), 2.3vh);
+  line-height: 1.24;
+}
+
+.room-slide .room-data__lead .deck-bi__en {
+  font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
+  line-height: 1.26;
+}
+
+.room-slide .room-data__lead .deck-bi__th {
+  font-size: min(clamp(10px, 0.88vw, 14px), 1.76vh);
+  line-height: 1.3;
+}
+
+.room-data__lead {
+  margin-top: min(0.9vh, 12px);
+}
+
+/* The decide prompt and its context line, now above four options rather than three. */
+.room-slide .room-decide__head .deck-bi--hero .deck-bi__en {
+  font-size: min(clamp(14px, 1.42vw, 25px), 2.75vh);
+  line-height: 1.16;
+}
+
+.room-slide .room-decide__head .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(11px, 1.1vw, 19px), 2.2vh);
+  line-height: 1.24;
+}
+
+.room-slide .room-decide__context .deck-bi__en {
+  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
+  line-height: 1.24;
+}
+
+.room-slide .room-decide__context .deck-bi__th {
+  font-size: min(clamp(9px, 0.85vw, 14px), 1.72vh);
+  line-height: 1.28;
+}

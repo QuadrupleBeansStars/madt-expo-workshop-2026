@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryDecisionRoomStore, shopValue, ZERO_KPI } from './room-store'
 import { STAGES } from '@/content/room'
 import { AUDIENCE } from '@/content/audience'
-import { simulateStaffing } from './sim'
+import { simulatePricing } from './pricing'
 import { SHOP_VALUE_WEIGHTS } from './room-types'
-import type { FixedDecideStage, SimulatedDecideStage } from './room-types'
+import type { FixedDecideStage, PricedDecideStage } from './room-types'
 
 const T0 = 1_000_000
 
@@ -17,11 +17,11 @@ const idx = (id: string): number => {
   if (i < 0) throw new Error(`no stage ${id}`)
   return i
 }
-const STAFFING = idx('decide-staffing')
+const STAFFING = idx('decide-price')
 const DEFEND = idx('decide-defend')
 const INVEST = idx('decide-invest')
 
-const staffingStage = STAGES[STAFFING] as SimulatedDecideStage
+const pricingStage = STAGES[STAFFING] as PricedDecideStage
 const defendStage = STAGES[DEFEND] as FixedDecideStage
 const investStage = STAGES[INVEST] as FixedDecideStage
 
@@ -95,7 +95,7 @@ describe('decision room store', () => {
 
   it('rejects votes from unknown players', () => {
     advanceTo(STAFFING)
-    expect(store.vote({ playerId: 'nope', stageId: staffingStage.id, optionId: 'b2' }, T0)).toBe('unknown')
+    expect(store.vote({ playerId: 'nope', stageId: pricingStage.id, optionId: 'p65' }, T0)).toBe('unknown')
   })
 
   it('rejects votes for a stage that is not current', () => {
@@ -107,32 +107,32 @@ describe('decision room store', () => {
   it('rejects votes on a stage that does not accept them', () => {
     const p = store.join('Nan', T0)
     store.advance(T0) // intro
-    expect(store.vote({ playerId: p.id, stageId: STAGES[0].id, optionId: 'b2' }, T0)).toBe('closed')
+    expect(store.vote({ playerId: p.id, stageId: STAGES[0].id, optionId: 'p65' }, T0)).toBe('closed')
   })
 
   it('rejects an option id that is not on the stage', () => {
     const p = store.join('Nan', T0)
     advanceTo(STAFFING)
-    expect(store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b99' }, T0 + 100)).toBe('closed')
+    expect(store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'b99' }, T0 + 100)).toBe('closed')
   })
 
   it('rejects votes once the voting window has elapsed', () => {
     const p = store.join('Nan', T0)
     advanceTo(STAFFING)
-    const closed = T0 + STAFFING + staffingStage.durationMs
-    expect(store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b2' }, closed)).toBe('closed')
+    const closed = T0 + STAFFING + pricingStage.durationMs
+    expect(store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p65' }, closed)).toBe('closed')
   })
 
   it('a re-vote replaces rather than adds', () => {
     const p = store.join('Nan', T0)
     advanceTo(STAFFING)
-    expect(store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b2' }, T0 + 100)).toBe('ok')
-    expect(store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 200)).toBe('ok')
+    expect(store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p65' }, T0 + 100)).toBe('ok')
+    expect(store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 200)).toBe('ok')
     const s = store.getPublicState(T0 + 300, p.id)
     expect(s.voteCount).toBe(1)
-    expect(s.you?.votedOptionId).toBe('b3')
-    expect(s.tallies.find((t) => t.optionId === 'b3')!.count).toBe(1)
-    expect(s.tallies.find((t) => t.optionId === 'b2')!.count).toBe(0)
+    expect(s.you?.votedOptionId).toBe('p85')
+    expect(s.tallies.find((t) => t.optionId === 'p85')!.count).toBe(1)
+    expect(s.tallies.find((t) => t.optionId === 'p65')!.count).toBe(0)
   })
 
   it('you is null-voted before voting and absent without a playerId', () => {
@@ -145,10 +145,10 @@ describe('decision room store', () => {
   it('resolves round 1 through the simulator when the stage closes', () => {
     const p = store.join('Nan', T0)
     advanceTo(STAFFING)
-    store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 100)
+    store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 100)
     store.advance(T0 + 50_000) // off the decide stage → resolve
 
-    const sim = simulateStaffing(3, AUDIENCE)
+    const sim = simulatePricing(85, AUDIENCE)
     expect(store.getPlayers()[0].kpi).toEqual({
       revenue: sim.revenue, profit: sim.profit, satisfaction: sim.satisfaction, waste: sim.waste,
     })
@@ -158,12 +158,12 @@ describe('decision room store', () => {
     const voter = store.join('Voter', T0)
     const idle = store.join('Idle', T0)
     advanceTo(STAFFING)
-    store.vote({ playerId: voter.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 100)
+    store.vote({ playerId: voter.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 100)
     store.advance(T0 + 50_000)
 
     const players = store.getPlayers()
     const idleKpi = players.find((x) => x.id === idle.id)!.kpi
-    const first = simulateStaffing(staffingStage.options[0].baristas, AUDIENCE)
+    const first = simulatePricing(pricingStage.options[0].priceBaht, AUDIENCE)
     expect(idleKpi).toEqual({
       revenue: first.revenue, profit: first.profit, satisfaction: first.satisfaction, waste: first.waste,
     })
@@ -176,7 +176,7 @@ describe('decision room store', () => {
     store.vote({ playerId: p.id, stageId: defendStage.id, optionId: 'price' }, T0 + DEFEND + 10)
     store.advance(T0 + 100_000)
 
-    const sim = simulateStaffing(staffingStage.options[0].baristas, AUDIENCE) // round 1 default
+    const sim = simulatePricing(pricingStage.options[0].priceBaht, AUDIENCE) // round 1 default
     const fx = defendStage.options.find((o) => o.id === 'price')!.fx
     expect(store.getPlayers()[0].kpi).toEqual({
       revenue: sim.revenue + (fx.revenue ?? 0),
@@ -189,7 +189,7 @@ describe('decision room store', () => {
   it('carries KPI across two rounds — each shop accumulates', () => {
     const p = store.join('Nan', T0)
     advanceTo(STAFFING)
-    store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 100)
+    store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 100)
     store.advance(T0 + 50_000)
     const afterRound1 = { ...store.getPlayers()[0].kpi }
 
@@ -219,7 +219,7 @@ describe('decision room store', () => {
     const fx = defendStage.options.find((o) => o.id === 'quality')!.fx
     expect(store.getPlayers()[0].kpi).toEqual(once)
     expect(once.profit).toBe(
-      simulateStaffing(staffingStage.options[0].baristas, AUDIENCE).profit + (fx.profit ?? 0),
+      simulatePricing(pricingStage.options[0].priceBaht, AUDIENCE).profit + (fx.profit ?? 0),
     )
   })
 
@@ -273,9 +273,9 @@ describe('decision room store', () => {
     seen.push(store.getSeq())
     advanceTo(STAFFING)
     seen.push(store.getSeq())
-    store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b2' }, T0 + 100)
+    store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p65' }, T0 + 100)
     seen.push(store.getSeq())
-    store.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 200)
+    store.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 200)
     seen.push(store.getSeq())
     store.advance(T0 + 50_000)
     seen.push(store.getSeq())
@@ -293,7 +293,7 @@ describe('decision room store', () => {
   it('a rejected vote does not bump seq', () => {
     advanceTo(STAFFING)
     const before = store.getSeq()
-    store.vote({ playerId: 'nope', stageId: staffingStage.id, optionId: 'b2' }, T0 + 100)
+    store.vote({ playerId: 'nope', stageId: pricingStage.id, optionId: 'p65' }, T0 + 100)
     expect(store.getSeq()).toBe(before)
   })
 
@@ -303,7 +303,7 @@ describe('decision room store', () => {
     for (const s of [a, b]) {
       const p = s.join('Nan', T0)
       for (let i = 0; i <= STAFFING; i++) s.advance(T0 + i)
-      s.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b2' }, T0 + 100)
+      s.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p65' }, T0 + 100)
       s.advance(T0 + 50_000)
     }
     expect(a.getPlayers()[0].kpi).toEqual(b.getPlayers()[0].kpi)
@@ -323,7 +323,7 @@ describe('decision room store persistence', () => {
     const a = new MemoryDecisionRoomStore(file)
     const p = a.join('Nan', T0)
     for (let i = 0; i <= STAFFING; i++) a.advance(T0 + i)
-    a.vote({ playerId: p.id, stageId: staffingStage.id, optionId: 'b3' }, T0 + 100)
+    a.vote({ playerId: p.id, stageId: pricingStage.id, optionId: 'p85' }, T0 + 100)
     a.advance(T0 + 50_000)
     const expected = a.getPlayers()[0]
     const seq = a.getSeq()

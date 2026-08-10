@@ -3,8 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { AUDIENCE, IS_PLACEHOLDER } from '@/content/audience'
 import { STAGES } from '@/content/room'
-import { NARRATED_BARISTAS } from '@/content/room-labels'
-import { simulateStaffing } from '@/lib/sim'
+import { NARRATED_DISCOUNT_PRICE, NARRATED_HELD_PRICE } from '@/content/room-labels'
+import { simulatePricing } from '@/lib/pricing'
 import type { LeaderboardEntry } from '@/lib/room-store'
 import { Stages, type RoomFrame } from './Stages'
 import { Leaderboard } from './Leaderboard'
@@ -84,51 +84,61 @@ describe('Stages — data', () => {
   it('renders the headline, every scripted point, and charts of the room’s own answers', () => {
     render(<Stages frame={frameFor('data-you')} joinUrl="" />)
     expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
-    expect(screen.getByText(/50 of you want coffee between 07:00 and 09:00/)).toBeInTheDocument()
-    expect(screen.getByText(/70 of you said you walk away/)).toBeInTheDocument()
-    // The two questions the copy reads out: when they buy, and how long they queue.
-    expect(screen.getByTestId('bar-fill-7to9')).toBeInTheDocument()
-    expect(screen.getByTestId('bar-fill-under3')).toBeInTheDocument()
+    // Read from the script rather than pasted from it: a copy edit in content/room.ts should
+    // change what this asserts, not break it.
+    const stage = STAGES.find((st) => st.id === 'data-you')
+    const points = stage && stage.kind === 'data' ? stage.points : []
+    expect(points.length).toBeGreaterThan(0)
+    for (const point of points) expect(screen.getByText(point.en)).toBeInTheDocument()
+    // The two questions the copy reads out: what they pay, and what decides the purchase.
+    expect(screen.getByTestId('bar-fill-50to100')).toBeInTheDocument()
+    expect(screen.getByTestId('bar-fill-taste')).toBeInTheDocument()
   })
 
   it('labels every bucket bilingually rather than showing raw keys', () => {
     render(<Stages frame={frameFor('data-you')} joinUrl="" />)
-    expect(screen.getByText('07:00–09:00')).toBeInTheDocument()
-    expect(screen.getByText('7–9 โมง')).toBeInTheDocument()
-    expect(screen.getByText('Under 3 minutes')).toBeInTheDocument()
-    expect(screen.queryByText('under3')).not.toBeInTheDocument()
+    expect(screen.getByText('฿50–100')).toBeInTheDocument()
+    expect(screen.getByText('50–100 บาท')).toBeInTheDocument()
+    expect(screen.getByText('Promotion & discount')).toBeInTheDocument()
+    // Raw aggregate keys must never reach a projector.
+    expect(screen.queryByText('50to100')).not.toBeInTheDocument()
+    expect(screen.queryByText('promotion')).not.toBeInTheDocument()
   })
 })
 
 describe('Stages — decide', () => {
-  const frame = frameFor('decide-staffing', {
+  const frame = frameFor('decide-price', {
     remainingMs: 31_000,
     voteCount: 5,
     tallies: [
-      { optionId: 'b1', count: 1 },
-      { optionId: 'b2', count: 3 },
-      { optionId: 'b3', count: 1 },
-      { optionId: 'b4', count: 0 },
+      { optionId: 'p45', count: 1 },
+      { optionId: 'p65', count: 3 },
+      { optionId: 'p85', count: 1 },
+      { optionId: 'p120', count: 0 },
     ],
   })
 
   it('renders the prompt, the context and every option', () => {
     render(<Stages frame={frame} joinUrl="" />)
-    expect(screen.getByText(/How many baristas do you put on the bar\?/)).toBeInTheDocument()
-    expect(screen.getByText(/A barista costs ฿600 for the shift/)).toBeInTheDocument()
-    expect(screen.getByText(/1 barista — keep the wage bill down/)).toBeInTheDocument()
-    expect(screen.getByText(/4 baristas — no queue, whatever it costs/)).toBeInTheDocument()
+    // Derived from the script, so a copy edit changes what this asserts rather than breaking it.
+    const stage = STAGES.find((st) => st.id === 'decide-price')
+    if (!stage || stage.kind !== 'decide') throw new Error('decide-price must exist')
+    expect(screen.getByText(stage.prompt.en)).toBeInTheDocument()
+    expect(screen.getByText(stage.context.en)).toBeInTheDocument()
+    // EVERY option, not a sample: an option that renders nowhere is one the room cannot vote for.
+    expect(stage.options).toHaveLength(4)
+    for (const o of stage.options) expect(screen.getByText(o.label.en)).toBeInTheDocument()
   })
 
   it('shows the live tally and the seconds left', () => {
     render(<Stages frame={frame} joinUrl="" />)
-    expect(screen.getByTestId('tally-b2')).toHaveTextContent('3')
+    expect(screen.getByTestId('tally-p65')).toHaveTextContent('3')
     expect(screen.getByTestId('vote-count')).toHaveTextContent('5')
     expect(screen.getByTestId('countdown')).toHaveTextContent('31')
   })
 
   it('never shows a negative countdown', () => {
-    render(<Stages frame={frameFor('decide-staffing', { remainingMs: 0, votingOpen: false })} joinUrl="" />)
+    render(<Stages frame={frameFor('decide-price', { remainingMs: 0, votingOpen: false })} joinUrl="" />)
     expect(screen.getByTestId('countdown')).toHaveTextContent('0')
   })
 
@@ -137,7 +147,7 @@ describe('Stages — decide', () => {
   // through a 45-second vote.
   it('renders one chart per evidence entry, beside the question', () => {
     render(<Stages frame={frame} joinUrl="" />)
-    const stage = STAGES.find((s) => s.id === 'decide-staffing')
+    const stage = STAGES.find((s) => s.id === 'decide-price')
     const evidence = stage && stage.kind === 'decide' ? stage.evidence ?? [] : []
     expect(evidence.length).toBeGreaterThan(0)
     for (const key of evidence) expect(screen.getByTestId(`evidence-${key}`)).toBeInTheDocument()
@@ -145,19 +155,33 @@ describe('Stages — decide', () => {
       .toHaveLength(evidence.length)
   })
 
-  it('draws the RIGHT distributions — the two a player derives three baristas from', () => {
+  it('draws the RIGHT distributions — the two a player derives the price from', () => {
     render(<Stages frame={frame} joinUrl="" />)
-    // 90 at the counter between 07:00 and 09:00, against 70 who walk at three minutes.
-    expect(screen.getByTestId('bar-fill-7to9')).toBeInTheDocument()
-    expect(screen.getByTestId('bar-fill-under3')).toBeInTheDocument()
-    expect(screen.getAllByText(/07:00–09:00/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Under 3 minutes/).length).toBeGreaterThan(0)
+    // What the room pays, and what actually decides the purchase. Without both charts on screen
+    // the round is unwinnable by reasoning, and reasoning is the whole point of it.
+    expect(screen.getByTestId('bar-fill-50to100')).toBeInTheDocument()
+    expect(screen.getByTestId('bar-fill-taste')).toBeInTheDocument()
+    expect(screen.getAllByText(/฿50–100/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Taste/).length).toBeGreaterThan(0)
+  })
+
+  it('renders the storyboard the team asked for, above the question', () => {
+    render(<Stages frame={frame} joinUrl="" />)
+    const board = screen.getByTestId('storyboard')
+    expect(board).toBeInTheDocument()
+    // Two to four frames — the cap is a projector-width constraint, not a style preference.
+    const count = Number(board.dataset.count)
+    expect(count).toBeGreaterThanOrEqual(2)
+    expect(count).toBeLessThanOrEqual(4)
   })
 
   it('keeps the PLACEHOLDER guard on every decide-stage chart', () => {
     render(<Stages frame={frame} joinUrl="" />)
-    expect(IS_PLACEHOLDER).toBe(true)
-    expect(screen.getAllByTestId('placeholder-badge').length).toBeGreaterThanOrEqual(2)
+    // The real CSV has been imported, so the badge is off. This assertion is kept, inverted,
+    // rather than deleted: if a future import ever sets the flag back, the guard must still be
+    // wired to every chart, and that is what would break silently.
+    expect(IS_PLACEHOLDER).toBe(false)
+    expect(screen.queryAllByTestId('placeholder-badge')).toHaveLength(0)
   })
 
   it('renders the later rounds with their own evidence and their vote intact', () => {
@@ -170,48 +194,48 @@ describe('Stages — decide', () => {
 })
 
 describe('Stages — the round 1 outcome (the teaching screen)', () => {
-  const trace = simulateStaffing(NARRATED_BARISTAS, AUDIENCE).trace
+  /*
+   * The screen narrates the DISCOUNT, not the winner — the teaching is in the shop that did not
+   * work. Every figure below is recomputed from the simulator here, so a re-import of a larger
+   * survey fails this file rather than leaving a stale number on a projector.
+   */
+  const cut = simulatePricing(NARRATED_DISCOUNT_PRICE, AUDIENCE)
+  const held = simulatePricing(NARRATED_HELD_PRICE, AUDIENCE)
 
   it('renders the causal chain the body copy narrates', () => {
-    render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    expect(screen.getByTestId('trace-arrivals')).toHaveTextContent(String(trace.arrivals))
-    expect(screen.getByTestId('trace-capacity')).toHaveTextContent(String(trace.capacity))
-    expect(screen.getByTestId('trace-served')).toHaveTextContent(String(trace.served))
-    expect(screen.getByTestId('trace-lostToQueue')).toHaveTextContent(String(trace.lostToQueue))
+    render(<Stages frame={frameFor('outcome-price')} joinUrl="" />)
+    expect(screen.getByTestId('trace-footfall')).toHaveTextContent(String(cut.trace.footfall))
+    expect(screen.getByTestId('trace-buyers')).toHaveTextContent(String(cut.trace.buyers))
+    expect(screen.getByTestId('trace-pricedOut')).toHaveTextContent(String(cut.trace.pricedOut))
   })
 
-  it('renders stillQueuing even when it is zero, so nobody visibly vanishes', () => {
-    // served + lostToQueue + stillQueuing === arrivals is an invariant of the simulator; the
-    // screen has to show all four or the room watches people disappear.
-    expect(trace.served + trace.lostToQueue + trace.stillQueuing).toBe(trace.arrivals)
-    render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    expect(screen.getByTestId('trace-stillQueuing')).toHaveTextContent(String(trace.stillQueuing))
+  it('renders a zero figure rather than omitting it, so nobody visibly vanishes', () => {
+    // buyers + pricedOut === footfall is an invariant of the simulator; the screen has to show
+    // every term or the room watches people disappear between two numbers.
+    expect(cut.trace.buyers + cut.trace.pricedOut).toBe(cut.trace.footfall)
+    render(<Stages frame={frameFor('outcome-price')} joinUrl="" />)
+    expect(screen.getByTestId('trace-unsold')).toHaveTextContent(String(cut.trace.unsold))
+    expect(screen.getByTestId('trace-accounting')).toBeInTheDocument()
   })
 
-  it('shows the wait rounded exactly as the body copy quotes it', () => {
-    render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    // The script says 3.7; the raw trace is 3.66. Two different numbers on one screen is a defect.
-    expect(screen.getByTestId('trace-waitMinutes')).toHaveTextContent(trace.waitMinutes.toFixed(1))
-    expect(screen.getByText(/3\.7 minutes and 19 people walked out/)).toBeInTheDocument()
-  })
-
-  it('never calls the queue wait the time it takes to make one drink', () => {
-    const { container } = render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    expect(container.textContent).toMatch(/queue/i)
-    expect(container.textContent).not.toMatch(/per drink|to make one drink|each drink takes/i)
-  })
-
-  it('flags the trace as placeholder data for exactly as long as it is placeholder data', () => {
-    // The strongest data-honesty claim in the workshop is made on this screen, off figures that
-    // are invented until the registration CSV lands. Asserted against the real IS_PLACEHOLDER so
-    // this goes green on its own the day the flag flips, rather than red as a false alarm.
-    render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    expect(!!screen.queryByTestId('placeholder-badge')).toBe(IS_PLACEHOLDER)
+  it('shows the two figures the whole screen exists to put side by side', () => {
+    render(<Stages frame={frameFor('outcome-price')} joinUrl="" />)
+    const extraCustomers = cut.trace.buyers - held.trace.buyers
+    const profitGivenUp = held.profit - cut.profit
+    expect(screen.getByTestId('trace-extraCustomers')).toHaveTextContent(String(extraCustomers))
+    expect(screen.getByTestId('trace-profitGivenUp')).toHaveTextContent('4,219')
+    // ...and the body copy must quote the same pair. Two renderings of one figure on a single
+    // screen reads as a broken number, not as precision.
+    expect(screen.getByText(/won 7 customers and cost ฿4,219/)).toBeInTheDocument()
+    expect(profitGivenUp).toBe(4219)
+    expect(extraCustomers).toBe(7)
   })
 
   it('renders the lesson and the board beneath the numbers', () => {
-    render(<Stages frame={frameFor('outcome-staffing')} joinUrl="" />)
-    expect(screen.getByText('Data is a cost until it changes a decision.')).toBeInTheDocument()
+    render(<Stages frame={frameFor('outcome-price')} joinUrl="" />)
+    const stage = STAGES.find((st) => st.id === 'outcome-price')
+    expect(stage?.kind).toBe('outcome')
+    if (stage?.kind === 'outcome') expect(screen.getByText(stage.lesson.en)).toBeInTheDocument()
     expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
   })
 })
@@ -316,7 +340,7 @@ describe('app/biz — polling discipline', () => {
 
   it('discards a frame whose seq is older than the one already on screen', async () => {
     const fresh = frameFor('data-you', { seq: 5 })
-    const stale = frameFor('decide-staffing', { seq: 3 })
+    const stale = frameFor('decide-price', { seq: 3 })
     const fetchMock = vi.fn(async () => jsonResponse(fresh))
     vi.stubGlobal('fetch', fetchMock)
 

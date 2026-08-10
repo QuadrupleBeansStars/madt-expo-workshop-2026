@@ -53,68 +53,118 @@ export const STAGES: Stage[] = [
   {
     kind: 'data',
     id: 'data-you',
+    storyboard: [
+      {
+        emoji: '📝',
+        caption: {
+          en: 'Weeks ago, you filled in a form to come here. Seven questions, two minutes.',
+          th: 'หลายสัปดาห์ก่อน คุณกรอกแบบฟอร์มเพื่อมางานนี้ เจ็ดคำถาม สองนาที',
+        },
+      },
+      {
+        emoji: '🗄️',
+        caption: {
+          en: 'Nobody looked at it again. It sat in a spreadsheet.',
+          th: 'หลังจากนั้นไม่มีใครเปิดดูอีกเลย มันนอนอยู่ในสเปรดชีต',
+        },
+      },
+      {
+        emoji: '☕️',
+        caption: {
+          en: 'This morning it is the only thing standing between you and a bad decision.',
+          th: 'เช้านี้ มันคือสิ่งเดียวที่กั้นระหว่างคุณกับการตัดสินใจที่ผิดพลาด',
+        },
+      },
+    ],
     headline: {
       en: 'You built this dataset weeks ago, without thinking about it.',
       th: 'ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน โดยไม่ทันได้คิดถึงมันเลย',
     },
     body: {
-      en: 'At registration, 180 people answered five questions: how you travel here, when you wake, what you drink first, when you buy it, and how long you will stand in a queue.',
-      th: 'ตอนลงทะเบียน มีคนตอบคำถามห้าข้อทั้งหมด 180 คน คือ เดินทางมายังไง ตื่นกี่โมง เครื่องดื่มแก้วแรกของวันคืออะไร ซื้อตอนไหน และยอมต่อคิวได้นานแค่ไหน',
+      en: 'At registration you answered seven questions about drinks: when you buy, how long you will queue, what you usually pay, and what actually decides the purchase. The last two are the ones this shop turns on.',
+      th: 'ตอนลงทะเบียน พวกคุณตอบคำถามเกี่ยวกับเครื่องดื่มไว้เจ็ดข้อ ทั้งซื้อตอนไหน ต่อคิวได้นานแค่ไหน ปกติจ่ายเท่าไร และอะไรคือสิ่งที่ตัดสินใจจริง ๆ สองข้อหลังคือข้อที่ร้านนี้ทั้งร้านหมุนอยู่รอบมัน',
     },
     points: [
+      // Every figure below is asserted against AUDIENCE in content/room.test.ts, so a re-import
+      // of a larger CSV fails here rather than leaving stale prose on a projector.
       {
-        en: '50 of you want coffee between 07:00 and 09:00. That is the morning rush.',
-        th: 'ในจำนวนนี้ 50 คนอยากได้กาแฟช่วง 7 ถึง 9 โมงเช้า นั่นคือชั่วโมงเร่งด่วนของร้าน',
+        en: '13 of you said you usually pay between ฿50 and ฿100 for a drink.',
+        th: '13 คนบอกว่าปกติจ่ายค่าเครื่องดื่มอยู่ระหว่าง 50 ถึง 100 บาท',
       },
       {
-        en: '70 of you said you walk away if the queue takes more than three minutes.',
-        th: '70 คนบอกว่า ถ้าต้องรอคิวเกินสามนาที จะเดินออกไปเลย',
+        en: 'All 18 of you named taste as a deciding factor. 11 named price. You could pick several.',
+        th: 'ทั้ง 18 คนเลือก "รสชาติ" เป็นปัจจัยตัดสินใจ มี 11 คนที่เลือก "ราคา" ด้วย ข้อนี้เลือกได้หลายข้อ',
       },
       {
-        en: 'These are registrants, not this room. Not everyone who answered turned up — the gap between the two is part of the lesson.',
-        th: 'นี่คือข้อมูลของคนที่ลงทะเบียน ไม่ใช่ทุกคนในห้องนี้ คนที่ตอบไว้ไม่ได้มาครบ และช่องว่างตรงนั้นก็คือบทเรียนหนึ่งเหมือนกัน',
+        // The sample size is said out loud rather than hidden. A workshop arguing for data honesty
+        // that quietly rounds 18 up to "the room" would be arguing against itself.
+        en: 'That is 18 people, not 200 — and registrants, not this room. Deciding on a sample this small is itself part of the lesson.',
+        th: 'ทั้งหมดนี้มาจาก 18 คน ไม่ใช่ 200 คน และเป็นคนที่ลงทะเบียน ไม่ใช่ทุกคนในห้องนี้ การตัดสินใจบนกลุ่มตัวอย่างเล็กแค่นี้ ก็เป็นบทเรียนหนึ่งเหมือนกัน',
       },
     ],
   },
   {
     kind: 'decide',
-    id: 'decide-staffing',
-    resolve: 'simulate-staffing',
+    id: 'decide-price',
+    resolve: 'simulate-pricing',
     durationMs: ROUND_1_VOTE_MS,
+    storyboard: [
+      {
+        emoji: '🪧',
+        caption: {
+          en: 'This morning, the shop across the street puts ฿45 on a board outside.',
+          th: 'เช้านี้ ร้านฝั่งตรงข้ามเอาป้ายราคา 45 บาท มาตั้งไว้หน้าร้าน',
+        },
+      },
+      {
+        emoji: '👀',
+        caption: {
+          en: '120 people will walk past your counter today. Some of them saw it.',
+          th: 'วันนี้จะมีคนเดินผ่านเคาน์เตอร์ของคุณ 120 คน และบางคนก็เห็นป้ายนั้นแล้ว',
+        },
+      },
+      {
+        emoji: '🧑‍🍳',
+        caption: {
+          en: 'Your barista is holding a marker, waiting to write your price on the board.',
+          th: 'บาริสต้าถือปากกาเมจิกรออยู่ ว่าจะให้เขียนราคาเท่าไรบนกระดาน',
+        },
+      },
+    ],
     prompt: {
-      en: '07:00. How many baristas do you put on the bar?',
-      th: 'เจ็ดโมงเช้า คุณจะจัดบาริสต้ากี่คนยืนประจำหน้าร้าน',
+      en: 'What goes on the board? Price one cup.',
+      th: 'จะเขียนราคาเท่าไรบนกระดาน ตั้งราคากาแฟหนึ่งแก้ว',
     },
-    // The two distributions that decide the answer: when the room is at the counter, and how long
-    // it will stand there. A player who reads these two charts can derive three baristas — that
-    // derivation IS the round, so the charts belong on the decide screen, not two stages earlier.
-    evidence: ['buyTime', 'queuePatience'],
+    // The two questions that decide the round, and the one that explains it. `spend` sets who can
+    // buy at all; `mainFactor` is why the room does not simply leave over price. A player who
+    // reads both charts can derive the answer, and that derivation IS the round.
+    evidence: ['spend', 'mainFactor'],
     context: {
-      en: 'A barista costs ฿600 for the shift. A drink sells for ฿70. Your own answers decide who stays in the queue and who walks out.',
-      th: 'บาริสต้าหนึ่งคน ค่าแรง 600 บาทต่อกะ กาแฟแก้วละ 70 บาท และคำตอบที่พวกคุณให้ไว้เอง จะเป็นตัวตัดสินว่าใครยอมรอ และใครเดินออก',
+      en: 'A cup costs you ฿22 to make. Anything you prep and nobody buys goes in the bin. Your own answers decide who is still a customer at each price.',
+      th: 'ต้นทุนกาแฟแก้วละ 22 บาท ของที่เตรียมไว้แล้วไม่มีคนซื้อ ต้องเททิ้ง และคำตอบที่พวกคุณให้ไว้เอง จะเป็นตัวตัดสินว่าที่ราคาไหน ใครยังเป็นลูกค้าอยู่บ้าง',
     },
     options: [
-      { id: 'b1', baristas: 1, label: { en: '1 barista — keep the wage bill down', th: 'บาริสต้า 1 คน — ประหยัดค่าแรงไว้ก่อน' } },
-      { id: 'b2', baristas: 2, label: { en: '2 baristas', th: 'บาริสต้า 2 คน' } },
-      { id: 'b3', baristas: 3, label: { en: '3 baristas', th: 'บาริสต้า 3 คน' } },
-      { id: 'b4', baristas: 4, label: { en: '4 baristas — no queue, whatever it costs', th: 'บาริสต้า 4 คน — ไม่ให้มีคิว ต้นทุนเท่าไรก็ยอม' } },
+      { id: 'p45', priceBaht: 45, label: { en: '฿45 — match their sign', th: '45 บาท — สู้ราคาเท่าเขา' } },
+      { id: 'p65', priceBaht: 65, label: { en: '฿65 — come down a little', th: '65 บาท — ลดลงมาหน่อย' } },
+      { id: 'p85', priceBaht: 85, label: { en: '฿85 — hold your price', th: '85 บาท — ยืนราคาเดิมไว้' } },
+      { id: 'p120', priceBaht: 120, label: { en: '฿120 — go premium instead', th: '120 บาท — ขึ้นไปเล่นตลาดพรีเมียมเลย' } },
     ],
   },
   {
     kind: 'outcome',
-    id: 'outcome-staffing',
-    forStageId: 'decide-staffing',
+    id: 'outcome-price',
+    forStageId: 'decide-price',
     headline: {
-      en: 'Three baristas. ฿1,700 profit — 54% more than four.',
-      th: 'บาริสต้าสามคนคือคำตอบ กำไร 1,700 บาท มากกว่าการจ้างสี่คนถึง 54%',
+      en: '฿85 held. Matching their ฿45 sign won 7 customers and cost ฿4,219.',
+      th: 'ยืนราคา 85 บาทคือคำตอบ การลดลงไปสู้ที่ 45 บาท ได้ลูกค้าเพิ่ม 7 คน แต่เสียกำไรไป 4,219 บาท',
     },
     body: {
-      en: 'With two, the average wait reached 3.7 minutes and 19 people walked out — 19 of the people who told you at registration that they would not queue longer than three. Nobody had to guess that. It was sitting in your own answers the whole time, and nobody read it.',
-      th: 'ถ้าจัดสองคน คิวจะยาวจนต้องรอเฉลี่ย 3.7 นาที และมี 19 คนเดินออกไป ซึ่ง 19 คนนั้นคือคนที่เคยตอบไว้ตอนลงทะเบียนว่ารอได้ไม่เกินสามนาที ไม่มีใครต้องเดาเลย เพราะตัวเลขนี้อยู่ในคำตอบของพวกคุณมาตลอด แค่ไม่มีใครหยิบมาอ่าน',
+      en: 'At ฿85, 7 of the 120 people who walked past could not buy — because exactly one of you, out of 18, said you spend under ฿50. Dropping to ฿45 brought those 7 back and took ฿40 off every one of the other 113. And the discount was aimed at the wrong thing anyway: 11 of you named price, but all 18 named taste. The people who were leaving were not leaving over price. Nobody had to guess that — you answered it weeks ago.',
+      th: 'ที่ราคา 85 บาท มีคนซื้อไม่ได้ 7 คนจาก 120 คนที่เดินผ่าน เพราะในบรรดา 18 คนที่ตอบมา มีเพียงคนเดียวที่บอกว่าจ่ายต่ำกว่า 50 บาท การลดราคาลงมาที่ 45 บาท ดึง 7 คนนั้นกลับมาได้จริง แต่ก็หั่นเงินออกจากอีก 113 คนที่เหลือ คนละ 40 บาท และการลดราคาก็เล็งผิดจุดตั้งแต่แรก เพราะมี 11 คนที่เลือก "ราคา" แต่ทั้ง 18 คนเลือก "รสชาติ" คนที่เดินออกไป ไม่ได้เดินออกไปเพราะราคา และไม่มีใครต้องเดาเลย เพราะพวกคุณตอบไว้เองตั้งแต่หลายสัปดาห์ก่อน',
     },
     lesson: {
-      en: 'Data is a cost until it changes a decision.',
-      th: 'ข้อมูลเป็นแค่ต้นทุน จนกว่ามันจะเปลี่ยนการตัดสินใจ',
+      en: 'A discount only wins back the people who left over price. Check that they did.',
+      th: 'การลดราคาดึงกลับได้แค่คนที่เดินออกไปเพราะราคา ก่อนลด ต้องเช็กก่อนว่าเขาไปเพราะเรื่องนั้นจริงไหม',
     },
   },
   {
@@ -144,36 +194,66 @@ export const STAGES: Stage[] = [
     id: 'decide-defend',
     resolve: 'fixed',
     durationMs: ROUND_2_VOTE_MS,
+    storyboard: [
+      {
+        emoji: '🏪',
+        caption: {
+          en: 'By 11:30 the new place across the road has a queue. Yours does not.',
+          th: 'พอถึงสิบเอ็ดโมงครึ่ง ร้านใหม่ฝั่งตรงข้ามมีคนต่อคิว ส่วนร้านคุณไม่มี',
+        },
+      },
+      {
+        emoji: '💸',
+        caption: {
+          en: 'You have one budget left for today, and four things you could spend it on.',
+          th: 'วันนี้คุณเหลืองบก้อนเดียว และมีสี่ทางให้เลือกใช้',
+        },
+      },
+    ],
     prompt: {
       en: 'How do you defend the shop?',
       th: 'คุณจะรับมือกับคู่แข่งยังไง',
     },
-    // Patience is what the competitor is attacking, and committed coffee drinkers are the people
-    // who might stay anyway. Neither figure decides the round — nothing on the form asked about
-    // noon (see `data-competitor`) — but they are the only data the room actually holds.
-    evidence: ['queuePatience', 'firstDrink'],
+    // `mainFactor` is the ranking the four options below are ordered against — see the note on
+    // each `fx`. `queuePatience` is what the competitor is attacking. Neither figure DECIDES the
+    // round (nothing on the form asked about noon — see `data-competitor`), but they are the data
+    // the room actually holds, and the ordering is no longer a guess.
+    evidence: ['mainFactor', 'queuePatience'],
     context: {
       en: 'The same budget whichever way you go. Pick one.',
       th: 'ไม่ว่าจะเลือกทางไหน งบเท่ากัน เลือกได้ทางเดียว',
     },
     options: [
       {
+        id: 'quality',
+        label: {
+          en: 'Beat them on taste — a signature drink worth crossing the road for',
+          th: 'สู้ด้วยรสชาติ — มีเมนูซิกเนเจอร์ที่คุ้มค่าให้ข้ามถนนมา',
+        },
+        /* TASTE — named by 18 of 18. The largest bar on the chart beside this question, and so
+         * the largest effect here. The ORDER of these four is taken from `mainFactor`; the
+         * magnitudes are still chosen by hand, and are flagged for review. */
+        fx: { revenue: 1400, profit: 900, satisfaction: 14, waste: -100 },
+      },
+      {
+        id: 'promotion',
+        label: {
+          en: 'Run a promotion — buy two, the second is half price',
+          th: 'จัดโปรโมชัน — ซื้อสองแก้ว แก้วที่สองลดครึ่งราคา',
+        },
+        /* PROMOTION — named by 8 of 18. Pulls people in and prompts over-prepping for a rush that
+         * only partly turns up, so it is the one defensive play that RAISES waste. */
+        fx: { revenue: 900, profit: 400, satisfaction: 8, waste: 300 },
+      },
+      {
         id: 'speed',
         label: {
           en: 'Race them on speed — cut the menu, batch the milk ahead',
           th: 'สู้ด้วยความเร็ว — ลดเมนู เตรียมนมไว้ล่วงหน้า',
         },
-        // The 07:00 answer, replayed at noon. It costs real waste and still loses the queue race.
+        /* CONVENIENCE — named by 6 of 18. The 07:00 answer, replayed at noon: it costs real waste
+         * and still loses the queue race. */
         fx: { revenue: 600, profit: 200, satisfaction: -4, waste: 400 },
-      },
-      {
-        id: 'quality',
-        label: {
-          en: 'Beat them on quality — a signature drink and a reason to sit down',
-          th: 'สู้ด้วยคุณภาพ — มีเมนูซิกเนเจอร์ และมีเหตุผลให้ลูกค้านั่งต่อ',
-        },
-        // The right answer at noon, and it is not the right answer at 07:00. That is the lesson.
-        fx: { revenue: 1400, profit: 900, satisfaction: 14, waste: -100 },
       },
       {
         id: 'price',
@@ -181,7 +261,9 @@ export const STAGES: Stage[] = [
           en: 'Match their price — discount every cup',
           th: 'สู้ด้วยราคา — ลดราคาทุกแก้ว',
         },
-        // Buys traffic with margin. Revenue up, profit down: the classic panic move.
+        /* PRICE — named by 11 of 18, and still last. It is the only option that gives away margin
+         * on customers who were never going to leave, which is round 1's lesson arriving again in
+         * a different costume. Revenue up, profit down: the classic panic move. */
         fx: { revenue: 400, profit: -500, satisfaction: 5 },
       },
     ],
@@ -195,8 +277,8 @@ export const STAGES: Stage[] = [
       th: 'ตอนเที่ยง คุณภาพเป็นฝ่ายชนะ ส่วนความเร็วนั้นชนะไปแล้วตั้งแต่เจ็ดโมงเช้า',
     },
     body: {
-      en: 'Racing on speed threw ฿400 of prepped milk in the bin and still left you second in line. Discounting pulled people in and gave away ฿500 of profit to do it. Quality added ฿900, because the customer at noon was choosing where to sit, not how fast to leave. Same shop, same data, four hours later, opposite answer.',
-      th: 'การไล่สู้ด้วยความเร็วทำให้นมที่เตรียมไว้ 400 บาทต้องเททิ้ง แล้วคิวก็ยังแพ้เขาอยู่ดี ส่วนการลดราคาก็เรียกคนเข้าร้านได้จริง แต่แลกด้วยกำไรที่หายไป 500 บาท ขณะที่คุณภาพเพิ่มกำไรให้ 900 บาท เพราะลูกค้าตอนเที่ยงกำลังเลือกว่าจะนั่งที่ไหน ไม่ได้เลือกว่าจะออกจากร้านได้เร็วแค่ไหน ร้านเดิม ข้อมูลชุดเดิม ผ่านไปสี่ชั่วโมง คำตอบกลับตรงกันข้าม',
+      en: 'Quality added ฿900. The promotion added ฿400 and put ฿300 of over-prepped stock in the bin. Racing on speed threw ฿400 of milk away and still left you second in line. Discounting pulled people in and gave away ฿500 of profit to do it. That order is not invented — it is the order you put those four factors in at registration, with taste at the top and price below it.',
+      th: 'คุณภาพเพิ่มกำไร 900 บาท โปรโมชันเพิ่ม 400 บาท แต่ก็ทำให้ของที่เตรียมเกินอีก 300 บาทต้องลงถัง การไล่สู้ด้วยความเร็วทำให้นมที่เตรียมไว้ 400 บาทต้องเททิ้ง แล้วคิวก็ยังแพ้เขาอยู่ดี ส่วนการลดราคาเรียกคนเข้าร้านได้จริง แต่แลกด้วยกำไรที่หายไป 500 บาท ลำดับนี้ไม่ได้คิดขึ้นเอง แต่คือลำดับที่พวกคุณจัดปัจจัยทั้งสี่ข้อนี้ไว้เองตอนลงทะเบียน โดยมีรสชาติอยู่บนสุด และราคาอยู่ล่างกว่า',
     },
     lesson: {
       en: 'Data depreciates. The answer that was right at 7am is not right at noon.',
@@ -208,6 +290,22 @@ export const STAGES: Stage[] = [
     id: 'decide-invest',
     resolve: 'fixed',
     durationMs: ROUND_3_VOTE_MS,
+    storyboard: [
+      {
+        emoji: '🏦',
+        caption: {
+          en: 'The day is over. There is ฿20,000 in the account that you do not need this week.',
+          th: 'จบวันแล้ว ในบัญชีเหลืออยู่ 20,000 บาท ที่สัปดาห์นี้ยังไม่ต้องใช้',
+        },
+      },
+      {
+        emoji: '📅',
+        caption: {
+          en: 'Whatever you buy with it, the shop keeps for the rest of the year.',
+          th: 'ไม่ว่าจะเอาไปซื้ออะไร ร้านจะได้ใช้สิ่งนั้นไปตลอดทั้งปี',
+        },
+      },
+    ],
     prompt: {
       en: '฿20,000 left in the account. Where does it go?',
       th: 'เหลือเงินในบัญชี 20,000 บาท คุณจะลงกับอะไร',
@@ -247,6 +345,17 @@ export const STAGES: Stage[] = [
           th: 'บัตรสะสมแต้มที่ดึงลูกค้าเดิมให้กลับมาซ้ำ',
         },
         fx: { revenue: 1200, profit: 1000, satisfaction: 12, waste: -200 },
+      },
+      {
+        id: 'stock',
+        label: {
+          en: 'A year of deeper stock, so you never sell out at 09:00',
+          th: 'ตุนของให้ลึกขึ้นทั้งปี จะได้ไม่ของหมดตั้งแต่เก้าโมง',
+        },
+        /* The team's "เพิ่ม stock". It is the option that looks safest and scores worst: holding
+         * more stock against a demand you have not measured is how waste is manufactured, and
+         * `waste` subtracts on the board. A deliberate trap, not an oversight. */
+        fx: { revenue: 800, profit: 200, satisfaction: 4, waste: 900 },
       },
     ],
   },

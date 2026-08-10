@@ -17,14 +17,14 @@ import type { CSSProperties } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { AUDIENCE } from '@/content/audience'
 import { ARCHETYPES, STAGES } from '@/content/room'
-import { KPI_LABELS, NARRATED_BARISTAS, TRACE_LABELS, UI } from '@/content/room-labels'
+import { KPI_LABELS, NARRATED_DISCOUNT_PRICE, NARRATED_HELD_PRICE, TRACE_LABELS, UI } from '@/content/room-labels'
 import { STAGE_COUNT } from '@/lib/room'
 import type { LeaderboardEntry, PublicRoomState } from '@/lib/room-store'
 import type {
   CloseStage, DataStage, DecideStage, EvidenceKey, IntroStage, Kpi, KpiDelta, OutcomeStage, Stage,
 } from '@/lib/room-types'
-import type { LocalizedText } from '@/lib/types'
-import { simulateStaffing } from '@/lib/sim'
+import type { LocalizedText, StoryPanel } from '@/lib/types'
+import { simulatePricing } from '@/lib/pricing'
 import { Bilingual } from '@/components/deck/Bilingual'
 import { DataPanel } from './DataPanel'
 import { evidencePanels } from './evidence'
@@ -213,14 +213,48 @@ function JoinView({
  * about the meaning of that number changing while the number does not.
  */
 const PANELS: Record<string, EvidenceKey[]> = {
-  'data-you': ['buyTime', 'queuePatience'],
+  // The two questions round 1 turns on. `data-you` sets them up, `decide-price` shows them again
+  // beside the vote — deliberately the same charts, because the room is being asked to recognise
+  // an answer it gave weeks ago rather than to remember a screen from two stages back.
+  'data-you': ['spend', 'mainFactor'],
   'data-competitor': ['queuePatience'],
+}
+
+/**
+ * A storyboard: two to four captioned frames, read left to right.
+ *
+ * The team's note after the run-through was that a bilingual question reads as a wall of text on a
+ * projector at the back of a hall. This is the answer — the same words, broken into frames with a
+ * character in each.
+ *
+ * `art` is the upgrade path and is expected to be empty today: the emoji IS the character, so the
+ * panels work with no illustration and nothing waits on a designer. Point `art` at a file in
+ * /public and it takes over, with no change here. A plain <img> rather than next/image because
+ * these are decorative, above the fold, and must not be the thing that delays a stage appearing.
+ */
+function Storyboard({ panels }: { panels?: StoryPanel[] }) {
+  if (!panels?.length) return null
+  return (
+    <ol className="room-story" data-testid="storyboard" data-count={panels.length}>
+      {panels.map((panel) => (
+        <li className="room-story__panel" key={panel.caption.en}>
+          <div className="room-story__art" aria-hidden="true">
+            {panel.art
+              ? <img className="room-story__img" src={panel.art} alt="" />
+              : <span className="room-story__emoji">{panel.emoji}</span>}
+          </div>
+          <Bilingual text={panel.caption} as="body" className="room-story__caption" />
+        </li>
+      ))}
+    </ol>
+  )
 }
 
 function DataView({ stage }: { stage: DataStage }) {
   const panels = evidencePanels(PANELS[stage.id])
   return (
     <div className="room-data">
+      <Storyboard panels={stage.storyboard} />
       <div className="room-data__words">
         <Bilingual text={stage.headline} as="hero" />
         <Bilingual text={stage.body} as="body" className="room-data__lead" />
@@ -283,6 +317,7 @@ function DecideView({
 
   return (
     <div className="room-decide" data-evidence={hasEvidence}>
+      <Storyboard panels={stage.storyboard} />
       <DecideEvidence evidence={stage.evidence} />
 
       <div className="room-decide__vote">
@@ -342,49 +377,58 @@ function TraceStep({
 }
 
 /**
- * Round 1's outcome, rendered from the simulator's own trace rather than from written numbers:
- * arrivals → what the bar could make → who got a coffee → who left → who is still standing there.
+ * Round 1's outcome, rendered from the simulator's own trace rather than from written numbers.
  *
- * The trace is recomputed here at `NARRATED_BARISTAS`, the staffing level the body copy on this
- * stage describes. It cannot come from the frame: `tallies` is empty on an outcome stage by
- * construction (the store only tallies the stage it is on), and the room's own vote is not the
- * subject of this screen — the cautionary case is.
+ * The chain it draws is the DISCOUNT, not the winner: people who walked past → who could afford
+ * it → who was priced out → what was binned — and then the two figures the whole screen exists to
+ * put beside each other, the customers the discount actually won and the profit it cost to win
+ * them. Showing the winning price's chain would be showing a shop that worked; the teaching is in
+ * the one that did not.
  *
- * `served + lostToQueue + stillQueuing === arrivals` always, and all four render even at zero, so
- * that nobody visibly disappears between two figures on a projector.
+ * Both traces are recomputed here from `NARRATED_DISCOUNT_PRICE` and `NARRATED_HELD_PRICE`, the
+ * two numbers the body copy on this stage quotes. They cannot come from the frame: `tallies` is
+ * empty on an outcome stage by construction, and the room's own vote is not the subject of this
+ * screen — the cautionary case is.
+ *
+ * `buyers + pricedOut === footfall` always, and every figure renders even at zero, so nobody
+ * visibly disappears between two numbers on a projector.
  */
-function StaffingTrace() {
-  const { trace } = simulateStaffing(NARRATED_BARISTAS, AUDIENCE)
+function PricingTrace() {
+  const cut = simulatePricing(NARRATED_DISCOUNT_PRICE, AUDIENCE)
+  const held = simulatePricing(NARRATED_HELD_PRICE, AUDIENCE)
+
+  const extraCustomers = cut.trace.buyers - held.trace.buyers
+  const profitGivenUp = held.profit - cut.profit
 
   return (
     <section className="room-trace">
       <header className="room-trace__head">
         {/* This screen makes the workshop's strongest claim — "these are your own answers played
-            forward" — off figures that are placeholder until the registration CSV lands. The badge
-            reads IS_PLACEHOLDER itself and disappears on its own when that flag flips. */}
+            forward". The badge reads IS_PLACEHOLDER itself and disappears when that flag flips. */}
         <PlaceholderBadge />
         <Bilingual text={UI.whatHappened} as="label" />
         <p className="room-trace__staffing">
-          <b>{NARRATED_BARISTAS}</b>
-          <Bilingual text={UI.baristasOnBar} as="label" />
+          <b>฿{NARRATED_DISCOUNT_PRICE}</b>
+          <Bilingual text={UI.onTheBoard} as="label" />
+          <Bilingual text={UI.heldAt} as="label" />
+          <b>฿{NARRATED_HELD_PRICE}</b>
         </p>
       </header>
 
       <ol className="room-trace__steps">
-        <TraceStep step={1} value={num.format(trace.arrivals)} label={TRACE_LABELS.arrivals} testId="trace-arrivals" />
-        <TraceStep step={2} value={num.format(trace.capacity)} label={TRACE_LABELS.capacity} testId="trace-capacity" />
-        <TraceStep step={3} value={num.format(trace.served)} label={TRACE_LABELS.served} testId="trace-served" />
-        <TraceStep step={4} value={num.format(trace.lostToQueue)} label={TRACE_LABELS.lostToQueue} testId="trace-lostToQueue" tone="loss" />
-        <TraceStep step={5} value={num.format(trace.stillQueuing)} label={TRACE_LABELS.stillQueuing} testId="trace-stillQueuing" tone="wait" />
-        {/* Rounded to one decimal because the script quotes one decimal. Two renderings of the
-            same figure on one screen reads as a broken number, not as precision. */}
-        <TraceStep step={6} value={trace.waitMinutes.toFixed(1)} label={TRACE_LABELS.waitMinutes} testId="trace-waitMinutes" tone="loss" />
+        <TraceStep step={1} value={num.format(cut.trace.footfall)} label={TRACE_LABELS.footfall} testId="trace-footfall" />
+        <TraceStep step={2} value={num.format(cut.trace.buyers)} label={TRACE_LABELS.buyers} testId="trace-buyers" />
+        <TraceStep step={3} value={num.format(cut.trace.pricedOut)} label={TRACE_LABELS.pricedOut} testId="trace-pricedOut" tone="loss" />
+        <TraceStep step={4} value={num.format(cut.trace.unsold)} label={TRACE_LABELS.unsold} testId="trace-unsold" tone="wait" />
+        {/* The comparison. These two are the argument; everything above is how they were reached. */}
+        <TraceStep step={5} value={num.format(extraCustomers)} label={TRACE_LABELS.extraCustomers} testId="trace-extraCustomers" />
+        <TraceStep step={6} value={num.format(profitGivenUp)} label={TRACE_LABELS.profitGivenUp} testId="trace-profitGivenUp" tone="loss" />
       </ol>
 
       <p className="room-trace__sum" data-testid="trace-accounting">
         <span className="room-trace__eq">
-          {num.format(trace.served)} + {num.format(trace.lostToQueue)} + {num.format(trace.stillQueuing)}
-          {' = '}{num.format(trace.arrivals)}
+          {num.format(cut.trace.buyers)} + {num.format(cut.trace.pricedOut)}
+          {' = '}{num.format(cut.trace.footfall)}
         </span>
         <Bilingual text={UI.accounting} as="label" />
       </p>
@@ -436,7 +480,7 @@ function FixedOutcomes({ stage }: { stage: DecideStage }) {
 
 function OutcomeView({ stage, frame }: { stage: OutcomeStage; frame: RoomFrame }) {
   const decide = decideStageFor(stage)
-  const simulated = decide?.resolve === 'simulate-staffing'
+  const simulated = decide?.resolve === 'simulate-pricing'
 
   return (
     <div className="room-outcome">
@@ -445,7 +489,7 @@ function OutcomeView({ stage, frame }: { stage: OutcomeStage; frame: RoomFrame }
         <Bilingual text={stage.body} as="body" className="room-outcome__body" />
       </div>
 
-      {simulated ? <StaffingTrace /> : decide ? <FixedOutcomes stage={decide} /> : null}
+      {simulated ? <PricingTrace /> : decide ? <FixedOutcomes stage={decide} /> : null}
 
       <p className="room-lesson">
         <Bilingual text={UI.theLesson} as="label" className="room-lesson__eyebrow" />

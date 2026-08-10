@@ -7,7 +7,7 @@
 // language toggle anywhere in this workshop and no type here takes a `lang` prop (spec §7).
 
 import { z } from 'zod'
-import { LocalizedTextSchema } from './types'
+import { LocalizedTextSchema, StoryboardSchema } from './types'
 
 /**
  * A player's shop, carried across all three rounds (spec §5.1).
@@ -66,6 +66,8 @@ export const DataStageSchema = z.object({
   body: LocalizedTextSchema,
   /** The two or three figures the host reads out loud before the decision that uses them. */
   points: z.array(LocalizedTextSchema).min(1).max(4),
+  /** Optional storyboard, above the figures. See `StoryPanelSchema` for why this exists. */
+  storyboard: StoryboardSchema.optional(),
 })
 export type DataStage = z.infer<typeof DataStageSchema>
 
@@ -82,6 +84,19 @@ export const SimulatedOptionSchema = z.object({
   baristas: z.number().int().min(0),
 })
 export type SimulatedOption = z.infer<typeof SimulatedOptionSchema>
+
+/**
+ * An option in the pricing round. Like `SimulatedOption` it carries the player's input and NOTHING
+ * else — the result comes from `simulatePricing` reading the audience's own spend answers, so an
+ * outcome written here by hand would be the dishonesty this workshop argues against (spec §4).
+ */
+export const PricedOptionSchema = z.object({
+  id: z.string().min(1),
+  label: LocalizedTextSchema,
+  /** What this option puts on the board, ฿ — the simulator's only input from the player. */
+  priceBaht: z.number().int().positive(),
+})
+export type PricedOption = z.infer<typeof PricedOptionSchema>
 
 /** An option in a fixed round. `fx` is applied straight to the player's Kpi when voting closes. */
 export const FixedOptionSchema = z.object({
@@ -105,6 +120,10 @@ export const EvidenceKeySchema = z.enum([
   'firstDrink',
   'buyTime',
   'queuePatience',
+  // The two questions the live form added. `spend` is what round 1 is resolved against, and
+  // `mainFactor` is what explains the result — see lib/pricing.ts.
+  'spend',
+  'mainFactor',
 ])
 export type EvidenceKey = z.infer<typeof EvidenceKeySchema>
 
@@ -112,6 +131,12 @@ const decideBase = {
   kind: z.literal('decide'),
   id: StageIdSchema,
   prompt: LocalizedTextSchema,
+  /**
+   * Optional storyboard, shown above the prompt — the team's note that a question lands better as
+   * a few captioned frames than as a paragraph. Lives on the shared base so every decide stage
+   * gets it regardless of how it resolves.
+   */
+  storyboard: StoryboardSchema.optional(),
   /** The data that bears on the decision, shown beside it. */
   context: LocalizedTextSchema,
   /**
@@ -132,13 +157,22 @@ const decideBase = {
   durationMs: z.number().int().positive(),
 }
 
-/** Round 1. Resolved by playing the audience's own answers forward. */
+/** Staffing. Resolved by playing the audience's own answers forward. Not currently in STAGES —
+ * see lib/sim.ts for why it left, and why it is kept. */
 export const SimulatedDecideStageSchema = z.object({
   ...decideBase,
   resolve: z.literal('simulate-staffing'),
   options: z.array(SimulatedOptionSchema).min(2).max(4),
 })
 export type SimulatedDecideStage = z.infer<typeof SimulatedDecideStageSchema>
+
+/** Round 1 as it is played now: what do you charge? Resolved against the audience's spend answers. */
+export const PricedDecideStageSchema = z.object({
+  ...decideBase,
+  resolve: z.literal('simulate-pricing'),
+  options: z.array(PricedOptionSchema).min(2).max(4),
+})
+export type PricedDecideStage = z.infer<typeof PricedDecideStageSchema>
 
 /** Rounds 2 and 3. Fixed KPI deltas — price sensitivity and capital allocation are not in the
  * five registration questions, so there is nothing honest to simulate them from (spec §4). */
@@ -156,6 +190,7 @@ export type FixedDecideStage = z.infer<typeof FixedDecideStageSchema>
  */
 export const DecideStageSchema = z.discriminatedUnion('resolve', [
   SimulatedDecideStageSchema,
+  PricedDecideStageSchema,
   FixedDecideStageSchema,
 ])
 export type DecideStage = z.infer<typeof DecideStageSchema>

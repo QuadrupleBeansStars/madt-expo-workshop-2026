@@ -1,4 +1,16 @@
-// The staffing simulator — round 1 of The Decision Room.
+// The staffing simulator — NOT CURRENTLY IN PLAY. See `lib/pricing.ts`, which replaced it as
+// round 1.
+//
+// WHY IT LEFT, AND WHY IT IS STILL HERE. On the real registration data this round degenerates:
+// `buyTime['7to9']` is 8 people scaled by a coffee share of 6/18, which is three arrivals against
+// a single barista's capacity of 25. No queue forms, nobody walks out, and every staffing level
+// loses money — so the round becomes "hire the fewest" while the outcome copy quotes walk-outs
+// that cannot happen. That is a property of the sample size, not of this code: the survey stays
+// open until 23 Aug, and at a few hundred respondents with the same shape the round works again.
+// Deleting a tested simulator to un-delete it in two weeks would be the more expensive choice.
+//
+// The patience thresholds below were updated to the live form's buckets (5/10/15/forever) when
+// the real CSV landed. The original 3-minute floor was never on the form anyone filled in.
 //
 // This is NOT machine learning and must never be described as such on any screen. There is no
 // outcome variable in the registration data to train against: five facts per person, no results.
@@ -57,9 +69,9 @@ export const PEAK_MINUTES = 120
  * continuous rather than a cliff — a bucket does not empty all at once. `any` never leaves.
  */
 const PATIENCE_LIMIT_MINUTES: Record<keyof AudienceAggregate['queuePatience'], number> = {
-  under3: 3,
-  '3to5': 5,
-  '5to10': 10,
+  under5: 5,
+  under10: 10,
+  under15: 15,
   any: Number.POSITIVE_INFINITY,
 }
 
