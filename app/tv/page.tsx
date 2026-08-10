@@ -6,6 +6,7 @@ import { ROUNDS } from '@/lib/game'
 import { QRCodeSVG } from 'qrcode.react'
 import { Countdown } from '@/components/game/Countdown'
 import { Duck } from '@/components/game/Duck'
+import { Storyboard } from '@/components/game/Storyboard'
 import { t } from '@/lib/i18n'
 
 const HOST_TOKEN_KEY = 'aidet.hostToken'
@@ -182,6 +183,7 @@ function Stage({
           <span className="pixel-title text-2xl">{t('caseLabel', lang)} {round.order}/5</span>
           <span className="text-4xl"><Countdown remainingMs={state.remainingMs} /></span>
         </header>
+        <Storyboard panels={round.storyboard} lang={lang} />
         <div className="retro-panel p-6" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
           <div className="mb-4 text-3xl font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
           <Duck bubble={round.aiAnswer[lang]} size={72} />

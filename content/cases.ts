@@ -10,6 +10,33 @@ export const CASES: DetectiveCase[] = [
       th: 'มีมนุษย์คนไหนเดินทางออกไปไกลกว่าวงโคจรระดับต่ำของโลก (Low Earth Orbit) นับตั้งแต่ปี 1972 หรือไม่?',
       en: 'Has any human traveled beyond low Earth orbit since 1972?',
     },
+    // A storyboard, per the team's note after the 3 Aug run-through: a bilingual question plus an
+    // AI answer is a wall of text on a projector. Two frames set the scene before the reading
+    // starts. Every board in this file follows the same shape — the SITUATION, then the DOUBT.
+    // None of them reveals the failure mode; that is what the room is for.
+    storyboard: [
+      {
+        emoji: '🧑‍🚀',
+        caption: {
+          en: 'A student asks the AI a simple question about space.',
+          th: 'นักเรียนคนหนึ่งถาม AI คำถามง่าย ๆ เกี่ยวกับอวกาศ',
+        },
+      },
+      {
+        emoji: '🤖',
+        caption: {
+          en: 'It answers instantly, in full sentences, with a date and a crew list.',
+          th: 'AI ตอบทันที เป็นประโยคเต็ม มีทั้งวันที่และรายชื่อลูกเรือ',
+        },
+      },
+      {
+        emoji: '🔍',
+        caption: {
+          en: 'Everything it says is checkable. So check it.',
+          th: 'ทุกอย่างที่มันพูดตรวจสอบได้ งั้นก็ลองตรวจดู',
+        },
+      },
+    ],
     aiAnswer: {
       th: 'ไม่มีครับ มนุษย์กลุ่มสุดท้ายที่เดินทางออกไปไกลกว่าวงโคจรระดับต่ำของโลกคือลูกเรือ Apollo 17 ในเดือนธันวาคม 1972 หลังจากนั้นภารกิจที่มีมนุษย์ร่วมเดินทางทั้งหมดจำกัดอยู่แค่วงโคจรระดับต่ำเท่านั้น',
       en: 'No. The last humans to travel beyond low Earth orbit were the Apollo 17 crew in December 1972. Every crewed mission since has been confined to low Earth orbit.',
@@ -97,6 +124,29 @@ export const CASES: DetectiveCase[] = [
       th: 'ประเทศใดครองอันดับหนึ่งของตารางเหรียญรางวัลในโอลิมปิกฤดูหนาว Milan-Cortina 2026 และได้กี่เหรียญ?',
       en: 'Which country topped the medal table at the Milan-Cortina 2026 Winter Olympics, and with how many medals?',
     },
+    storyboard: [
+      {
+        emoji: '🏅',
+        caption: {
+          en: 'A journalist is on deadline and needs the final medal table.',
+          th: 'นักข่าวใกล้ถึงเดดไลน์ และต้องการตารางเหรียญรางวัลรอบสุดท้าย',
+        },
+      },
+      {
+        emoji: '📊',
+        caption: {
+          en: 'The AI gives exact numbers. Gold, total, runners-up — all of it.',
+          th: 'AI ให้ตัวเลขมาแบบเป๊ะ ๆ ทั้งเหรียญทอง ยอดรวม และอันดับรองลงมา',
+        },
+      },
+      {
+        emoji: '📄',
+        caption: {
+          en: 'The official table is sitting right there in the evidence.',
+          th: 'ตารางอย่างเป็นทางการก็วางอยู่ตรงนั้นในหลักฐานแล้ว',
+        },
+      },
+    ],
     aiAnswer: {
       th: 'นอร์เวย์ครองอันดับหนึ่งของตารางเหรียญรางวัลในโอลิมปิกฤดูหนาว Milan-Cortina 2026 ด้วยเหรียญทอง 16 เหรียญ และรวมทั้งหมด 38 เหรียญ ตามมาด้วยสหรัฐอเมริกาและเยอรมนี',
       en: 'Norway topped the medal table at the Milan-Cortina 2026 Winter Olympics with 16 gold medals and 38 medals in total, followed by the United States and Germany.',
@@ -184,6 +234,29 @@ export const CASES: DetectiveCase[] = [
       th: 'มีทนายความถูกลงโทษจริงหรือไม่ จากการยื่นคำร้องที่อ้างอิงคดีความซึ่ง AI แต่งขึ้นมา?',
       en: 'Have lawyers actually been punished for submitting AI-invented case law?',
     },
+    storyboard: [
+      {
+        emoji: '⚖️',
+        caption: {
+          en: 'A lawyer asks whether anyone has been punished for citing fake cases.',
+          th: 'ทนายคนหนึ่งถามว่า เคยมีใครโดนลงโทษเพราะอ้างคดีปลอมบ้างไหม',
+        },
+      },
+      {
+        emoji: '📚',
+        caption: {
+          en: 'The AI says yes — and names the case, the court, and the fine.',
+          th: 'AI ตอบว่าเคย พร้อมบอกชื่อคดี ศาล และค่าปรับมาให้ครบ',
+        },
+      },
+      {
+        emoji: '❓',
+        caption: {
+          en: 'A right answer and a wrong source are not the same thing.',
+          th: 'คำตอบที่ถูก กับแหล่งอ้างอิงที่ผิด ไม่ใช่เรื่องเดียวกัน',
+        },
+      },
+    ],
     aiAnswer: {
       th: 'มีครับ กรณีที่เป็นบรรทัดฐานคือคดี Hendricks v. Meridian Logistics Corp., No. 24-CV-8871 (N.D. Cal. 2026) ซึ่งศาลได้ปรับทนายความเป็นเงิน 22,000 ดอลลาร์ หลังพบว่าคำร้องอ้างอิงคดีที่ไม่มีอยู่จริงถึง 9 คดี คดีนี้ถูกอ้างถึงอย่างกว้างขวางในฐานะคำตัดสินสำคัญเรื่องการใช้ AI ในวงการกฎหมาย',
       en: 'Yes. The landmark case is Hendricks v. Meridian Logistics Corp., No. 24-CV-8871 (N.D. Cal. 2026), in which the court fined the attorneys $22,000 after their filing was found to cite nine non-existent cases. It is widely cited as the leading decision on AI use in legal practice.',
@@ -283,6 +356,29 @@ export const CASES: DetectiveCase[] = [
       th: 'จากรายงานผลประกอบการไตรมาส 1/2026 ของ NovaBrew — AI สรุปได้ถูกต้องหรือไม่?',
       en: 'Based on NovaBrew\'s Q1 2026 results — is the AI\'s conclusion sound?',
     },
+    storyboard: [
+      {
+        emoji: '📈',
+        caption: {
+          en: 'A manager pastes in the quarterly numbers and asks what they mean.',
+          th: 'ผู้จัดการวางตัวเลขผลประกอบการรายไตรมาสให้ แล้วถามว่ามันแปลว่าอะไร',
+        },
+      },
+      {
+        emoji: '🤖',
+        caption: {
+          en: 'Every figure the AI quotes back is correct.',
+          th: 'ตัวเลขทุกตัวที่ AI ยกกลับมาอ้าง ถูกต้องหมด',
+        },
+      },
+      {
+        emoji: '🧩',
+        caption: {
+          en: 'Right numbers can still add up to the wrong conclusion.',
+          th: 'ตัวเลขถูกทุกตัว ก็ยังนำไปสู่ข้อสรุปที่ผิดได้',
+        },
+      },
+    ],
     aiAnswer: {
       th: 'NovaBrew มีไตรมาสที่แข็งแกร่ง รายได้เติบโต 12.5% เป็น 270 ล้านบาท ขณะที่ขยายสาขาจาก 120 เป็น 150 สาขา เห็นได้ชัดว่าการขยายสาขากำลังขับเคลื่อนการเติบโต NovaBrew ควรเร่งเปิดสาขาเพิ่ม',
       en: 'NovaBrew had a strong quarter. Revenue grew 12.5% to ฿270M while the chain expanded from 120 to 150 stores. The expansion is clearly driving growth — NovaBrew should accelerate store openings.',
@@ -361,6 +457,29 @@ export const CASES: DetectiveCase[] = [
       th: 'ในปี 2026 นักวิทยาศาสตร์ถ่ายวิดีโอฉลามก็อบลินที่ยังมีชีวิตอยู่ในถิ่นอาศัยธรรมชาติใต้ทะเลลึกได้เป็นครั้งแรกจริงหรือไม่?',
       en: 'In 2026, did scientists really film a living goblin shark in its natural deep-sea habitat for the first time?',
     },
+    storyboard: [
+      {
+        emoji: '🦈',
+        caption: {
+          en: 'A researcher asks about a deep-sea filming claim from this year.',
+          th: 'นักวิจัยถามถึงข่าวการถ่ายวิดีโอใต้ทะเลลึกเมื่อปีนี้',
+        },
+      },
+      {
+        emoji: '🎥',
+        caption: {
+          en: 'The AI answers carefully, with the documents to back it.',
+          th: 'AI ตอบอย่างระมัดระวัง พร้อมมีเอกสารอ้างอิงประกอบ',
+        },
+      },
+      {
+        emoji: '🤔',
+        caption: {
+          en: 'By now you have caught it four times. That is its own trap.',
+          th: 'มาถึงตรงนี้ คุณจับผิดมันมาสี่ครั้งแล้ว ซึ่งนั่นก็เป็นกับดักในตัวมันเอง',
+        },
+      },
+    ],
     aiAnswer: {
       th: 'จริงครับ ในปี 2026 ทีมวิจัยจาก University of Hawaiʻi at Mānoa ถ่ายวิดีโอฉลามก็อบลิน (goblin shark) ที่ยังมีชีวิตในถิ่นอาศัยธรรมชาติใต้ทะเลลึกได้เป็นครั้งแรก โดยพบสองตัว — ตัวหนึ่งใกล้ภูเขาใต้ทะเลแถบเกาะ Jarvis และอีกตัวที่ลาดร่องลึก Tonga Trench ซึ่งลึกกว่าที่เคยรู้จักของสายพันธุ์นี้ราว 700 เมตร งานวิจัยตีพิมพ์ใน Journal of Fish Biology',
       en: 'Yes. In 2026, a research team from the University of Hawaiʻi at Mānoa filmed a living goblin shark in its natural deep-sea habitat for the first time. Two individuals were observed — one near a seamount by Jarvis Island, another on the slope of the Tonga Trench, roughly 700m deeper than the species was known to live. The work was published in the Journal of Fish Biology.',

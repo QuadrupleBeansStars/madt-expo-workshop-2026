@@ -8,6 +8,7 @@ import { Countdown } from '@/components/game/Countdown'
 import { AnswerCards } from '@/components/game/AnswerCards'
 import { EvidenceList } from '@/components/game/EvidenceList'
 import { Duck } from '@/components/game/Duck'
+import { Storyboard } from '@/components/game/Storyboard'
 import { t } from '@/lib/i18n'
 
 const RUN_KEY = 'aidet.run'   // identity ONLY: { playerId, codename }
@@ -209,6 +210,8 @@ function PhoneBody({
         <span className="pixel-title text-sm">{t('caseLabel', lang)} {round.order}/5</span>
         {state.phase === 'investigate' ? <Countdown remainingMs={state.remainingMs} /> : <span className="pixel-title text-sm">{t('reveal', lang)}</span>}
       </header>
+
+      <Storyboard panels={round.storyboard} lang={lang} compact />
 
       <div className="retro-panel p-3" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
         <div className="mb-1 font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
