@@ -54,7 +54,7 @@ export default function TvPage() {
     return () => { alive = false; clearInterval(id) }
   }, [])
 
-  const control = useCallback(async (action: 'start' | 'next') => {
+  const control = useCallback(async (action: 'start' | 'reveal' | 'next') => {
     try {
       const res = await fetch('/api/control', {
         method: 'POST',
@@ -77,7 +77,7 @@ export default function TvPage() {
   return (
     <main className="crt relative min-h-screen overflow-hidden px-8 py-[min(2rem,2.2vh)]" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
       <TokenBar token={token} onSave={saveToken} error={tokenError} lang={lang} />
-      <Stage state={state} stats={stats} lang={lang} origin={origin} tokenError={tokenError} hasToken={token.trim().length > 0} onStart={() => control('start')} onNext={() => control('next')} />
+      <Stage state={state} stats={stats} lang={lang} origin={origin} tokenError={tokenError} hasToken={token.trim().length > 0} onStart={() => control('start')} onReveal={() => control('reveal')} onNext={() => control('next')} />
     </main>
   )
 }
@@ -99,8 +99,19 @@ function TokenBar({ token, onSave, error, lang }: { token: string; onSave: (v: s
   )
 }
 
+/**
+ * Rows of the between-questions leaderboard. FIVE, not ten.
+ *
+ * The reveal screen is the tightest layout in this app — it is where the 14px overflow fight in
+ * `components/room/stages.css` happened — and the standings are being added to a screen that was
+ * already full. Five rows is what fits at 1366x768 beside the "believed the AI" figure with the
+ * host button still above the fold. `npm run check:projector` is the gate on this number; the
+ * final screen still shows ten, because it has the whole screen to itself.
+ */
+const REVEAL_LEADERBOARD_ROWS = 5
+
 function Stage({
-  state, stats, lang, origin, tokenError, hasToken, onStart, onNext,
+  state, stats, lang, origin, tokenError, hasToken, onStart, onReveal, onNext,
 }: {
   state: PublicGameState | null
   stats: RoomStats | null
@@ -109,6 +120,7 @@ function Stage({
   tokenError: boolean
   hasToken: boolean
   onStart: () => void
+  onReveal: () => void
   onNext: () => void
 }) {
   const tokenHint = tokenError
@@ -174,8 +186,17 @@ function Stage({
           <div className="mb-4 text-3xl font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
           <Duck bubble={round.aiAnswer[lang]} size={72} />
         </div>
-        <div className="mt-auto text-center pixel-title text-3xl">
-          {state.answeredCount} / {state.playerCount} {t('answered', lang)}
+        {/* The answered count and the cut-it-short button belong together: the count IS the
+            evidence the host reads before deciding the room is done. Splitting them would put
+            the decision in one corner and the reason for it in another. */}
+        <div className="mt-auto flex flex-col items-center gap-3">
+          <div className="pixel-title text-3xl">
+            {state.answeredCount} / {state.playerCount} {t('answered', lang)}
+          </div>
+          <button type="button" className="pixel-btn text-base" onClick={onReveal}>{t('hostRevealNow', lang)}</button>
+          {tokenError ? (
+            <p className="text-base font-bold" style={{ fontFamily: 'var(--font-thai), sans-serif', color: 'var(--rt-pink)' }}>{tokenHint}</p>
+          ) : null}
         </div>
       </div>
     )
@@ -191,18 +212,48 @@ function Stage({
         <div className="mb-4 text-3xl font-bold" style={{ color: 'var(--rt-green)' }}>{correct.label[lang]}</div>
         <p className="text-xl">{round.reveal[lang]}</p>
       </div>
-      {caseStat && caseStat.answered > 0 ? (
-        <div className="text-center">
-          <span className="pixel-title text-7xl" style={{ color: 'var(--rt-pink)' }}>{caseStat.believedAiPct}%</span>
-          <div className="mt-2 text-2xl" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('believedAiLabel', lang)}</div>
-        </div>
-      ) : null}
-      <div className="mx-auto mt-auto flex flex-col items-center gap-2">
+      {/* The two things the room wants to see the instant a case closes: how many of them the AI
+          fooled, and who is winning. Side by side rather than stacked — stacking them is what
+          pushes the host button below the fold at 1366x768. The standings render from the same
+          `stats` poll the final screen uses, so there is no new request per case. */}
+      <div className="flex flex-1 items-center justify-center gap-10">
+        {caseStat && caseStat.answered > 0 ? (
+          <div className="text-center">
+            <span className="pixel-title text-7xl" style={{ color: 'var(--rt-pink)' }}>{caseStat.believedAiPct}%</span>
+            <div className="mt-2 text-2xl" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('believedAiLabel', lang)}</div>
+          </div>
+        ) : null}
+        <RevealLeaderboard stats={stats} lang={lang} />
+      </div>
+      <div className="mx-auto flex flex-col items-center gap-2">
         <button type="button" className="pixel-btn gold text-lg" onClick={onNext}>{t('hostNext', lang)}</button>
         {tokenError ? (
           <p className="text-base font-bold" style={{ fontFamily: 'var(--font-thai), sans-serif', color: 'var(--rt-pink)' }}>{tokenHint}</p>
         ) : null}
       </div>
     </div>
+  )
+}
+
+/**
+ * The running standings between cases — the team's ask after the run-through: the room had no
+ * idea who was ahead until the very end, so there was nothing to play for in the middle.
+ *
+ * Renders nothing at all before anyone has scored. An empty panel headed "STANDINGS" on the first
+ * reveal reads as a bug to a room that has not been told the board is cumulative.
+ */
+function RevealLeaderboard({ stats, lang }: { stats: RoomStats | null; lang: Lang }) {
+  const rows = stats?.leaderboard.slice(0, REVEAL_LEADERBOARD_ROWS) ?? []
+  if (rows.length === 0) return null
+  return (
+    <ol className="retro-panel min-w-[300px] p-4" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+      <li className="pixel-title mb-2 list-none text-sm">{t('standings', lang)}</li>
+      {rows.map((r, i) => (
+        <li key={r.codename} className="flex justify-between gap-6 border-b border-white/10 py-1 text-lg last:border-b-0">
+          <span>{i + 1}. {r.codename}</span>
+          <span className="tabular-nums" style={{ color: 'var(--rt-gold)' }}>{r.score}</span>
+        </li>
+      ))}
+    </ol>
   )
 }

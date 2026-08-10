@@ -40,6 +40,10 @@ const STRINGS = {
   detectivesInRoom: { th: 'นักสืบในห้อง', en: 'Detectives in the room' },
   hostStart:        { th: '▶ เริ่มเกม', en: '▶ Start game' },
   hostNext:         { th: 'ถัดไป →', en: 'Next →' },
+  // Deliberately says "close" rather than "skip": this button stops on the reveal, it does not
+  // jump the case. A host reading "skip" mid-session would expect the latter.
+  hostRevealNow:    { th: '⏭ ปิดข้อนี้ เฉลยเลย', en: '⏭ Close it — reveal now' },
+  standings:        { th: 'อันดับตอนนี้', en: 'STANDINGS' },
   roundInProgress:  { th: 'เกมกำลังดำเนินอยู่ — คุณจะได้ชมรอบนี้ และเข้าร่วมได้เมื่อเริ่มเซสชันใหม่', en: 'A game is in progress — you can watch this session and join when a new one starts' },
   spectating:       { th: '👀 กำลังรับชม', en: '👀 Spectating' },
   answerLocked:     { th: '🔒 ล็อกคำตอบแล้ว', en: '🔒 Answer locked' },

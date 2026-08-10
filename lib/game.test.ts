@@ -11,12 +11,20 @@ describe('game logic', () => {
     expect(ROUNDS.map((c) => c.order)).toEqual([1, 2, 3, 4, 5])
   })
 
-  it('easy/medium rounds get 75s, harder rounds get 90s', () => {
-    expect(roundDurationMs('easy')).toBe(75_000)
-    expect(roundDurationMs('medium')).toBe(75_000)
-    expect(roundDurationMs('hard')).toBe(90_000)
-    expect(roundDurationMs('expert')).toBe(90_000)
-    expect(roundDurationMs('final')).toBe(90_000)
+  // The team's requirement after the 3 Aug run-through is a BAND (45-60s per question), not five
+  // specific numbers — so that is what this asserts. Retuning inside the band is a free change;
+  // drifting back out of it, in either direction, fails here.
+  it('every round runs inside the 45-60s band the room asked for', () => {
+    for (const d of ['easy', 'medium', 'hard', 'expert', 'final'] as const) {
+      expect(roundDurationMs(d)).toBeGreaterThanOrEqual(45_000)
+      expect(roundDurationMs(d)).toBeLessThanOrEqual(60_000)
+    }
+  })
+
+  it('harder cases are never given less time than easier ones', () => {
+    const order = ['easy', 'medium', 'hard', 'expert', 'final'] as const
+    const durations = order.map(roundDurationMs)
+    expect([...durations].sort((a, b) => a - b)).toEqual(durations)
   })
 
   it('remainingMs counts down only during investigate and never goes negative', () => {

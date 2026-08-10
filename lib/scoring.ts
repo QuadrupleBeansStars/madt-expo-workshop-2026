@@ -1,4 +1,5 @@
 import type { Answer, Difficulty } from './types'
+import { MAX_ROUND_DURATION_MS } from './game'
 import { getCase } from '@/content/cases'
 
 /** Harder cases are worth more. The smallest value here bounds MAX_SPEED_BONUS — see below. */
@@ -22,8 +23,15 @@ export const BASE_POINTS: Record<Difficulty, number> = {
  */
 export const MAX_SPEED_BONUS = 15
 
-/** Soft target per case. Answering slower than this simply earns no bonus — it is never punished. */
-const SPEED_TARGET_MS = 90_000
+/**
+ * Soft target per case. Answering slower than this simply earns no bonus — it is never punished.
+ *
+ * Pinned to the longest round rather than written as a literal. It was a standalone 90_000, which
+ * silently stopped matching anything when the rounds were shortened to the 45-60s band: with the
+ * longest question at 60s, no answer could ever be slow enough to score zero, so the bonus range
+ * collapsed from [0,15] to [5,15] and the tiebreaker lost a third of its resolution.
+ */
+const SPEED_TARGET_MS = MAX_ROUND_DURATION_MS
 
 export function speedBonus(elapsedMs: number): number {
   // elapsedMs is client-reported (untrusted): clock skew, replays, and tampering

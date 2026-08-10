@@ -3,7 +3,14 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MemoryRoomStore } from './store'
-import { ROUNDS } from './game'
+import { ROUNDS, roundDurationMs } from './game'
+
+/**
+ * Derived, never written down. These assertions are about the store's clock arithmetic, not about
+ * how long a question happens to run — hardcoding 75_000 here made retuning the durations for the
+ * team's 45-60s band fail in two files that have nothing to do with durations.
+ */
+const ROUND_0_MS = roundDurationMs(ROUNDS[0].difficulty)
 
 const round0 = ROUNDS[0].id
 const opt0 = ROUNDS[0].options[0].id
@@ -148,7 +155,7 @@ describe('store game state', () => {
     s.startGame(1000)
     expect(s.tick(2000)).toBe(false)               // still time left
     expect(s.getGameState().phase).toBe('investigate')
-    expect(s.tick(1000 + 75_000 + 1)).toBe(true)   // timed out → flip
+    expect(s.tick(1000 + ROUND_0_MS + 1)).toBe(true) // timed out → flip
     expect(s.getGameState().phase).toBe('reveal')
     expect(s.tick(999_999)).toBe(false)            // already reveal, no more flips
   })
@@ -165,6 +172,37 @@ describe('store game state', () => {
     expect(s.getGameState().phase).toBe('reveal')
   })
 
+  // The host's "close it, reveal now" button. Before `revealNow` existed the only exits from
+  // `investigate` were the timer and every active player answering, so a host watching a room
+  // that had visibly finished had no way to move.
+  it('revealNow ends the question early and stops on the reveal', () => {
+    const s = new MemoryRoomStore()
+    s.join('Alice', 0)
+    s.startGame(1000)
+    const before = s.getSeq()
+
+    s.revealNow(2000)
+    expect(s.getGameState().phase).toBe('reveal')
+    expect(s.getGameState().roundIndex).toBe(0)   // the SAME case — it does not skip the teaching
+    expect(s.getSeq()).toBeGreaterThan(before)    // phones must see the change
+  })
+
+  it('revealNow is a no-op outside investigate, so a double-tap cannot skip a case', () => {
+    const s = new MemoryRoomStore()
+    s.join('Alice', 0)
+
+    s.revealNow(500)                              // still in the lobby
+    expect(s.getGameState().phase).toBe('lobby')
+
+    s.startGame(1000)
+    s.revealNow(2000)
+    const seqAfterFirst = s.getSeq()
+    s.revealNow(2500)                             // the laggy-projector second tap
+    expect(s.getGameState().phase).toBe('reveal')
+    expect(s.getGameState().roundIndex).toBe(0)
+    expect(s.getSeq()).toBe(seqAfterFirst)        // nothing happened at all
+  })
+
   it('getPublicState reports counts, remaining, and youAnswered', () => {
     const s = new MemoryRoomStore()
     const a = s.join('Alice', 0)
@@ -176,7 +214,7 @@ describe('store game state', () => {
     expect(pub.caseId).toBe(round0)
     expect(pub.playerCount).toBe(2)
     expect(pub.answeredCount).toBe(1)
-    expect(pub.remainingMs).toBe(1000 + 75_000 - 2000)
+    expect(pub.remainingMs).toBe(1000 + ROUND_0_MS - 2000)
     expect(pub.youAnswered).toBe(true)
     expect(s.getPublicState(2000, 'nobody').youAnswered).toBe(false)
     expect(s.getPublicState(2000).youAnswered).toBeUndefined()

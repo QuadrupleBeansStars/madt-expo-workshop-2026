@@ -5,17 +5,39 @@ import { CASES } from '@/content/cases'
 export const ROUNDS: DetectiveCase[] = [...CASES].sort((a, b) => a.order - b.order)
 export const ROUND_COUNT = ROUNDS.length
 
-/** Generous "read the evidence and think" windows — never a race. See spec §4. */
+/**
+ * The thinking window per case.
+ *
+ * Was 75s/90s, built on "generous, never a race" (spec §4). The 3 Aug run-through overturned
+ * that: the room finished the easy cases well inside a minute and then sat watching a clock, so
+ * the generous window bought dead air, not thought. The team's number is 45-60s and these are it.
+ *
+ * Two things make the shorter window safe, and both must stay true:
+ *   - `shouldExpire` already flips early once every active player has answered, so a fast room
+ *     never waits out the clock anyway. This ceiling only binds on a slow one.
+ *   - The host can now end a question by hand (`revealNow`), so a room that visibly needs longer
+ *     is a judgement call rather than a constant.
+ *
+ * `hard`/`expert`/`final` keep the top of the band: those cases carry more evidence to read.
+ */
 const DURATION_BY_DIFFICULTY: Record<Difficulty, number> = {
-  easy: 75_000,
-  medium: 75_000,
-  hard: 90_000,
-  expert: 90_000,
-  final: 90_000,
+  easy: 45_000,
+  medium: 50_000,
+  hard: 60_000,
+  expert: 60_000,
+  final: 60_000,
 }
 export function roundDurationMs(difficulty: Difficulty): number {
   return DURATION_BY_DIFFICULTY[difficulty]
 }
+
+/**
+ * The longest any single question can run. Exported because `lib/scoring.ts` scales the speed
+ * bonus over it: a target longer than the round would mean the bonus never decays to zero before
+ * the question closes, so every answer collects some of it and the tiebreaker stops discriminating.
+ * Derived, not written down twice — retuning the durations above must move this with them.
+ */
+export const MAX_ROUND_DURATION_MS = Math.max(...Object.values(DURATION_BY_DIFFICULTY))
 
 export const LOBBY_STATE: GameState = { phase: 'lobby', roundIndex: 0, phaseStartedAt: 0, phaseDurationMs: 0 }
 

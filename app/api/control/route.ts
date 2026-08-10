@@ -20,8 +20,11 @@ export async function POST(req: Request) {
   const now = Date.now()
   const store = getStore()
   if (action === 'start') store.startGame(now)
+  // `reveal` ends the question early and stops on the reveal; `next` moves past a reveal already
+  // on screen. Two actions, not one, so a host cutting a question short cannot skip the teaching.
+  else if (action === 'reveal') store.revealNow(now)
   else if (action === 'next') store.nextRound(now)
-  else return NextResponse.json({ error: 'action must be "start" or "next"' }, { status: 400 })
+  else return NextResponse.json({ error: 'action must be "start", "reveal" or "next"' }, { status: 400 })
 
   return NextResponse.json({ ok: true })
 }

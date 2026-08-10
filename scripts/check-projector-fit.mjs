@@ -53,18 +53,21 @@ const roomState = () => fetch(`${BASE}/api/room/state`).then((r) => r.json())
  * out /tv had never been measured at all — the identical bug class, sitting unchecked on the other
  * workshop. It found a real overflow on its first run.
  *
- * WHY THIS ONE IS SLOW, and why it is structured differently to the /biz walk. AI Detective's
- * rounds end on a server-side timer (75s each, lib/game.ts) — `/api/control` can only `start` and
- * `next`, and `next` is refused outside `reveal`. There is no way to skip the clock over HTTP, so
- * this waits it out: about six minutes for five cases. Run it before the workshop, not in a loop.
+ * THIS USED TO TAKE SIX MINUTES. AI Detective's rounds end on a server-side timer, and
+ * `/api/control` accepted only `start` and `next` — with `next` refused outside `reveal`, there
+ * was no way to skip the clock over HTTP, so this walk sat through every round in real time.
  *
- * Because the wait is the expensive part, this drives ONE room and measures BOTH projector shapes
- * at every phase, rather than walking the game twice. That also happens to be the more faithful
- * test: one room, two screens looking at it.
+ * `action: 'reveal'` (lib/store.ts `revealNow`) exists now, for the host's "close it, reveal now"
+ * button, and this walk uses it: the same button the host will press on the day, exercised on
+ * every run. The fallback below still waits the timer out if the action is ever refused, because a
+ * layout check that silently stops walking would report success on a game it never finished.
+ *
+ * It drives ONE room and measures BOTH projector shapes at every phase rather than walking the
+ * game twice. That is also the more faithful test: one room, two screens looking at it.
  */
 async function checkDetectiveTv(browser, failures) {
   console.log('\n\n## AI Detective  /tv')
-  console.log('(rounds end on a 75s server timer that cannot be skipped — this takes ~6 minutes)')
+  console.log('(closes each question with the host reveal action — no longer waits out the timers)')
 
   await post('/api/reset')
 
@@ -138,10 +141,17 @@ async function checkDetectiveTv(browser, failures) {
       if (state.phase === 'final') break
 
       if (state.phase === 'investigate') {
-        /* Wait out the round timer. `tick()` runs lazily on any poll, so keep polling. */
+        /* Close the question the way the host will, instead of sitting out the clock. */
+        await post('/api/control', { action: 'reveal' })
+        await screens[0].page.waitForTimeout(400)
+
+        /* Fallback: if `reveal` was refused for any reason, wait the timer out rather than
+         * spinning on a phase that will never change. `tick()` runs lazily on any poll, so
+         * polling is what advances it. */
         for (let w = 0; w < 200; w++) {
           state = await detState()
           if (state.phase !== 'investigate') break
+          if (w === 0) console.log('   (reveal action had no effect — falling back to the timer)')
           await screens[0].page.waitForTimeout(1000)
         }
       } else {

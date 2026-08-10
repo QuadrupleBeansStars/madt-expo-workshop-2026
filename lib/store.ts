@@ -15,6 +15,7 @@ export interface RoomStore {
   getSeq(): number
   tick(now: number): boolean
   startGame(now: number): void
+  revealNow(now: number): void
   nextRound(now: number): void
   getPublicState(now: number, playerId?: string): PublicGameState
 }
@@ -104,6 +105,29 @@ export class MemoryRoomStore implements RoomStore {
   startGame(now: number): void {
     if (this.game.phase !== 'lobby') return
     this.game = startedState(now)
+    this.seq++
+    this.persist()
+  }
+
+  /**
+   * End the current question NOW, on the host's word, without waiting out the timer.
+   *
+   * The room asked for this after the 3 Aug run-through: with a 45-60s window and a question the
+   * room has visibly finished, the last twenty seconds are dead air the host cannot skip. Before
+   * this method the ONLY exits from `investigate` were the timer expiring and every active player
+   * answering (`shouldExpire`) — `nextRound` returns early unless the phase is already `reveal`,
+   * so there was no host-driven path out at all.
+   *
+   * Deliberately NOT a variant of `nextRound`: this stops on the reveal, which is the teaching
+   * beat. Skipping a question and skipping the explanation of it are different acts, and a host
+   * under time pressure must not be able to do the second by accident.
+   *
+   * Idempotent outside `investigate`, so a double-tap on a laggy projector is a no-op rather than
+   * an accidental jump into the next case.
+   */
+  revealNow(now: number): void {
+    if (this.game.phase !== 'investigate') return
+    this.game = revealState(this.game, now)
     this.seq++
     this.persist()
   }
