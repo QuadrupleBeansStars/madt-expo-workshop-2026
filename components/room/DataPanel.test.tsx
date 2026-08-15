@@ -36,12 +36,12 @@ describe('Bars', () => {
     expect(el.style.width).toBe('100%')
   })
 
-  it('renders both English and Thai labels for every row', () => {
+  it('labels every row in Thai, and not in English', () => {
     render(<Bars rows={rows} />)
-    expect(screen.getByText('Walk')).toBeInTheDocument()
     expect(screen.getByText('เดิน')).toBeInTheDocument()
-    expect(screen.getByText('Train')).toBeInTheDocument()
     expect(screen.getByText('รถไฟ')).toBeInTheDocument()
+    expect(screen.queryByText('Walk')).toBeNull()
+    expect(screen.queryByText('Train')).toBeNull()
   })
 
   it('never renders the AI Detective pixel font', () => {
@@ -59,7 +59,7 @@ describe('PlaceholderBadge', () => {
     vi.doMock('@/content/audience', () => ({ IS_PLACEHOLDER: true }))
     const { PlaceholderBadge } = await import('./PlaceholderBadge')
     render(<PlaceholderBadge />)
-    expect(screen.getByText(/PLACEHOLDER DATA/i)).toBeInTheDocument()
+    expect(screen.getByText(/ข้อมูลตัวอย่าง ยังไม่ใช่ของจริง/)).toBeInTheDocument()
   })
 
   it('renders nothing when IS_PLACEHOLDER is false', async () => {
@@ -80,10 +80,10 @@ describe('DataPanel', () => {
     moto: { en: 'Moto', th: 'มอเตอร์ไซค์' },
   }
 
-  it('renders the bilingual question title', () => {
+  it('renders the question title in Thai only', () => {
     render(<DataPanel question={question} data={data} labels={labels} />)
-    expect(screen.getByText('How do you get to work?')).toBeInTheDocument()
     expect(screen.getByText('คุณเดินทางมาทำงานอย่างไร?')).toBeInTheDocument()
+    expect(screen.queryByText('How do you get to work?')).toBeNull()
   })
 
   it('renders one bar row per bucket in the data', () => {

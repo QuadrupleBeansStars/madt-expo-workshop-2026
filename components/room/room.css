@@ -97,22 +97,16 @@
   display: block;
 }
 
-.room-placeholder-badge__text .deck-bi__en,
 .room-placeholder-badge__text .deck-bi__th {
   color: #ffffff;
   text-shadow: none;
 }
 
-.room-placeholder-badge__text .deck-bi__en {
+.room-placeholder-badge__text .deck-bi__th {
   font-size: clamp(13px, 1.3vw, 17px);
   font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
 }
 
 .room-placeholder-badge__text .deck-bi__th {
-  margin-top: 2px;
-  font-size: clamp(12px, 1.1vw, 15px);
   font-weight: 600;
-  opacity: 0.92;
 }

@@ -25,6 +25,7 @@ import './deck.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UI } from '@/content/room-labels'
 import { Bilingual } from '@/components/deck/Bilingual'
+import { ResetButton } from '@/components/host/ResetButton'
 import { Stages, type RoomFrame } from '@/components/room/Stages'
 
 const STATE_POLL_MS = 1000
@@ -98,8 +99,13 @@ export default function RoomPage() {
     const onKey = (event: KeyboardEvent) => {
       // The host types the facilitator token into an input on this same screen. Without this
       // guard a space in the token, or an arrow key to fix a typo, advances the live room.
+      //
+      // BUTTON is in the list for a different reason: a focused button fires its own click on
+      // Space. With the reset control on this bar, a host who pressed reset and then tapped Space
+      // to move on would advance the room AND re-arm reset in one keystroke. ResetButton also
+      // blurs itself after firing; this is the other half of that fix.
       const target = event.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.isContentEditable)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'Spacebar') {
         event.preventDefault()   // space would otherwise scroll the projector
         void advance()
@@ -128,9 +134,13 @@ export default function RoomPage() {
     <main className="room-root">
       <Stages frame={shown} joinUrl={joinUrl} remainingMs={remainingMs} />
 
-      <div className="room-host" data-testid="host-bar">
+      {/* The bar is absolutely positioned over the top-right of the slide and the storyboard strip
+          runs the full width underneath it, so its WIDTH is a layout concern, not just chrome.
+          The "รหัสผู้ดำเนินรายการ" label is setup instruction: it earns its ~150px while the field
+          is empty and is dead weight for the rest of the workshop. Once a token is saved it goes,
+          and the field keeps the accessible name. */}
+      <div className="room-host" data-testid="host-bar" data-compact={token.trim() && !tokenError ? 'true' : 'false'}>
         <label className="room-host__label" htmlFor="host-token">
-          <span lang="en">{UI.hostToken.en}</span>
           <span lang="th">{UI.hostToken.th}</span>
         </label>
         <input
@@ -143,9 +153,24 @@ export default function RoomPage() {
           onChange={(e) => saveToken(e.target.value)}
         />
         <button type="button" className="room-host__btn" onClick={() => void advance()}>
-          <span lang="en">{UI.advance.en}</span>
           <span lang="th">{UI.advance.th}</span>
         </button>
+        {/* /api/room/reset, NOT /api/reset. The two workshops keep separate stores; the AI
+            Detective endpoint would return 200 and clear the wrong room. */}
+        {/* The idle label is the GLYPH ALONE. This bar is absolutely positioned over the top-right
+            of the slide, and the storyboard strip runs the full width underneath it — the spelled
+            out label pushed the bar wide enough to cover the third panel's caption. Armed, it
+            takes the full sentence and the extra width, which is correct: at that moment it is the
+            most important thing on the host's screen and the room is not reading the strip. */}
+        <ResetButton
+          endpoint="/api/room/reset"
+          token={token}
+          label="↺"
+          ariaLabel={UI.reset.th}
+          armedLabel={UI.resetArmed.th}
+          className="host-reset"
+          onDone={(ok) => setTokenError(!ok)}
+        />
       </div>
 
       {tokenError ? (

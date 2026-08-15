@@ -8,6 +8,7 @@ import { Countdown } from '@/components/game/Countdown'
 import { Duck } from '@/components/game/Duck'
 import { Storyboard } from '@/components/game/Storyboard'
 import { CaseFile } from '@/components/game/CaseFile'
+import { ResetButton } from '@/components/host/ResetButton'
 import { t } from '@/lib/i18n'
 
 const HOST_TOKEN_KEY = 'aidet.hostToken'
@@ -78,13 +79,15 @@ export default function TvPage() {
    */
   return (
     <main className="crt relative min-h-screen overflow-hidden px-8 py-[min(2rem,2.2vh)]" style={{ background: 'var(--rt-bg)', color: 'var(--rt-text)' }}>
-      <TokenBar token={token} onSave={saveToken} error={tokenError} lang={lang} />
+      {/* A reset with a bad token comes back 403 — surface it the same way a refused Start does,
+          rather than leaving the host to wonder whether the room cleared. */}
+      <TokenBar token={token} onSave={saveToken} error={tokenError} lang={lang} onReset={(ok) => { setTokenError(!ok); if (ok) lastSeqRef.current = -1 }} />
       <Stage state={state} stats={stats} lang={lang} origin={origin} tokenError={tokenError} hasToken={token.trim().length > 0} onStart={() => control('start')} onReveal={() => control('reveal')} onNext={() => control('next')} />
     </main>
   )
 }
 
-function TokenBar({ token, onSave, error, lang }: { token: string; onSave: (v: string) => void; error: boolean; lang: Lang }) {
+function TokenBar({ token, onSave, error, lang, onReset }: { token: string; onSave: (v: string) => void; error: boolean; lang: Lang; onReset: (ok: boolean) => void }) {
   const borderColor = error ? 'var(--rt-pink)' : token.trim() ? 'var(--rt-green)' : 'var(--rt-gold)'
   return (
     <div className="absolute right-4 top-4 z-50 flex items-center gap-2 rounded-lg p-2" style={{ background: 'var(--rt-panel)', border: `2px solid ${borderColor}` }}>
@@ -96,6 +99,16 @@ function TokenBar({ token, onSave, error, lang }: { token: string; onSave: (v: s
         placeholder="madt2026"
         className="w-32 rounded bg-black/40 px-2 py-1 text-sm"
         style={{ border: '1px solid var(--rt-border)', color: 'var(--rt-text)' }}
+      />
+      {/* Lives in the host bar, not in the stage. The stage is what the room is looking at; the
+          bar is the host's own strip and is already where the token goes. */}
+      <ResetButton
+        endpoint="/api/reset"
+        token={token}
+        label={t('hostReset', lang)}
+        armedLabel={t('hostResetArmed', lang)}
+        onDone={onReset}
+        className="host-reset"
       />
     </div>
   )
@@ -180,9 +193,17 @@ function Stage({
   if (state.phase === 'investigate') {
     return (
       <div className="flex min-h-[80vh] flex-col gap-6">
-        <header className="flex items-center justify-between">
+        {/* The clock sits on the LEFT, beside the case number.
+            It used to be at the right end of a `justify-between` header — directly underneath
+            <TokenBar>, which is `absolute right-4 top-4 z-50`. Measured: the clock occupied
+            x 1190-1334 / y 17-63 and the bar x 1097-1350 / y 16-66, so the timer was completely
+            covered and this workshop ran with no visible countdown at all. Nothing failed: the
+            element rendered, ticked, and had a real bounding box the whole time.
+            Not solved by reserving a right-hand slot — the bar's width changes when it shows the
+            wrong-token hint, and hardcoding it into this header would tie the two together. */}
+        <header className="flex items-center gap-6">
           <span className="pixel-title text-2xl">{t('caseLabel', lang)} {round.order}/5</span>
-          <span className="text-4xl"><Countdown remainingMs={state.remainingMs} /></span>
+          <span className="text-5xl"><Countdown remainingMs={state.remainingMs} /></span>
         </header>
         <Storyboard panels={round.storyboard} lang={lang} />
         {/* Question and evidence SIDE BY SIDE, not stacked.

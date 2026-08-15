@@ -50,25 +50,21 @@
  *
  * `npm run check:projector` is the check. Re-run it after touching anything here.
  */
-.room-slide .deck-bi--hero .deck-bi__en {
+.room-slide .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(24px, 3.9vw, 84px), 6.8vh);
   line-height: 1.04;
 }
 
 .room-slide .deck-bi--hero .deck-bi__th {
-  margin-top: min(clamp(6px, 1.2vw, 22px), 1.4vh);
-  font-size: min(clamp(13px, 1.6vw, 30px), 3.2vh);
   line-height: 1.3;
 }
 
-.room-slide .deck-bi--body .deck-bi__en {
+.room-slide .deck-bi--body .deck-bi__th {
   font-size: min(clamp(12px, 1.3vw, 30px), 2.3vh);
   line-height: 1.35;
 }
 
 .room-slide .deck-bi--body .deck-bi__th {
-  margin-top: min(clamp(4px, 0.9vw, 12px), 1vh);
-  font-size: min(clamp(11px, 1.1vw, 22px), 2vh);
   line-height: 1.4;
 }
 
@@ -134,7 +130,6 @@
   color: var(--deck-ink);
 }
 
-.room-join__hint .deck-bi__en,
 .room-join__hint .deck-bi__th {
   text-align: center;
 }
@@ -176,14 +171,12 @@
   height: min(clamp(14px, 1.5vw, 26px), 2.8vh);
 }
 
-.room-slide .room-data .room-bars__label .deck-bi__en {
+.room-slide .room-data .room-bars__label .deck-bi__th {
   font-size: min(clamp(11px, 1.05vw, 17px), 2vh);
   line-height: 1.15;
 }
 
 .room-slide .room-data .room-bars__label .deck-bi__th {
-  font-size: min(clamp(10px, 0.92vw, 15px), 1.8vh);
-  margin-top: 0;
   line-height: 1.2;
 }
 
@@ -191,13 +184,10 @@
   font-size: min(clamp(16px, 1.8vw, 30px), 3.4vh);
 }
 
-.room-slide .room-data .room-data-panel__title .deck-bi__en {
+.room-slide .room-data .room-data-panel__title .deck-bi__th {
   font-size: min(clamp(11px, 1vw, 16px), 1.9vh);
 }
 
-.room-slide .room-data .room-data-panel__title .deck-bi__th {
-  font-size: min(clamp(10px, 0.9vw, 14px), 1.7vh);
-}
 
 .room-points {
   list-style: none;
@@ -266,27 +256,19 @@
   gap: 8px;
 }
 
-.room-evidence .room-data-panel__title .deck-bi__en {
+.room-evidence .room-data-panel__title .deck-bi__th {
   font-size: clamp(13px, 0.95vw, 16px);
-  letter-spacing: 0.1em;
 }
 
-.room-evidence .room-data-panel__title .deck-bi__th {
-  font-size: clamp(12px, 0.9vw, 15px);
-}
 
 .room-evidence .room-placeholder-badge {
   padding: 4px 12px;
 }
 
-.room-evidence .room-placeholder-badge__text .deck-bi__en {
+.room-evidence .room-placeholder-badge__text .deck-bi__th {
   font-size: clamp(10px, 0.75vw, 12px);
 }
 
-.room-evidence .room-placeholder-badge__text .deck-bi__th {
-  font-size: clamp(10px, 0.7vw, 12px);
-  margin-top: 0;
-}
 
 .room-evidence .room-bars {
   gap: 7px;
@@ -301,15 +283,12 @@
   height: clamp(18px, 1.4vw, 24px);
 }
 
-.room-evidence .room-bars__label .deck-bi__en {
+.room-evidence .room-bars__label .deck-bi__th {
   font-size: clamp(13px, 1vw, 16px);
-  letter-spacing: 0.05em;
   line-height: 1.15;
 }
 
 .room-evidence .room-bars__label .deck-bi__th {
-  font-size: clamp(12px, 0.88vw, 14px);
-  margin-top: 0;
   line-height: 1.2;
 }
 
@@ -344,23 +323,18 @@
 }
 
 /* The question keeps the loudest type on the screen, one step down from a full-width hero. */
-.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__en {
+.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__th {
   font-size: clamp(28px, 2.5vw, 40px);
 }
 
-.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__th {
-  margin-top: 10px;
-  font-size: clamp(16px, 1.35vw, 22px);
-}
 
-.room-decide[data-evidence="true"] .room-decide__context .deck-bi__en {
+.room-decide[data-evidence="true"] .room-decide__context .deck-bi__th {
   max-width: 46ch;
   font-size: clamp(15px, 1.2vw, 19px);
 }
 
 .room-decide[data-evidence="true"] .room-decide__context .deck-bi__th {
   max-width: 50ch;
-  font-size: clamp(14px, 1.05vw, 17px);
 }
 
 .room-decide[data-evidence="true"] .room-options {
@@ -372,14 +346,10 @@
   height: clamp(18px, 1.4vw, 24px);
 }
 
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__en {
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
   font-size: clamp(14px, 1.15vw, 19px);
 }
 
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
-  font-size: clamp(12px, 0.95vw, 16px);
-  margin-top: 1px;
-}
 
 .room-decide[data-evidence="true"] .room-options__count {
   font-size: clamp(18px, 1.6vw, 26px);
@@ -519,14 +489,11 @@
 /* The headline is the answer to the round and stays the biggest thing here, but it is now
    scaled by height as well as width — on a short projector the width-only clamp alone spent
    the budget three elements before the board. */
-.room-outcome .deck-bi--hero .deck-bi__en {
+.room-outcome .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(30px, 3.4vw, 54px), 7.4vh);
   line-height: 1.05;
 }
 
-.room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(18px, 1.9vw, 28px), 4vh);
-}
 
 .room-outcome__body {
   margin-top: clamp(8px, 1.2vh, 16px);
@@ -535,7 +502,7 @@
 
 /* The host reads this paragraph aloud; on screen it is support, not the message. It is the
    longest element on the stage in both scripts, so it gives up the most. */
-.room-slide .room-outcome__body .deck-bi__en {
+.room-slide .room-outcome__body .deck-bi__th {
   max-width: 62ch;
   font-size: min(clamp(11px, 1vw, 19px), 1.9vh);
   line-height: 1.35;
@@ -543,7 +510,6 @@
 
 .room-slide .room-outcome__body .deck-bi__th {
   max-width: 66ch;
-  font-size: min(clamp(10px, 0.9vw, 17px), 1.75vh);
   line-height: 1.4;
 }
 
@@ -644,7 +610,7 @@
   color: var(--deck-clr);
 }
 
-.room-slide .room-trace__label .deck-bi__en {
+.room-slide .room-trace__label .deck-bi__th {
   max-width: none;
   font-size: min(clamp(10px, 0.85vw, 14px), 1.9vh);
   font-weight: 600;
@@ -653,7 +619,6 @@
 
 .room-slide .room-trace__label .deck-bi__th {
   max-width: none;
-  font-size: min(clamp(9px, 0.78vw, 13px), 1.75vh);
   line-height: 1.25;
 }
 
@@ -695,7 +660,7 @@
   background: var(--deck-card);
 }
 
-.room-slide .room-fx__label .deck-bi__en {
+.room-slide .room-fx__label .deck-bi__th {
   max-width: none;
   font-size: min(clamp(10px, 1vw, 18px), 2vh);
   font-weight: 700;
@@ -704,7 +669,6 @@
 
 .room-slide .room-fx__label .deck-bi__th {
   max-width: none;
-  font-size: min(clamp(9px, 0.88vw, 15px), 1.8vh);
   line-height: 1.25;
 }
 
@@ -751,14 +715,11 @@
   background: color-mix(in srgb, var(--deck-clr) 8%, var(--deck-bg));
 }
 
-.room-slide .room-lesson__text .deck-bi__en {
+.room-slide .room-lesson__text .deck-bi__th {
   font-size: min(clamp(17px, 2.3vw, 44px), 4.4vh);
   line-height: 1.1;
 }
 
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(12px, 1.4vw, 26px), 2.6vh);
-}
 
 .room-lesson__eyebrow {
   color: var(--deck-clr);
@@ -848,7 +809,7 @@
   margin-top: 5px;
 }
 
-.room-slide .room-archetypes__sting .deck-bi__en {
+.room-slide .room-archetypes__sting .deck-bi__th {
   max-width: none;
   font-size: min(clamp(10px, 0.95vw, 15px), 1.9vh);
   line-height: 1.25;
@@ -856,7 +817,6 @@
 
 .room-slide .room-archetypes__sting .deck-bi__th {
   max-width: none;
-  font-size: min(clamp(9px, 0.85vw, 13px), 1.7vh);
   line-height: 1.3;
 }
 
@@ -1027,7 +987,6 @@
   display: none;
 }
 
-.room-outcome .room-board__title .deck-bi__en,
 .room-outcome .room-board__title .deck-bi__th {
   font-size: min(clamp(10px, 0.9vw, 14px), 1.8vh);
 }
@@ -1055,6 +1014,33 @@
 .room-host:hover,
 .room-host:focus-within {
   opacity: 1;
+}
+
+/*
+ * Once the token is in, the bar collapses to the controls.
+ *
+ * Its width is a LAYOUT concern, not chrome: it is fixed over the top-right of the slide and the
+ * storyboard strip runs the full width underneath it, so every pixel the bar is wide is a pixel
+ * of a caption the room cannot read. The label is setup instruction — it earns its space while
+ * the field is empty and is dead weight for the remaining fifteen minutes. It comes back the
+ * moment the token is cleared or refused, which is exactly when a host needs to be told what the
+ * box is for.
+ *
+ * The input keeps its accessible name either way: the <label> element still wraps it.
+ */
+.room-host[data-compact='true'] .room-host__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.room-host[data-compact='true'] .room-host__input {
+  width: 92px;
 }
 
 .room-host__label {
@@ -1121,7 +1107,6 @@
   border-color: var(--deck-red);
 }
 
-.room-alert--error .deck-bi__en,
 .room-alert--error .deck-bi__th {
   color: var(--deck-red);
 }
@@ -1198,20 +1183,16 @@
   padding: 3px 10px;
 }
 
-.room-slide .room-data .room-placeholder-badge__text .deck-bi__en,
 .room-slide .room-data .room-placeholder-badge__text .deck-bi__th {
   font-size: min(clamp(9px, 0.72vw, 12px), 1.5vh);
   margin-top: 0;
 }
 
 /* The close stage runs three columns; its headline no longer needs full-deck scale. */
-.room-slide .room-close .deck-bi--hero .deck-bi__en {
+.room-slide .room-close .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(20px, 2.6vw, 48px), 5vh);
 }
 
-.room-slide .room-close .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(12px, 1.4vw, 24px), 2.6vh);
-}
 
 .room-takeaways__item {
   gap: 10px;
@@ -1225,8 +1206,8 @@
  * scanned, not read; the host reads the prose. So the lists drop a step below body copy while
  * the paragraphs they sit under keep theirs.
  */
-.room-slide .room-points__item .deck-bi__en,
-.room-slide .room-takeaways__item .deck-bi__en {
+.room-slide .room-points__item .deck-bi__th,
+.room-slide .room-takeaways__item .deck-bi__th {
   max-width: 46ch;
   font-size: min(clamp(11px, 1.1vw, 20px), 1.85vh);
   line-height: 1.3;
@@ -1235,8 +1216,6 @@
 .room-slide .room-points__item .deck-bi__th,
 .room-slide .room-takeaways__item .deck-bi__th {
   max-width: 50ch;
-  margin-top: 2px;
-  font-size: min(clamp(10px, 0.95vw, 16px), 1.65vh);
   line-height: 1.35;
 }
 
@@ -1251,21 +1230,15 @@
 
 /* The outcome headline is the answer to the round, but at 46px over two lines plus its Thai it
    was 176px — a third of the stage's whole height budget before anything else rendered. */
-.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(22px, 2.9vw, 54px), 5.2vh);
 }
 
-.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(13px, 1.5vw, 28px), 2.3vh);
-}
 
-.room-slide .room-trace__label .deck-bi__en {
+.room-slide .room-trace__label .deck-bi__th {
   font-size: min(clamp(9px, 0.8vw, 14px), 1.6vh);
 }
 
-.room-slide .room-trace__label .deck-bi__th {
-  font-size: min(clamp(8px, 0.72vw, 13px), 1.45vh);
-}
 
 /* The evidence charts on a decide stage: 40px per bar row across two panels was the last thing
    over the edge there. */
@@ -1277,14 +1250,12 @@
   height: min(clamp(12px, 1.2vw, 24px), 2.4vh);
 }
 
-.room-slide .room-evidence .room-bars__label .deck-bi__en {
+.room-slide .room-evidence .room-bars__label .deck-bi__th {
   font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
   line-height: 1.15;
 }
 
 .room-slide .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 14px), 1.65vh);
-  margin-top: 0;
   line-height: 1.2;
 }
 
@@ -1337,13 +1308,10 @@
 }
 
 /* The archetypes are flavour beside the board, and were running 148px each. */
-.room-slide .room-archetypes__sting .deck-bi__en {
+.room-slide .room-archetypes__sting .deck-bi__th {
   font-size: min(clamp(9px, 0.85vw, 14px), 1.6vh);
 }
 
-.room-slide .room-archetypes__sting .deck-bi__th {
-  font-size: min(clamp(8px, 0.78vw, 12px), 1.45vh);
-}
 
 .room-slide .room-close .room-archetypes__name {
   font-size: min(clamp(11px, 1.2vw, 18px), 2vh);
@@ -1375,17 +1343,14 @@
   gap: min(1.1vh, 14px) clamp(16px, 2vw, 32px);
 }
 
-.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(20px, 2.6vw, 54px), 4.6vh);
 }
 
-.room-slide .room-outcome__body .deck-bi__en {
+.room-slide .room-outcome__body .deck-bi__th {
   font-size: min(clamp(10px, 0.95vw, 19px), 1.7vh);
 }
 
-.room-slide .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 17px), 1.55vh);
-}
 
 .room-trace {
   padding: min(1.1vh, 14px) clamp(12px, 1.5vw, 22px);
@@ -1430,24 +1395,21 @@
   padding-bottom: min(clamp(46px, 7vh, 92px), 8.4vh);
 }
 
-.room-slide .deck-eyebrow .deck-bi__en {
+.room-slide .deck-eyebrow .deck-bi__th {
   font-size: min(clamp(10px, 1vw, 16px), 1.7vh);
 }
 
-.room-slide .deck-eyebrow .deck-bi__th {
-  font-size: min(clamp(9px, 0.9vw, 14px), 1.55vh);
-}
 
 /* The last ~40px, off the outcome stage's three largest blocks in proportion. */
 .room-trace__value {
   font-size: min(clamp(20px, 2.6vw, 56px), 5vh);
 }
 
-.room-slide .room-lesson__text .deck-bi__en {
+.room-slide .room-lesson__text .deck-bi__th {
   font-size: min(clamp(16px, 2.1vw, 44px), 4vh);
 }
 
-.room-slide .room-data .deck-bi--hero .deck-bi__en {
+.room-slide .room-data .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(20px, 2.8vw, 60px), 5.4vh);
 }
 
@@ -1457,53 +1419,41 @@
   gap: min(0.9vh, 12px) clamp(14px, 1.8vw, 30px);
 }
 
-.room-slide .room-outcome .deck-bi--hero .deck-bi__en {
+.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(18px, 2.4vw, 54px), 4vh);
 }
 
-.room-slide .room-outcome__body .deck-bi__en {
+.room-slide .room-outcome__body .deck-bi__th {
   font-size: min(clamp(10px, 0.9vw, 19px), 1.55vh);
 }
 
-.room-slide .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(9px, 0.8vw, 17px), 1.42vh);
-}
 
 .room-trace__value {
   font-size: min(clamp(19px, 2.4vw, 56px), 4.4vh);
 }
 
-.room-slide .room-lesson__text .deck-bi__en {
+.room-slide .room-lesson__text .deck-bi__th {
   font-size: min(clamp(15px, 1.9vw, 44px), 3.5vh);
 }
 
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(11px, 1.25vw, 26px), 2.2vh);
-}
 
 .room-slide .room-fx__delta dd {
   font-size: min(clamp(10px, 1.1vw, 22px), 2vh);
 }
 
-.room-slide .room-takeaways__item .deck-bi__en {
+.room-slide .room-takeaways__item .deck-bi__th {
   font-size: min(clamp(10px, 1vw, 20px), 1.7vh);
 }
 
-.room-slide .room-takeaways__item .deck-bi__th {
-  font-size: min(clamp(9px, 0.88vw, 16px), 1.55vh);
-}
 
 .room-slide .room-close .room-archetypes__name {
   font-size: min(clamp(10px, 1.1vw, 18px), 1.8vh);
 }
 
-.room-slide .room-archetypes__sting .deck-bi__en {
+.room-slide .room-archetypes__sting .deck-bi__th {
   font-size: min(clamp(8px, 0.78vw, 14px), 1.45vh);
 }
 
-.room-slide .room-archetypes__sting .deck-bi__th {
-  font-size: min(clamp(8px, 0.72vw, 12px), 1.32vh);
-}
 
 /*
  * The close board, again — measured at 140px per row.
@@ -1533,13 +1483,10 @@
   padding: min(0.8vh, 10px) clamp(11px, 1.6vw, 24px);
 }
 
-.room-slide .room-lesson__eyebrow .deck-bi__en {
+.room-slide .room-lesson__eyebrow .deck-bi__th {
   font-size: min(clamp(9px, 0.85vw, 13px), 1.4vh);
 }
 
-.room-slide .room-lesson__eyebrow .deck-bi__th {
-  font-size: min(clamp(8px, 0.78vw, 12px), 1.3vh);
-}
 
 /* The accounting line proves nobody vanished; it does not need to be 58px to do that. */
 .room-trace__sum {
@@ -1552,7 +1499,6 @@
   font-size: min(clamp(13px, 1.4vw, 24px), 2.6vh);
 }
 
-.room-slide .room-trace__sum .deck-bi__en,
 .room-slide .room-trace__sum .deck-bi__th {
   font-size: min(clamp(8px, 0.75vw, 12px), 1.35vh);
 }
@@ -1594,7 +1540,6 @@
   gap: 10px;
 }
 
-.room-slide .room-trace__head .deck-bi__en,
 .room-slide .room-trace__head .deck-bi__th {
   font-size: min(clamp(9px, 0.8vw, 13px), 1.4vh);
 }
@@ -1638,12 +1583,22 @@
  * `grid-auto-flow: column` with equal tracks keeps the frames the same width whatever the caption
  * lengths are, so the strip reads as a comic rather than as a ragged row of boxes.
  */
+/*
+ * The strip clears the host bar, which is `position: fixed` at top-right and therefore paints
+ * OVER it. Measured at 1366x768: the strip's first row ran y49-88 and the bar y12-65, so the
+ * rightmost panel's opening line was struck through by the token field on every decide and data
+ * stage. Nothing detects this — the fit check measures the fold, and an element covered by
+ * fixed-position chrome is still perfectly inside it.
+ *
+ * The clearance is paid for out of the whitespace at the bottom of these stages, which is space
+ * the Thai-only sweep freed and nothing else is using.
+ */
 .room-story {
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
   gap: clamp(8px, 1.2vw, 18px);
-  margin: 0 0 min(1.4vh, 14px);
+  margin: min(3.4vh, 26px) 0 min(1.4vh, 14px);
   padding: 0;
   list-style: none;
 }
@@ -1683,15 +1638,13 @@
   min-width: 0;   /* let long captions wrap instead of widening the grid track */
 }
 
-.room-story__caption .deck-bi__en {
+.room-story__caption .deck-bi__th {
   font-size: min(clamp(11px, 1.05vw, 17px), 2.1vh);
   line-height: 1.25;
 }
 
 .room-story__caption .deck-bi__th {
-  font-size: min(clamp(10px, 0.95vw, 15px), 1.9vh);
   line-height: 1.3;
-  opacity: 0.82;
 }
 
 /*
@@ -1755,26 +1708,20 @@
   padding: min(1vh, 12px) clamp(7px, 0.8vw, 12px);
 }
 
-.room-slide .room-fx__label .deck-bi__en {
+.room-slide .room-fx__label .deck-bi__th {
   font-size: min(clamp(9px, 0.85vw, 15px), 1.7vh);
 }
 
-.room-slide .room-fx__label .deck-bi__th {
-  font-size: min(clamp(8px, 0.78vw, 13px), 1.55vh);
-}
 
 /* Four vote rows instead of three, on a slide that also gained a storyboard. */
 .room-decide[data-evidence="true"] .room-options {
   gap: min(0.7vh, 9px);
 }
 
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__en {
+.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
   font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
 }
 
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 14px), 1.7vh);
-}
 
 /*
  * ── The last of the fourth-option / storyboard budget ───────────────────────────────────────
@@ -1804,13 +1751,12 @@
   height: min(clamp(20px, 2.4vw, 36px), 3.8vh);
 }
 
-.room-slide .room-story__caption .deck-bi__en {
+.room-slide .room-story__caption .deck-bi__th {
   font-size: min(clamp(10px, 0.92vw, 15px), 1.75vh);
   line-height: 1.2;
 }
 
 .room-slide .room-story__caption .deck-bi__th {
-  font-size: min(clamp(9px, 0.82vw, 13px), 1.6vh);
   line-height: 1.24;
 }
 
@@ -1825,27 +1771,25 @@
   gap: min(0.62vh, 8px);
 }
 
-.room-slide .room-data .room-bars__label .deck-bi__en,
-.room-slide .room-evidence .room-bars__label .deck-bi__en {
+.room-slide .room-data .room-bars__label .deck-bi__th,
+.room-slide .room-evidence .room-bars__label .deck-bi__th {
   font-size: min(clamp(9px, 0.86vw, 15px), 1.72vh);
   line-height: 1.18;
 }
 
 .room-slide .room-data .room-bars__label .deck-bi__th,
 .room-slide .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(8px, 0.76vw, 13px), 1.56vh);
   line-height: 1.2;
 }
 
 /* The scripted points under the data headline: three sentences, bilingual, and the stage now
  * carries a storyboard above them saying some of the same work. */
-.room-slide .room-points__item .deck-bi__en {
+.room-slide .room-points__item .deck-bi__th {
   font-size: min(clamp(11px, 1.05vw, 18px), 2vh);
   line-height: 1.26;
 }
 
 .room-slide .room-points__item .deck-bi__th {
-  font-size: min(clamp(10px, 0.92vw, 15px), 1.82vh);
   line-height: 1.3;
 }
 
@@ -1869,28 +1813,26 @@
  */
 /*
  * NOTE THE SELECTOR LENGTH, which is not decoration. `.room-slide .room-outcome .deck-bi--hero
- * .deck-bi__en` already exists further up this sheet at specificity 0,4,0; a rule written the
- * obvious way (`.room-slide .room-outcome__words .deck-bi__en`, 0,3,0) loses to it silently and
+ * .deck-bi__th` already exists further up this sheet at specificity 0,4,0; a rule written the
+ * obvious way (`.room-slide .room-outcome__words .deck-bi__th`, 0,3,0) loses to it silently and
  * the headline keeps rendering at 4vh. That is exactly what happened on the first attempt here —
  * the stage got TALLER, because the line-height applied and the font-size did not.
  */
-.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__en {
+.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(15px, 1.5vw, 26px), 2.75vh);
   line-height: 1.14;
 }
 
 .room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(12px, 1.12vw, 19px), 2.2vh);
   line-height: 1.22;
 }
 
-.room-slide .room-outcome .room-outcome__body .deck-bi__en {
+.room-slide .room-outcome .room-outcome__body .deck-bi__th {
   font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
   line-height: 1.24;
 }
 
 .room-slide .room-outcome .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(10px, 0.88vw, 14px), 1.76vh);
   line-height: 1.28;
 }
 
@@ -1898,32 +1840,27 @@
   padding: min(0.55vh, 10px) clamp(10px, 1.6vw, 22px);
 }
 
-.room-slide .room-lesson__text .deck-bi__en {
+.room-slide .room-lesson__text .deck-bi__th {
   font-size: min(clamp(13px, 1.3vw, 23px), 2.5vh);
 }
 
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(11px, 1.05vw, 18px), 2.1vh);
-}
 
 /* The data stage headline and lead, above three scripted points and two charts. */
-.room-slide .room-data__words > .deck-bi--hero .deck-bi__en {
+.room-slide .room-data__words > .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(15px, 1.5vw, 27px), 2.9vh);
   line-height: 1.16;
 }
 
 .room-slide .room-data__words > .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(12px, 1.15vw, 20px), 2.3vh);
   line-height: 1.24;
 }
 
-.room-slide .room-data__lead .deck-bi__en {
+.room-slide .room-data__lead .deck-bi__th {
   font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
   line-height: 1.26;
 }
 
 .room-slide .room-data__lead .deck-bi__th {
-  font-size: min(clamp(10px, 0.88vw, 14px), 1.76vh);
   line-height: 1.3;
 }
 
@@ -1932,23 +1869,21 @@
 }
 
 /* The decide prompt and its context line, now above four options rather than three. */
-.room-slide .room-decide__head .deck-bi--hero .deck-bi__en {
+.room-slide .room-decide__head .deck-bi--hero .deck-bi__th {
   font-size: min(clamp(14px, 1.42vw, 25px), 2.75vh);
   line-height: 1.16;
 }
 
 .room-slide .room-decide__head .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(11px, 1.1vw, 19px), 2.2vh);
   line-height: 1.24;
 }
 
-.room-slide .room-decide__context .deck-bi__en {
+.room-slide .room-decide__context .deck-bi__th {
   font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
   line-height: 1.24;
 }
 
 .room-slide .room-decide__context .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 14px), 1.72vh);
   line-height: 1.28;
 }
 
@@ -1960,13 +1895,12 @@
   opacity: 0.72;
 }
 
-.room-slide .room-data-panel__note .deck-bi__en {
+.room-slide .room-data-panel__note .deck-bi__th {
   font-size: min(clamp(8px, 0.72vw, 12px), 1.5vh);
   line-height: 1.16;
 }
 
 .room-slide .room-data-panel__note .deck-bi__th {
-  font-size: min(clamp(7px, 0.66vw, 11px), 1.38vh);
   line-height: 1.2;
 }
 
@@ -2005,13 +1939,12 @@
   gap: min(0.46vh, 6px);
 }
 
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__en {
+.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__th {
   font-size: min(clamp(9px, 0.8vw, 14px), 1.55vh);
   line-height: 1.12;
 }
 
 .room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(8px, 0.7vw, 12px), 1.4vh);
   line-height: 1.14;
 }
 

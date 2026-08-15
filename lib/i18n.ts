@@ -43,6 +43,10 @@ const STRINGS = {
   // Deliberately says "close" rather than "skip": this button stops on the reveal, it does not
   // jump the case. A host reading "skip" mid-session would expect the latter.
   hostRevealNow:    { th: '⏭ ปิดข้อนี้ เฉลยเลย', en: '⏭ Close it — reveal now' },
+  hostReset:        { th: '↺ รีเซ็ตห้อง', en: '↺ Reset room' },
+  // Armed state. Must NOT read as a repeat of the label — it is the last thing between the host
+  // and ejecting every phone in the room, so it says what is about to happen.
+  hostResetArmed:   { th: '⚠ กดอีกครั้งเพื่อล้างห้อง', en: '⚠ Press again to clear the room' },
   standings:        { th: 'อันดับตอนนี้', en: 'STANDINGS' },
   roundInProgress:  { th: 'เกมกำลังดำเนินอยู่ — คุณจะได้ชมรอบนี้ และเข้าร่วมได้เมื่อเริ่มเซสชันใหม่', en: 'A game is in progress — you can watch this session and join when a new one starts' },
   spectating:       { th: '👀 กำลังรับชม', en: '👀 Spectating' },

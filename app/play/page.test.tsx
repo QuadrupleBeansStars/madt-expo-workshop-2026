@@ -33,17 +33,17 @@ describe('play page join surface', () => {
     expect(join.classList.contains('phone-join')).toBe(true)
   })
 
-  it('renders both scripts in separate lang-tagged elements, never one run of text', async () => {
+  it('renders Thai only — the English half of every label is carried but not shown', async () => {
     const { container } = render(<PlayPage />)
     await waitFor(() => expect(screen.getByTestId('phone-join')).toBeTruthy())
 
     const en = container.querySelectorAll('[lang="en"]')
     const th = container.querySelectorAll('[lang="th"]')
-    expect(en.length).toBeGreaterThan(0)
-    expect(th.length).toBe(en.length)
+    expect(en.length).toBe(0)
+    expect(th.length).toBeGreaterThan(0)
 
-    // Each script must live in its own element. If Thai and English ever share one
-    // node, the stylesheet cannot put them on separate lines no matter what it says.
+    // Thai must also not have absorbed the English string into the same node — the failure this
+    // would look like is one run of text reading "ScoreคะแนนRank" rather than a missing element.
     for (const node of th) {
       expect(node.textContent ?? '').not.toMatch(/[A-Za-z]{4,}/)
     }

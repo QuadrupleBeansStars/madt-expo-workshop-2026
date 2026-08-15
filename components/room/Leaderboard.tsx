@@ -42,24 +42,20 @@ export function Leaderboard({ entries, limit = 8 }: LeaderboardProps) {
               <span className="room-board__name">{entry.name}</span>
               <span className="room-board__kpis">
                 <span className="room-board__kpi">
-                  <span className="room-board__kpi-k" lang="en">{KPI_LABELS.profit.en}</span>
                   <span className="room-board__kpi-th" lang="th">{KPI_LABELS.profit.th}</span>
                   <b>฿{baht.format(entry.kpi.profit)}</b>
                 </span>
                 <span className="room-board__kpi">
-                  <span className="room-board__kpi-k" lang="en">{KPI_LABELS.satisfaction.en}</span>
                   <span className="room-board__kpi-th" lang="th">{KPI_LABELS.satisfaction.th}</span>
                   <b>{baht.format(entry.kpi.satisfaction)}</b>
                 </span>
                 <span className="room-board__kpi">
-                  <span className="room-board__kpi-k" lang="en">{KPI_LABELS.waste.en}</span>
                   <span className="room-board__kpi-th" lang="th">{KPI_LABELS.waste.th}</span>
                   <b>฿{baht.format(entry.kpi.waste)}</b>
                 </span>
               </span>
               <span className="room-board__score">
                 <b>{baht.format(Math.round(entry.score))}</b>
-                <span className="room-board__score-k" lang="en">{UI.score.en}</span>
                 <span className="room-board__score-th" lang="th">{UI.score.th}</span>
               </span>
             </li>

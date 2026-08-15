@@ -260,6 +260,10 @@ export const UI = {
   },
   hostToken: { en: 'Host token', th: 'รหัสผู้ดำเนินรายการ' },
   advance: { en: 'Next', th: 'ถัดไป' },
+  reset: { en: 'Reset room', th: '↺ รีเซ็ตห้อง' },
+  // Armed state of the reset control. Says what is about to happen rather than repeating the
+  // label — it is the last thing between the host and ejecting every phone in the room.
+  resetArmed: { en: 'Press again to clear the room', th: '⚠ กดอีกครั้งเพื่อล้างห้อง' },
   tokenMissing: {
     en: 'Enter the host token before advancing.',
     th: 'ใส่รหัสผู้ดำเนินรายการก่อนกดถัดไป',

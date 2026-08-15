@@ -40,10 +40,10 @@ const lobbyFrame: RoomFrame = {
 }
 
 describe('Stages — intro', () => {
-  it('renders the stage headline in both languages', () => {
+  it('renders the stage headline in Thai', () => {
     render(<Stages frame={frameFor('intro-join')} joinUrl="http://10.0.0.5:3000/play" />)
-    expect(screen.getByText(/For the next fifteen minutes, you run a cafe\./)).toBeInTheDocument()
     expect(screen.getByText(/สิบห้านาทีต่อจากนี้ คุณคือเจ้าของร้านกาแฟ/)).toBeInTheDocument()
+    expect(screen.queryByText(/For the next fifteen minutes/)).toBeNull()
   })
 
   it('shows the join URL and a QR code once the client has hydrated', () => {
@@ -83,23 +83,23 @@ describe('Stages — lobby and done', () => {
 describe('Stages — data', () => {
   it('renders the headline, every scripted point, and charts of the room’s own answers', () => {
     render(<Stages frame={frameFor('data-you')} joinUrl="" />)
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
     // Read from the script rather than pasted from it: a copy edit in content/room.ts should
     // change what this asserts, not break it.
     const stage = STAGES.find((st) => st.id === 'data-you')
     const points = stage && stage.kind === 'data' ? stage.points : []
     expect(points.length).toBeGreaterThan(0)
-    for (const point of points) expect(screen.getByText(point.en)).toBeInTheDocument()
+    for (const point of points) expect(screen.getByText(point.th)).toBeInTheDocument()
     // The two questions the copy reads out: what they pay, and what decides the purchase.
     expect(screen.getByTestId('bar-fill-50to100')).toBeInTheDocument()
     expect(screen.getByTestId('bar-fill-taste')).toBeInTheDocument()
   })
 
-  it('labels every bucket bilingually rather than showing raw keys', () => {
+  it('labels every bucket in Thai rather than showing raw keys', () => {
     render(<Stages frame={frameFor('data-you')} joinUrl="" />)
-    expect(screen.getByText('฿50–100')).toBeInTheDocument()
     expect(screen.getByText('50–100 บาท')).toBeInTheDocument()
-    expect(screen.getByText('Promotion & discount')).toBeInTheDocument()
+    expect(screen.getByText('โปรโมชันและส่วนลด')).toBeInTheDocument()
+    expect(screen.queryByText('฿50–100')).toBeNull()
     // Raw aggregate keys must never reach a projector.
     expect(screen.queryByText('50to100')).not.toBeInTheDocument()
     expect(screen.queryByText('promotion')).not.toBeInTheDocument()
@@ -123,11 +123,11 @@ describe('Stages — decide', () => {
     // Derived from the script, so a copy edit changes what this asserts rather than breaking it.
     const stage = STAGES.find((st) => st.id === 'decide-price')
     if (!stage || stage.kind !== 'decide') throw new Error('decide-price must exist')
-    expect(screen.getByText(stage.prompt.en)).toBeInTheDocument()
-    expect(screen.getByText(stage.context.en)).toBeInTheDocument()
+    expect(screen.getByText(stage.prompt.th)).toBeInTheDocument()
+    expect(screen.getByText(stage.context.th)).toBeInTheDocument()
     // EVERY option, not a sample: an option that renders nowhere is one the room cannot vote for.
     expect(stage.options).toHaveLength(4)
-    for (const o of stage.options) expect(screen.getByText(o.label.en)).toBeInTheDocument()
+    for (const o of stage.options) expect(screen.getByText(o.label.th)).toBeInTheDocument()
   })
 
   it('shows the live tally and the seconds left', () => {
@@ -161,8 +161,8 @@ describe('Stages — decide', () => {
     // the round is unwinnable by reasoning, and reasoning is the whole point of it.
     expect(screen.getByTestId('bar-fill-50to100')).toBeInTheDocument()
     expect(screen.getByTestId('bar-fill-taste')).toBeInTheDocument()
-    expect(screen.getAllByText(/฿50–100/).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Taste/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/50–100 บาท/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/รสชาติ/).length).toBeGreaterThan(0)
   })
 
   it('renders the storyboard the team asked for, above the question', () => {
@@ -226,7 +226,7 @@ describe('Stages — the round 1 outcome (the teaching screen)', () => {
     expect(screen.getByTestId('trace-profitGivenUp')).toHaveTextContent('4,219')
     // ...and the body copy must quote the same pair. Two renderings of one figure on a single
     // screen reads as a broken number, not as precision.
-    expect(screen.getByText(/won 7 customers and cost ฿4,219/)).toBeInTheDocument()
+    expect(screen.getByText(/ได้ลูกค้าเพิ่ม 7 คน แต่เสียกำไรไป 4,219 บาท/)).toBeInTheDocument()
     expect(profitGivenUp).toBe(4219)
     expect(extraCustomers).toBe(7)
   })
@@ -235,7 +235,7 @@ describe('Stages — the round 1 outcome (the teaching screen)', () => {
     render(<Stages frame={frameFor('outcome-price')} joinUrl="" />)
     const stage = STAGES.find((st) => st.id === 'outcome-price')
     expect(stage?.kind).toBe('outcome')
-    if (stage?.kind === 'outcome') expect(screen.getByText(stage.lesson.en)).toBeInTheDocument()
+    if (stage?.kind === 'outcome') expect(screen.getByText(stage.lesson.th)).toBeInTheDocument()
     expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
   })
 })
@@ -243,8 +243,8 @@ describe('Stages — the round 1 outcome (the teaching screen)', () => {
 describe('Stages — the fixed-round outcomes', () => {
   it('renders headline, lesson and each option’s effect', () => {
     render(<Stages frame={frameFor('outcome-defend')} joinUrl="" />)
-    expect(screen.getByText('Quality won at noon. Speed won at seven.')).toBeInTheDocument()
-    expect(screen.getByText(/Data depreciates\./)).toBeInTheDocument()
+    expect(screen.getByText('ตอนเที่ยง คุณภาพเป็นฝ่ายชนะ ส่วนความเร็วนั้นชนะไปแล้วตั้งแต่เจ็ดโมงเช้า')).toBeInTheDocument()
+    expect(screen.getByText(/ข้อมูลเสื่อมค่าตามเวลา/)).toBeInTheDocument()
     expect(screen.getByTestId('fx-quality')).toBeInTheDocument()
     expect(screen.getByTestId('fx-price')).toBeInTheDocument()
   })
@@ -265,11 +265,12 @@ describe('Stages — the fixed-round outcomes', () => {
 describe('Stages — close', () => {
   it('renders all three takeaways, the archetypes and the final board', () => {
     render(<Stages frame={frameFor('close-takeaways')} joinUrl="" />)
-    expect(screen.getByText(/Data you never act on is an expense/)).toBeInTheDocument()
-    expect(screen.getByText(/Every dataset has an expiry date/)).toBeInTheDocument()
-    expect(screen.getByText(/The money is in the decision that repeats/)).toBeInTheDocument()
-    expect(screen.getByText('The Operator')).toBeInTheDocument()
-    expect(screen.getByText('The Efficient')).toBeInTheDocument()
+    expect(screen.getByText(/ข้อมูลที่ไม่เคยถูกใช้ตัดสินใจ คือค่าใช้จ่าย/)).toBeInTheDocument()
+    expect(screen.getByText(/ข้อมูลทุกชุดมีวันหมดอายุ/)).toBeInTheDocument()
+    expect(screen.getByText(/เงินอยู่ที่การตัดสินใจที่เกิดซ้ำได้/)).toBeInTheDocument()
+    expect(screen.getByText('สายคุมหน้างาน')).toBeInTheDocument()
+    expect(screen.getByText('สายไม่ให้เหลือทิ้ง')).toBeInTheDocument()
+    expect(screen.queryByText('The Operator')).toBeNull()
     expect(screen.getByTestId('leaderboard')).toBeInTheDocument()
   })
 })
@@ -291,11 +292,20 @@ describe('Stages — house rules', () => {
     }
   })
 
-  it('renders both scripts on every stage — there is no language toggle', () => {
+  /*
+   * THIS WORKSHOP IS DELIVERED IN THAI. This test used to require English on every stage; the
+   * assertion is inverted rather than relaxed, because "no English anywhere" is a claim that has
+   * to be checked in one place across all ten stages. The English strings still exist in
+   * content/room-labels.ts and content/room.ts — only the rendering dropped them — so a component
+   * that quietly renders `.en` again would otherwise look completely normal in review.
+   *
+   * There is still no language toggle. Thai is not a selection; it is what the deck is.
+   */
+  it('renders Thai only on every stage — no English, and no toggle', () => {
     for (const stage of STAGES) {
       const { container, unmount } = render(<Stages frame={frameFor(stage.id)} joinUrl="" />)
-      expect(container.querySelector('[lang="en"]')).not.toBeNull()
-      expect(container.querySelector('[lang="th"]')).not.toBeNull()
+      expect(container.querySelector('[lang="en"]'), stage.id).toBeNull()
+      expect(container.querySelector('[lang="th"]'), stage.id).not.toBeNull()
       expect(container.querySelector('button[aria-label*="language" i]')).toBeNull()
       unmount()
     }
@@ -315,7 +325,7 @@ describe('Leaderboard', () => {
 
   it('says so plainly when no shop has traded yet', () => {
     render(<Leaderboard entries={[]} />)
-    expect(screen.getByTestId('leaderboard')).toHaveTextContent(/No shops on the board yet/)
+    expect(screen.getByTestId('leaderboard')).toHaveTextContent(/ยังไม่มีร้านขึ้นกระดาน/)
   })
 })
 
@@ -346,12 +356,12 @@ describe('app/biz — polling discipline', () => {
 
     render(<RoomPage />)
     await vi.advanceTimersByTimeAsync(300)
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
 
     fetchMock.mockImplementation(async () => jsonResponse(stale))
     await vi.advanceTimersByTimeAsync(2500)
 
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
     expect(screen.queryByText(/How many baristas do you put on the bar\?/)).not.toBeInTheDocument()
   })
 
@@ -362,12 +372,12 @@ describe('app/biz — polling discipline', () => {
 
     render(<RoomPage />)
     await vi.advanceTimersByTimeAsync(300)
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
 
     fetchMock.mockImplementation(async () => { throw new Error('network went away') })
     await vi.advanceTimersByTimeAsync(3000)
 
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
   })
 
   it('keeps the last good frame when a poll returns a non-ok response', async () => {
@@ -377,12 +387,12 @@ describe('app/biz — polling discipline', () => {
 
     render(<RoomPage />)
     await vi.advanceTimersByTimeAsync(300)
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
 
     fetchMock.mockImplementation(async () => ({ ok: false, status: 500, json: async () => ({}) } as Response))
     await vi.advanceTimersByTimeAsync(3000)
 
-    expect(screen.getByText(/You built this dataset weeks ago/)).toBeInTheDocument()
+    expect(screen.getByText(/ชุดข้อมูลนี้พวกคุณสร้างไว้เองตั้งแต่ตอนลงทะเบียน/)).toBeInTheDocument()
   })
 })
 
@@ -437,15 +447,38 @@ describe('app/biz — host controls', () => {
     expect(controlCalls(fetchMock)).toHaveLength(0)
   })
 
-  it('advances exactly once when space is pressed with the Next button still focused', async () => {
-    // Clicking Next with the mouse leaves focus on it. Without preventDefault, the browser would
-    // also activate the focused button on space — two advances, one skipped stage, live.
+  it('advances exactly once when space is pressed with a host button still focused', async () => {
+    /*
+     * Clicking a host button with the mouse leaves focus on it, and the browser activates a
+     * focused button on space by itself. The window-level handler therefore steps aside for
+     * BUTTON — if it did not, one press would advance twice and skip a stage in front of the room.
+     *
+     * The bail-out matters more now than it did: this bar also carries the reset control, and a
+     * space press that both advanced the deck AND re-armed reset is a genuinely bad live outcome.
+     *
+     * jsdom does not synthesise the click from the keydown, so the two halves are asserted
+     * separately: the handler contributes nothing, and the button's own activation contributes
+     * exactly one.
+     */
     const fetchMock = setup()
     await vi.advanceTimersByTimeAsync(300)
 
-    const next = screen.getByRole('button')
+    const next = screen.getByRole('button', { name: /ถัดไป/ })
     next.focus()
     fireEvent.keyDown(next, { key: ' ' })
+    await vi.advanceTimersByTimeAsync(10)
+    expect(controlCalls(fetchMock)).toHaveLength(0)
+
+    fireEvent.click(next)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(controlCalls(fetchMock)).toHaveLength(1)
+  })
+
+  it('still advances on space when focus is not on a button — the host\'s main affordance', async () => {
+    const fetchMock = setup()
+    await vi.advanceTimersByTimeAsync(300)
+
+    fireEvent.keyDown(document.body, { key: ' ' })
     await vi.advanceTimersByTimeAsync(10)
 
     expect(controlCalls(fetchMock)).toHaveLength(1)

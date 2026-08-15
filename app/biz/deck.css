@@ -187,60 +187,51 @@
   text-wrap: balance;
 }
 
-.deck-bi__en,
 .deck-bi__th {
   display: block;
 }
 
 .deck-bi__th {
-  color: var(--deck-muted);
-  font-weight: 400;
+  /* Was `var(--deck-muted)` and weight 400, when this line was the SUBTITLE under an English
+     headline. It is the headline now, so it takes the slide's own colour and lets the per-context
+     rules below set the weight. */
+  color: inherit;
   letter-spacing: 0;
   /* Thai has tall ascenders and low descenders; it needs more leading than Latin. */
   line-height: 1.5;
 }
 
 /* hero — the oversized slide headline. */
-.deck-bi--hero .deck-bi__en {
+.deck-bi--hero .deck-bi__th {
   font-size: clamp(34px, 6vw, 84px);
   font-weight: 800;
   line-height: 1.02;
-  letter-spacing: -0.035em;
 }
 
 .deck-bi--hero .deck-bi__th {
-  margin-top: clamp(12px, 1.8vw, 22px);
-  font-size: clamp(17px, 2.1vw, 30px);
   line-height: 1.4;
 }
 
 /* body — paragraphs and leads. Capped at ~40ch so lines stay scannable. */
-.deck-bi--body .deck-bi__en {
+.deck-bi--body .deck-bi__th {
   max-width: 40ch;
   font-size: clamp(18px, 2.2vw, 30px);
   font-weight: 450;
   line-height: 1.4;
-  letter-spacing: -0.008em;
 }
 
 .deck-bi--body .deck-bi__th {
   max-width: 44ch;
-  margin-top: clamp(6px, 0.9vw, 12px);
-  font-size: clamp(15px, 1.7vw, 22px);
 }
 
 /* label — eyebrows, captions, chrome. */
-.deck-bi--label .deck-bi__en {
+.deck-bi--label .deck-bi__th {
   font-size: clamp(12px, 1.15vw, 16px);
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
   line-height: 1.2;
 }
 
 .deck-bi--label .deck-bi__th {
-  margin-top: 4px;
-  font-size: clamp(12px, 1.05vw, 15px);
   font-weight: 500;
   letter-spacing: 0.02em;
   line-height: 1.35;

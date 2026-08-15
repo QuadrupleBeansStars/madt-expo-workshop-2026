@@ -316,7 +316,6 @@ function JoinScreen({
           data-testid="join-button"
           disabled={joining}
         >
-          <span lang="en">{joining ? PHONE.joining.en : PHONE.joinButton.en}</span>
           {' · '}
           <span lang="th">{joining ? PHONE.joining.th : PHONE.joinButton.th}</span>
         </button>

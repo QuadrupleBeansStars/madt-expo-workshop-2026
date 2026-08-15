@@ -6,15 +6,18 @@ import { Bilingual } from './Bilingual'
 const chapter = { en: 'Data in Business', th: 'ข้อมูลกับธุรกิจ' }
 
 describe('Bilingual', () => {
-  it('renders BOTH languages at once — there is no toggle', () => {
+  it('renders the Thai string and NOT the English one', () => {
+    // The English half is still carried in the props and in every label file — it is simply not
+    // rendered. Asserting its absence here is what stops it drifting back in.
     render(<Bilingual text={{ en: 'What is it worth?', th: 'มันมีค่าเท่าไร?' }} as="hero" />)
-    expect(screen.getByText('What is it worth?')).toBeDefined()
     expect(screen.getByText('มันมีค่าเท่าไร?')).toBeDefined()
+    expect(screen.queryByText('What is it worth?')).toBeNull()
   })
 
-  it('marks each language with its lang attribute for correct font shaping', () => {
+  it('marks the line with lang="th" for correct font shaping', () => {
+    // Without this the browser can font-match Thai against a Latin-only face and fall back
+    // mid-line, which is a live defect on the sibling app.
     render(<Bilingual text={{ en: 'Hello', th: 'สวัสดี' }} as="body" />)
-    expect(screen.getByText('Hello').closest('[lang="en"]')).not.toBeNull()
     expect(screen.getByText('สวัสดี').closest('[lang="th"]')).not.toBeNull()
   })
 })
@@ -34,10 +37,10 @@ describe('SlideFrame', () => {
     expect(screen.getByText('slide body')).toBeDefined()
   })
 
-  it('shows the eyebrow chapter label in both languages', () => {
+  it('shows the eyebrow chapter label in Thai only', () => {
     render(frame())
-    expect(screen.getByText('Data in Business')).toBeDefined()
     expect(screen.getByText('ข้อมูลกับธุรกิจ')).toBeDefined()
+    expect(screen.queryByText('Data in Business')).toBeNull()
   })
 
   it('shows the ghost chapter numeral', () => {

@@ -77,14 +77,14 @@ describe('PhoneBody', () => {
     expect(screen.getByTestId('phone-holding')).toBeInTheDocument()
   })
 
-  it('renders one large button per option on a decide stage, in both languages', () => {
+  it('renders one large button per option on a decide stage, labelled in Thai', () => {
     render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
     expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
     for (const id of ['p45', 'p65', 'p85', 'p120']) {
       expect(screen.getByTestId(`option-${id}`)).toBeInTheDocument()
     }
-    expect(screen.getByText('฿85 — hold your price')).toBeInTheDocument()
     expect(screen.getByText('85 บาท — ยืนราคาเดิมไว้')).toBeInTheDocument()
+    expect(screen.queryByText('฿85 — hold your price')).toBeNull()
   })
 
   // The phone must carry the evidence too — but as figures, never as charts, and never at the
@@ -96,9 +96,9 @@ describe('PhoneBody', () => {
     // The two figures round 1 turns on: what most people pay, and what most people decide on.
     // Read from the aggregate rather than pasted, so a CSV re-import moves the test with the copy.
     expect(strip).toHaveTextContent(String(AUDIENCE.spend['50to100']))
-    expect(strip).toHaveTextContent('฿50–100')
+    expect(strip).toHaveTextContent('50–100 บาท')
     expect(strip).toHaveTextContent(String(AUDIENCE.mainFactor.taste))
-    expect(strip).toHaveTextContent('Taste')
+    expect(strip).toHaveTextContent('รสชาติ')
     // Both languages, as everywhere else in this workshop.
     expect(strip).toHaveTextContent('50–100 บาท')
     expect(strip).toHaveTextContent('รสชาติ')
@@ -188,7 +188,7 @@ describe('PhoneBody', () => {
         onVote={() => {}}
       />,
     )
-    expect(screen.getByTestId('your-pick')).toHaveTextContent('฿85 — hold your price')
+    expect(screen.getByTestId('your-pick')).toHaveTextContent('85 บาท — ยืนราคาเดิมไว้')
     expect(screen.getByTestId('option-p85')).toHaveAttribute('aria-pressed', 'true')
   })
 

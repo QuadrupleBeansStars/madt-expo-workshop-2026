@@ -463,7 +463,6 @@ function FixedOutcomes({ stage }: { stage: DecideStage }) {
                 return (
                   <div className="room-fx__delta" key={key} data-good={good}>
                     <dt>
-                      <span lang="en">{KPI_LABELS[key].en}</span>
                       <span lang="th">{KPI_LABELS[key].th}</span>
                     </dt>
                     <dd>{signed(value)}</dd>
@@ -526,7 +525,6 @@ function CloseView({ stage, frame }: { stage: CloseStage; frame: RoomFrame }) {
             {(Object.keys(ARCHETYPES) as (keyof typeof ARCHETYPES)[]).map((key) => (
               <li className="room-archetypes__item" key={key}>
                 <span className="room-archetypes__name">
-                  <span lang="en">{ARCHETYPES[key].name.en}</span>
                   <span lang="th">{ARCHETYPES[key].name.th}</span>
                 </span>
                 <Bilingual text={ARCHETYPES[key].sting} as="body" className="room-archetypes__sting" />

@@ -159,11 +159,9 @@ function YourShop({ you }: { you: PhoneFrame['you'] | null }) {
         <Bilingual text={PHONE.yourShop} as="label" className="phone-shop__title" />
         <p className="phone-shop__score">
           <b data-testid="you-score">{num.format(Math.round(you.score))}</b>
-          <span className="phone-shop__score-k" lang="en">{UI.score.en}</span>
           <span className="phone-shop__score-k" lang="th">{UI.score.th}</span>
         </p>
         <p className="phone-shop__rank">
-          <span className="phone-shop__rank-k" lang="en">{PHONE.rank.en}</span>
           <span className="phone-shop__rank-k" lang="th">{PHONE.rank.th}</span>
           <b data-testid="you-rank">{you.rank}</b>
         </p>
@@ -173,7 +171,6 @@ function YourShop({ you }: { you: PhoneFrame['you'] | null }) {
         {(['revenue', 'profit', 'satisfaction', 'waste'] as const).map((key) => (
           <div className="phone-kpis__item" key={key}>
             <dt>
-              <span lang="en">{KPI_LABELS[key].en}</span>
               <span lang="th">{KPI_LABELS[key].th}</span>
             </dt>
             <dd data-testid={`kpi-${key}`}>{num.format(Math.round(you.kpi[key]))}</dd>

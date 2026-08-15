@@ -155,3 +155,34 @@ body {
 .answer-card.selected-correct { border-color: #22c55e; background: #f0fdf4; color: #15803d; box-shadow: -4px 4px 0 #22c55e; }
 .answer-card.selected-incorrect { border-color: #ef4444; background: #fef2f2; color: #b91c1c; box-shadow: -4px 4px 0 #ef4444; }
 .answer-card:disabled { cursor: not-allowed; }
+
+/*
+ * The host's reset control (components/host/ResetButton.tsx).
+ *
+ * Armed and unarmed are different COLOURS, not just different words. The host reads this at a
+ * glance from a metre away with a room watching, and the difference between the two states is
+ * the difference between nothing happening and every phone being ejected.
+ */
+.host-reset {
+  border: 1px solid var(--rt-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rt-text);
+  background: transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.host-reset:hover { border-color: var(--rt-pink); color: var(--rt-pink); }
+.host-reset[data-armed='true'] {
+  background: var(--rt-pink);
+  border-color: var(--rt-pink);
+  color: #fff;
+  animation: host-reset-pulse 0.9s ease-in-out infinite;
+}
+@keyframes host-reset-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) {
+  .host-reset[data-armed='true'] { animation: none; }
+}
