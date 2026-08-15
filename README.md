@@ -29,6 +29,11 @@ end.
 Answer windows are **45-60 seconds** (45s easy → 60s for the harder cases), and the host can close
 a question early when the room has visibly finished.
 
+🧠 **[What each question is doing to the player](docs/question-design.md)** — the design intent
+behind every question in **both** workshops: what we are trying to make a player think, why they
+fall for it, which knob to turn to change it, and what not to break. **Start here if you want to
+argue with a question.**
+
 📖 **[The five cases — what each one teaches](docs/cases.md)** — per-case sources, the point of each
 failure mode, why every wrong answer is wrong, and which evidence is real vs. deliberately invented.
 Read this before facilitating.

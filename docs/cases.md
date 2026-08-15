@@ -5,6 +5,11 @@ which is the single source of truth. If you edit a case, edit it there and updat
 
 > `docs/walkthrough.html` §05 covers the same arc at a higher level, for the demo. This file is the
 > detailed per-case reference: sources, distractor design, and the real-vs-invented boundary.
+>
+> **Looking for *why* a case is built the way it is, or wanting to change one?** That is
+> [`docs/question-design.md`](question-design.md) — the design intent for both workshops, with the
+> knob to turn and the thing not to break for each question. This file is the facts; that one is
+> the argument.
 
 ---
 
