@@ -108,6 +108,36 @@ async function checkDetectiveTv(browser, failures) {
     }
   }
 
+  /*
+   * The document-height metric above CANNOT see this one, and that is why it exists separately.
+   *
+   * `/tv`'s <main> is `min-h-screen overflow-hidden`. When a stage grows past the screen, the
+   * overflow is CLIPPED rather than scrolled — so scrollHeight stays pinned at clientHeight and
+   * every stage reports a tidy ✓ while the bottom of the screen is being cut off. The case file
+   * moving onto the projector is what surfaced it: `citation` (four documents) pushed the host's
+   * "close it now" button 36px below the fold at 1366x768, and the walk above passed all 24
+   * combinations without a murmur.
+   *
+   * A host who cannot see the button cannot end the question. That is a hard failure, not a
+   * warning — unlike the phone checks below, where a player can at least scroll.
+   */
+  const checkHostControl = async (where) => {
+    for (const screen of screens) {
+      const m = await screen.page.evaluate(() => {
+        const buttons = [...document.querySelectorAll('button')].filter((b) => b.offsetParent !== null)
+        if (buttons.length === 0) return null
+        const last = buttons[buttons.length - 1].getBoundingClientRect()
+        return { bottom: Math.round(last.bottom), fold: document.documentElement.clientHeight }
+      })
+      if (!m) continue
+      const clearance = m.fold - m.bottom
+      if (clearance < 0) {
+        failures.push({ viewport: screen.label, stage: `tv ${where} (host control)`, overflowY: -clearance, overflowX: 0 })
+        console.log(`  ✗ ${screen.label}  ${where}  host control cut off by ${-clearance}px`)
+      }
+    }
+  }
+
   const detState = () => fetch(`${BASE}/api/state`).then((r) => r.json())
   const settle = () => screens[0].page.waitForTimeout(1500)
 
@@ -137,6 +167,7 @@ async function checkDetectiveTv(browser, failures) {
       }
 
       await measure(where)
+      await checkHostControl(where)
 
       if (state.phase === 'final') break
 

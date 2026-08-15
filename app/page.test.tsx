@@ -54,6 +54,32 @@ describe('phone flow', () => {
   })
 
   /*
+   * The phone is for TAPPING. The storyboard and the case file are things the room reads together
+   * off the projector while the host talks, and both were removed from this screen because a
+   * player who has to scroll past them inside a 45-second window loses the round to the scroll.
+   *
+   * This is asserted here, on the phone, rather than left to `components/game/CaseFile.test.tsx`
+   * — that file renders the projector component directly and stays green no matter what this page
+   * does. Without this test, someone re-adding the evidence to the phone breaks nothing.
+   */
+  it('does not put the storyboard or the case file on the phone', async () => {
+    const round0 = ROUNDS[0]
+    localStorage.setItem('aidet.run', JSON.stringify({ playerId: 'p1', codename: 'Alice' }))
+    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const u = String(url)
+      if (u.includes('/api/state')) return stateResponse({ phase: 'investigate', roundIndex: 0, caseId: round0.id, remainingMs: 60_000, youAnswered: false })
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    })
+    render(<PlayerPage />)
+    await waitFor(() => expect(screen.getByText(round0.options[0].label.th)).toBeInTheDocument())
+
+    expect(screen.queryByTestId('story')).toBeNull()
+    expect(screen.queryByTestId('case-file')).toBeNull()
+    // The filenames are the cheapest proof the retrieval manifest is not here either.
+    for (const doc of round0.docs) expect(screen.queryByText(doc.filename)).toBeNull()
+  })
+
+  /*
    * The twin of PhoneBody.test.tsx's "an unknown player is ejected from the poll, not from a
    * vote". Before this, the phone learned it had been ejected only when the player tapped an
    * answer and got a 400 — so it sat on the waiting screen looking healthy and then threw them

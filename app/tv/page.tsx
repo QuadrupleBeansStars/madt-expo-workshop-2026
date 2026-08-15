@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import { Countdown } from '@/components/game/Countdown'
 import { Duck } from '@/components/game/Duck'
 import { Storyboard } from '@/components/game/Storyboard'
+import { CaseFile } from '@/components/game/CaseFile'
 import { t } from '@/lib/i18n'
 
 const HOST_TOKEN_KEY = 'aidet.hostToken'
@@ -184,9 +185,19 @@ function Stage({
           <span className="text-4xl"><Countdown remainingMs={state.remainingMs} /></span>
         </header>
         <Storyboard panels={round.storyboard} lang={lang} />
-        <div className="retro-panel p-6" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
-          <div className="mb-4 text-3xl font-bold" style={{ color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
-          <Duck bubble={round.aiAnswer[lang]} size={72} />
+        {/* Question and evidence SIDE BY SIDE, not stacked.
+            The case file moved here off the phone, and stacking it under the question overflowed
+            every case at 1366x768 — `goblinshark` has a 338-character AI answer and `citation` has
+            four manifest rows plus three documents. A projector is wide and short: the width was
+            always there, the height never was. The two columns are deliberately uneven — the duck's
+            speech bubble sets the left column's height, and the evidence needs the wider half to
+            keep document bodies down to three lines. */}
+        <div className="grid min-h-0 flex-1 items-start gap-6" style={{ gridTemplateColumns: 'minmax(0, 5fr) minmax(0, 6fr)' }}>
+          <div className="retro-panel p-[min(2.4vh,24px)]" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+            <div className="mb-[min(1.6vh,16px)] font-bold" style={{ fontSize: 'min(3vh, 30px)', lineHeight: 1.25, color: 'var(--rt-cyan)' }}>{round.question[lang]}</div>
+            <Duck bubble={round.aiAnswer[lang]} size={72} />
+          </div>
+          <CaseFile detectiveCase={round} lang={lang} />
         </div>
         {/* The answered count and the cut-it-short button belong together: the count IS the
             evidence the host reads before deciding the room is done. Splitting them would put

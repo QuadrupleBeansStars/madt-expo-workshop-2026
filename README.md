@@ -19,8 +19,10 @@ Shared, and worth reading whichever workshop you are running: [Run it](#run-it) 
 
 A synchronized, **Kahoot-style** quiz about AI hallucination. One **TV** drives the room through 5
 rounds; players follow on their **phones**. Each round opens on a short **storyboard**, then the
-retrieved Case File evidence and the AI "duck's" confident answer — tap A/B/C/D before the timer
-runs out. The reveal shows the punchline (*"73% of you believed the AI"*) **and the running
+question and the AI "duck's" confident answer beside the **Case File** — the retrieval manifest and
+the documents the AI did (and did not) find. All of that is on the projector; the phone shows the
+question and four answer cards, nothing else. Tap A/B/C/D before the timer runs out. The reveal
+shows the punchline (*"73% of you believed the AI"*) **and the running
 standings**, so there is something to play for in the middle of the game rather than only at the
 end.
 
@@ -169,6 +171,22 @@ deliberate:
 
 To swap emoji for real artwork later, drop a file in `public/` and set `art: '/story/x.png'` on the
 panel. No code change — the renderer prefers `art` when present.
+
+**The Case File is on the projector, not the phone.** `components/game/CaseFile.tsx` renders the
+retrieval manifest (every filename with ✓ / ✗) and the found documents, in the right-hand column
+beside the question. Three things about it are load-bearing:
+
+- **The `✗ NOT FOUND` row is the lesson** in cases 1-3 — it is the gap the AI filled by inventing.
+  It sits at the top of the manifest and never shrinks; the documents below give up pixels first.
+- **The source renders as a domain** (`nasa.gov`), not the full `sourceUrl`. A wrapped URL costs
+  ~40px of a budget measured in tens, and nobody reads a path segment off a projector. The full URL
+  is untouched in `content/cases.ts`.
+- **The type scale steps down at three or more documents.** `citation` has four manifest rows and
+  three documents; at one size for all five cases it pushed the host's own button off the screen.
+  `artemis` and `novabrew` stay at the roomy scale.
+
+Editing a case body? Re-run the projector check. The right column is the tightest part of the
+screen and there is no scrollbar on a projector.
 
 ---
 
@@ -359,8 +377,15 @@ suite passing and `next build` reporting success.
 
 It also walks **390×844** and reports how far a player must scroll to reach the last vote button.
 That one is a **warning, not a failure** — phones scroll — but an option someone has to hunt for
-inside a 45-second window collects fewer votes than it deserves. AI Detective's phone currently
-needs ~420px of scroll past the four answer cards; The Decision Room's phone needs none.
+inside a 45-second window collects fewer votes than it deserves. Both phones currently reach every
+option without scrolling; AI Detective needed ~420px until the Case File moved to the projector.
+
+**It checks the host's controls separately, and that check is not redundant.** `/tv`'s `<main>` is
+`min-h-screen overflow-hidden`, so a stage that grows past the screen is **clipped, not scrolled** —
+`scrollHeight` stays pinned to `clientHeight` and the overflow metric reports a tidy ✓ while the
+bottom of the screen is cut off. Moving the Case File onto the projector cut the host's "close it
+now" button by 36px on `citation` and all 24 combinations still passed. If you add a control below
+the fold-critical content, it is `checkHostControl` that will catch it, not the height comparison.
 
 Known traps, each paid for:
 
