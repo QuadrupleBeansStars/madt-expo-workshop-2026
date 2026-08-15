@@ -1,6 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Lang, PublicGameState } from '@/lib/types'
+import type { DetectiveCase, Lang, PublicGameState } from '@/lib/types'
 import type { RoomStats } from '@/lib/stats'
 import { ROUNDS } from '@/lib/game'
 import { QRCodeSVG } from 'qrcode.react'
@@ -239,25 +239,33 @@ function Stage({
   // reveal
   const correct = round.options.find((o) => o.correct)!
   return (
-    <div className="flex min-h-[80vh] flex-col gap-6">
+    <div className="flex min-h-[80vh] flex-col gap-[min(2.2vh,22px)]">
       <span className="pixel-title text-2xl">{t('caseLabel', lang)} {round.order}/5 — {t('reveal', lang)}</span>
-      <div className="retro-panel p-6" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
-        <div className="mb-2 text-sm" style={{ color: 'var(--rt-gold)' }}>{t('correctAnswer', lang)}:</div>
-        <div className="mb-4 text-3xl font-bold" style={{ color: 'var(--rt-green)' }}>{correct.label[lang]}</div>
-        <p className="text-xl">{round.reveal[lang]}</p>
-      </div>
-      {/* The two things the room wants to see the instant a case closes: how many of them the AI
-          fooled, and who is winning. Side by side rather than stacked — stacking them is what
-          pushes the host button below the fold at 1366x768. The standings render from the same
-          `stats` poll the final screen uses, so there is no new request per case. */}
-      <div className="flex flex-1 items-center justify-center gap-10">
-        {caseStat && caseStat.answered > 0 ? (
-          <div className="text-center">
-            <span className="pixel-title text-7xl" style={{ color: 'var(--rt-pink)' }}>{caseStat.believedAiPct}%</span>
-            <div className="mt-2 text-2xl" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('believedAiLabel', lang)}</div>
+      {/*
+        TWO COLUMNS, and it is not a style choice.
+        Measured at 1366x768 before the teaching panel existed, this screen had 31px of clearance
+        under the Next button on `citation` and `novabrew` — their reveal copy is 681 and 696 Thai
+        characters. Anything stacked here goes straight through the fold. The room's payoff (how
+        many were fooled, who is winning) moves into the right column and the reading moves left.
+      */}
+      <div className="grid min-h-0 flex-1 items-start gap-8" style={{ gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)' }}>
+        <div className="flex min-h-0 flex-col gap-[min(1.8vh,18px)]">
+          <div className="retro-panel p-[min(2.4vh,24px)]" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>
+            <div className="mb-2 text-sm" style={{ color: 'var(--rt-gold)' }}>{t('correctAnswer', lang)}:</div>
+            <div className="mb-[min(1.4vh,14px)] font-bold" style={{ fontSize: 'min(2.8vh, 28px)', lineHeight: 1.25, color: 'var(--rt-green)' }}>{correct.label[lang]}</div>
+            <p style={{ fontSize: 'min(1.9vh, 19px)', lineHeight: 1.4 }}>{round.reveal[lang]}</p>
           </div>
-        ) : null}
-        <RevealLeaderboard stats={stats} lang={lang} />
+          <TeachingPanel round={round} lang={lang} />
+        </div>
+        <div className="flex flex-col items-center gap-[min(2.4vh,24px)]">
+          {caseStat && caseStat.answered > 0 ? (
+            <div className="text-center">
+              <span className="pixel-title" style={{ fontSize: 'min(9vh, 90px)', color: 'var(--rt-pink)' }}>{caseStat.believedAiPct}%</span>
+              <div className="mt-1 text-xl" style={{ fontFamily: 'var(--font-thai), sans-serif' }}>{t('believedAiLabel', lang)}</div>
+            </div>
+          ) : null}
+          <RevealLeaderboard stats={stats} lang={lang} />
+        </div>
       </div>
       <div className="mx-auto flex flex-col items-center gap-2">
         <button type="button" className="pixel-btn gold text-lg" onClick={onNext}>{t('hostNext', lang)}</button>
@@ -266,6 +274,43 @@ function Stage({
         ) : null}
       </div>
     </div>
+  )
+}
+
+/**
+ * The teaching beat — the reason the question was asked, rather than the answer to it.
+ *
+ * Two lines, and they do different jobs. `failureMode` names the trick so the room has a handle
+ * for it ("stale knowledge", "invented source"); `checkNextTime` is the only thing on this screen
+ * that is meant to be useful outside it. The panel deliberately has NO figures and NO score — it
+ * sits under the reveal so the host has something to talk over while the room reads the standings
+ * beside it.
+ *
+ * The header is neutral on purpose. "What this one was trying to fool you with" reads well on
+ * cases 1-4 and is nonsense on case 5, where the AI is right and the lesson is that reflexive
+ * suspicion is not a substitute for checking. One heading has to carry both.
+ */
+function TeachingPanel({ round, lang }: { round: DetectiveCase; lang: Lang }) {
+  return (
+    <section
+      data-testid="teaching"
+      className="rounded-lg p-[min(2.2vh,22px)]"
+      style={{ fontFamily: 'var(--font-thai), sans-serif', background: 'var(--rt-panel)', borderLeft: '5px solid var(--rt-gold)' }}
+    >
+      <div className="mb-[min(1.4vh,14px)] font-bold" style={{ fontSize: 'min(1.7vh, 17px)', letterSpacing: '0.08em', color: 'var(--rt-gold)' }}>
+        {t('teachingTitle', lang)}
+      </div>
+      <dl className="flex flex-col gap-[min(1.4vh,14px)]">
+        <div>
+          <dt style={{ fontSize: 'min(1.5vh, 15px)', color: 'var(--rt-cyan)' }}>{t('teachingTrick', lang)}</dt>
+          <dd className="mt-1 font-bold" style={{ fontSize: 'min(2.1vh, 21px)', lineHeight: 1.3 }}>{round.failureMode[lang]}</dd>
+        </div>
+        <div>
+          <dt style={{ fontSize: 'min(1.5vh, 15px)', color: 'var(--rt-cyan)' }}>{t('teachingCheck', lang)}</dt>
+          <dd className="mt-1" style={{ fontSize: 'min(1.95vh, 20px)', lineHeight: 1.4 }}>{round.checkNextTime[lang]}</dd>
+        </div>
+      </dl>
+    </section>
   )
 }
 

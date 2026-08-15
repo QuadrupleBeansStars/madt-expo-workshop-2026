@@ -109,6 +109,10 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     failureMode: { th: 'ความรู้ที่ล้าสมัย (Stale Knowledge)', en: 'Stale knowledge' },
+    checkNextTime: {
+      th: 'ถามก่อนว่า "ข้อมูลของคุณอัปเดตถึงเมื่อไร" ทุกครั้งที่คำตอบเกี่ยวกับวันที่ เหตุการณ์ล่าสุด หรือสิ่งที่ยังเกิดขึ้นอยู่ คำตอบที่เคยถูก ไม่ได้แปลว่ายังถูกอยู่วันนี้',
+      en: 'Ask "how recent is your information?" whenever the answer involves a date, a latest event, or anything still unfolding. An answer that used to be right does not stay right.',
+    },
     reveal: {
       th: 'คำตอบของ AI เคยถูกต้อง — จนถึงเดือนเมษายน 2026 ภารกิจ Artemis II ปล่อยตัวเมื่อ 1 เมษายน 2026 และลงจอดในทะเลเมื่อ 10 เมษายน 2026 ลูกเรือคือ Reid Wiseman, Victor Glover, Christina Koch (NASA) และ Jeremy Hansen (CSA) พวกเขาคือมนุษย์กลุ่มแรกที่ออกไปไกลกว่าวงโคจรระดับต่ำนับตั้งแต่ปี 1972 สังเกตว่า AI ไม่เคยดึงเอกสารปี 2026 มาเลย — มันตอบจากสิ่งที่มันรู้ ไม่ใช่สิ่งที่มันหาเจอ บทเรียน: ความลื่นไหลไม่ใช่ความสดใหม่ ตรวจสอบ "วันที่" ของความรู้เสมอ',
       en: 'The AI\'s answer was true — until April 2026. Artemis II launched on 1 April 2026 and splashed down on 10 April 2026. Crew: Reid Wiseman, Victor Glover, Christina Koch (NASA) and Jeremy Hansen (CSA) — the first humans beyond low Earth orbit since 1972. Notice the AI never retrieved a single 2026 document. It answered from what it knew, not from what it found. Lesson: fluency is not freshness. Always check the date on the knowledge.',
@@ -219,6 +223,10 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     failureMode: { th: 'การแต่งตัวเลขที่เฉพาะเจาะจง (Fabricated Specifics)', en: 'Fabricated specifics' },
+    checkNextTime: {
+      th: 'รูปร่างของคำตอบถูก ไม่ได้แปลว่าตัวเลขถูก ตัวเลขที่เจาะจงทุกตัวต้องเอาไปเทียบกับแหล่งต้นทาง ไม่ใช่แค่อ่านแล้วรู้สึกว่าสมเหตุสมผล',
+      en: 'The right shape of an answer is not the right numbers. Check every specific figure against the source — plausible is not the same as verified.',
+    },
     reveal: {
       th: 'AI ได้ "รูปร่าง" ของคำตอบถูก แต่ได้ "ตัวเลข" ผิด ของจริง: นอร์เวย์ได้ทอง 18 เหรียญ รวม 41 เหรียญ (สถิติใหม่ของโอลิมปิกฤดูหนาว) ไม่ใช่ 16 และ 38 และอันดับสามคืออิตาลี ไม่ใช่เยอรมนี สังเกตว่าเอกสารที่หายไปคือ "รายละเอียดเหรียญของนอร์เวย์" — และตัวเลขที่ AI แต่งขึ้นก็คือตัวเลขที่ควรอยู่ในเอกสารนั้นพอดี บทเรียน: คำตอบที่อันตรายที่สุด คือคำตอบที่มีรูปร่างเหมือนคำตอบที่ถูกต้องทุกประการ ตัวเลขต้องอ่าน ไม่ใช่เดา',
       en: 'The AI got the shape right and the numbers wrong. Actual: Norway won 18 gold and 41 total — a Winter Games record — not 16 and 38. And third place was Italy, not Germany. Notice which document was missing: Norway\'s medal breakdown. The numbers the AI invented are exactly the numbers that document would have contained. Lesson: the most dangerous wrong answer is the one shaped exactly like a right one. Numbers must be read, not vibed.',
@@ -341,6 +349,10 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     failureMode: { th: 'คำตอบถูก แต่แหล่งอ้างอิงถูกแต่งขึ้น (Fabricated Citation)', en: 'Right answer, invented source' },
+    checkNextTime: {
+      th: 'กดลิงก์ทุกครั้ง ถ้ามีการอ้างชื่อคดี เลขคดี งานวิจัย หรือมาตรากฎหมาย ให้เปิดดูว่ามีอยู่จริง ข้ออ้างที่ถูกต้อง กับแหล่งอ้างอิงที่ถูกแต่งขึ้น อยู่ในคำตอบเดียวกันได้',
+      en: 'Open the link. If a case number, a paper, or a statute is named, check that it exists — a true claim and an invented source live happily in the same answer.',
+    },
     reveal: {
       th: '⚠️ คดี "Hendricks v. Meridian Logistics Corp." ไม่มีอยู่จริง AI แต่งมันขึ้นมาเอง — ชื่อคดี เลขคดี ศาล และค่าปรับ ทั้งหมดเป็นเรื่องแต่ง แต่ "ข้ออ้างหลัก" นั้นถูกต้อง! มีทนายความถูกลงโทษจริง: ศาลอุทธรณ์เขต 6 ปรับทนายคนละ 15,000 ดอลลาร์ (Whiting v. City of Athens), ศาลนิวยอร์กปรับ 10,500 ดอลลาร์, รวมค่าปรับราว 145,000 ดอลลาร์ในไตรมาสแรกปี 2026 และมีกรณีที่ถูกบันทึกไว้กว่า 1,200 รายการ สังเกตว่าเอกสารที่หายไปคือ "ฐานข้อมูลคำพิพากษา" — AI ไม่มีทางตรวจสอบได้เลยว่าคดีที่ตัวเองอ้างมีอยู่จริงหรือไม่ มันจึงแต่งขึ้นมาแทนที่จะบอกว่า "ไม่รู้" บทเรียน: ถูกต้อง ≠ เชื่อถือได้ คำตอบที่ถูกพร้อมแหล่งอ้างอิงปลอม ก็ยังคือความล้มเหลว — และเป็นความล้มเหลวที่ทำให้คนเสียอาชีพมาแล้วกว่า 1,200 ครั้ง',
       en: '⚠️ "Hendricks v. Meridian Logistics Corp." DOES NOT EXIST. The AI invented it — the party names, the docket number, the court, and the fine are all fabricated. But the underlying claim is TRUE. Lawyers really have been punished: the Sixth Circuit ordered $15,000 each against two attorneys (Whiting v. City of Athens); a New York court sanctioned an attorney and firm $10,500; courts levied ~$145K in Q1 2026; 1,200+ instances have been tracked. Notice the missing document: the case-law database. The AI had no way to check whether its own citation existed — so it invented one rather than admit it did not know. Lesson: correct ≠ trustworthy. A right answer with a fake source is still a failure — and it is the failure that has ended careers over 1,200 times.',
@@ -442,6 +454,10 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     failureMode: { th: 'การให้เหตุผลที่ผิดพลาด (Flawed Reasoning)', en: 'Flawed reasoning' },
+    checkNextTime: {
+      th: 'ตัวเลขถูกครบทุกตัว ก็ยังสรุปผิดได้ แยกสองคำถามออกจากกันเสมอ: "ตัวเลขนี้จริงไหม" กับ "ตัวเลขนี้แปลว่าอย่างที่เขาสรุปจริงไหม"',
+      en: 'Every number can be right and the conclusion still wrong. Keep two questions apart: is this figure true, and does this figure mean what they say it means?',
+    },
     reveal: {
       th: '👀 สังเกตให้ดี: การค้นหาเอกสารครั้งนี้ "ครบถ้วน" ไม่มีเอกสารหายไปแม้แต่ชิ้นเดียว และตัวเลขทุกตัวที่ AI ยกมาก็ "ถูกต้องทั้งหมด" รายได้โต 12.5% จริง สาขาเพิ่มจาก 120 เป็น 150 จริง แล้วมันผิดตรงไหน? สาขาเพิ่มขึ้น 25% แต่รายได้เพิ่มแค่ 12.5% นั่นแปลว่ารายได้ "ต่อสาขา" ลดลงจาก 2.00 เหลือ 1.80 ล้านบาท — ลดลง 10% การเติบโตไม่ได้มาจากความสำเร็จ แต่มาจากการเปิดสาขาเพิ่มที่แต่ละสาขาทำได้แย่ลงกว่าเดิม ดังนั้น "เร่งเปิดสาขา" คือคำแนะนำที่ผิดพลาดที่สุด — และข้อมูลที่ AI ยกมาเองก็บอกอย่างนั้น บทเรียน: การตรวจสอบข้อเท็จจริง ไม่เหมือนกับการตรวจสอบการให้เหตุผล ถ้าคุณไล่เช็กทุกตัวเลข คำตอบนี้จะผ่านฉลุย นี่คือความผิดพลาดประเภทที่รอดสายตาคนตรวจได้บ่อยที่สุด — และเป็นจุดที่วิจารณญาณของมนุษย์ทดแทนไม่ได้จริง ๆ',
       en: '👀 Notice: the retrieval was CLEAN. Nothing was missing. And every number the AI quoted is CORRECT — revenue really did grow 12.5%, stores really did go from 120 to 150. So where is the failure? Stores grew 25% while revenue grew only 12.5%. That means revenue PER STORE fell from ฿2.00M to ฿1.80M — down 10%. The growth is not coming from success; it is coming from adding stores that each perform worse than the ones before. "Accelerate openings" is therefore precisely the wrong prescription — and the data the AI itself cited says so. Lesson: verifying the facts is not the same as verifying the inference. Fact-check every figure and this answer sails through. This is the class of error most likely to survive review — and the place where human judgment is genuinely irreplaceable.',
@@ -560,6 +576,10 @@ export const CASES: DetectiveCase[] = [
       },
     ],
     failureMode: { th: 'ไม่มีความผิดพลาด — AI ตอบถูก', en: 'No failure — the AI is right' },
+    checkNextTime: {
+      th: 'การไม่เชื่อไว้ก่อน ไม่ใช่การตรวจสอบ ข้อนี้ AI ตอบถูกและเอกสารครบถ้วน สิ่งที่ต้องฝึกคือการ "ไปดูแหล่งที่มา" ไม่ใช่การ "ระแวงทุกคำตอบ" — คนที่ระแวงทุกข้อ ก็ตอบข้อนี้ผิดเหมือนกัน',
+      en: 'Doubt is not verification. The AI was right here and the documents backed it up. The habit to build is checking the source, not distrusting by reflex — reflexive doubt got this one wrong too.',
+    },
     reveal: {
       th: '🎯 คดีสุดท้าย: AI ตอบถูก ทุกคำ ฉลามก็อบลินมีจริง ทีมวิจัยจาก University of Hawaiʻi at Mānoa ถ่ายวิดีโอมันได้จริงในปี 2026 พบสองตัวจริง ที่ Jarvis Island และ Tonga Trench จริง และการพบที่ Tonga Trench ก็สร้างสถิติความลึกใหม่ของอันดับ Lamniformes จริง ตีพิมพ์ใน Journal of Fish Biology จริง สังเกตว่าการค้นหาเอกสาร "ครบถ้วน" — ไม่มีช่องว่างให้ AI ต้องเดา แล้วทำไมพวกเราส่วนใหญ่ถึงกาว่ามันมั่ว? เพราะผ่านมา 4 คดี เราถูกฝึกให้ "ไม่เชื่อ" และความไม่เชื่อแบบอัตโนมัติ ก็ขี้เกียจพอ ๆ กับความเชื่อแบบอัตโนมัติ นี่คือหัวใจของเวิร์กช็อปนี้: คิดกับ AI — อย่าแค่เชื่อมัน และอย่าแค่ปฏิเสธมัน',
       en: '🎯 The final case: the AI is RIGHT. Every word. The goblin shark is real. A University of Hawaiʻi at Mānoa team really did film it in 2026. Two individuals really were observed, near Jarvis Island and in the Tonga Trench. The Tonga sighting really did set a new depth record for the entire order Lamniformes. It really was published in the Journal of Fish Biology. Notice the retrieval was CLEAN — there was no gap for the AI to paper over. So why did most of us mark it false? Because four cases trained us to distrust — and reflexive doubt is exactly as lazy as reflexive trust. That is the whole point of this workshop: think WITH AI. Do not just trust it. And do not just doubt it either.',

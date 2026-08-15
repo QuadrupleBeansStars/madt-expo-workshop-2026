@@ -29,6 +29,33 @@ describe('CASES', () => {
     CASES.forEach(walk)
   })
 
+  /*
+   * The teaching beat is what the room takes home, so it gets the same scrutiny as the puzzle.
+   *
+   * The schema already forces `checkNextTime` to EXIST and to carry both scripts. What it cannot
+   * enforce is that the field says something USEFUL — the failure mode here is a line that just
+   * restates `reveal` in fewer words, which reads fine in review and teaches nothing. These two
+   * assertions are cheap proxies for that: it has to be long enough to be an instruction, and it
+   * must not be a copy-paste of the reveal paragraph.
+   */
+  it('every case carries a take-home check, and it is not a trimmed copy of the reveal', () => {
+    for (const c of CASES) {
+      expect(c.checkNextTime.th.length, `${c.id} th`).toBeGreaterThan(40)
+      expect(c.checkNextTime.en.length, `${c.id} en`).toBeGreaterThan(40)
+      expect(c.reveal.th.includes(c.checkNextTime.th), `${c.id} duplicates the reveal`).toBe(false)
+    }
+  })
+
+  it('the take-home check on case 5 does not assume the AI got it wrong', () => {
+    // Case 5 is the one where the AI is RIGHT, and it is the case every "spot the trick" framing
+    // breaks on. A player who learned "distrust the AI" fails it exactly as badly as one who
+    // believed everything, so its lesson has to be about verifying rather than about suspecting.
+    const last = CASES.find((c) => c.order === 5)!
+    expect(last.docs.every((d) => d.found)).toBe(true)
+    expect(last.checkNextTime.th).toMatch(/ตรวจสอบ|แหล่ง/)
+    expect(last.checkNextTime.en.toLowerCase()).toMatch(/verif|check the source/)
+  })
+
   it('cases 1-3 each have exactly one missing document (the retrieval gap)', () => {
     for (const c of CASES.filter((c) => c.order <= 3)) {
       expect(c.docs.filter((d) => !d.found)).toHaveLength(1)

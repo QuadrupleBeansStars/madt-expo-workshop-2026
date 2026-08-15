@@ -188,6 +188,23 @@ beside the question. Three things about it are load-bearing:
 Editing a case body? Re-run the projector check. The right column is the tightest part of the
 screen and there is no scrollbar on a projector.
 
+**The teaching beat.** Every reveal carries a panel with two lines — `failureMode` (the name of the
+trick, so the room has a handle for it) and `checkNextTime` (**the only thing on the screen meant to
+be useful outside it**). `checkNextTime` is **required** by the schema: a case without one is a quiz
+question with no lesson attached. Two rules:
+
+- Write it as an **instruction**, not a summary. `reveal` says what happened in this case; this says
+  what to do in front of a different question next Tuesday. A test fails if it turns out to be a
+  substring of `reveal`.
+- **Case 5 is the shape test.** The AI is right there, so anything phrased "here is the trick" is
+  nonsense — its lesson is that reflexive suspicion is not a substitute for checking, and a player
+  who learned "distrust the AI" fails it as badly as one who believed everything. That is why the
+  panel heading is the neutral "ข้อนี้ทดสอบอะไร" and not "what fooled you".
+
+The reveal is a **two-column** screen for a measured reason: before the panel existed it had 31px of
+clearance under the host's Next button on `citation` and `novabrew` at 1366×768. Reading sits left,
+the room's payoff (the % fooled and the standings) sits right. It now has 137px.
+
 ---
 
 # The Decision Room

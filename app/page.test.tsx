@@ -80,6 +80,28 @@ describe('phone flow', () => {
   })
 
   /*
+   * The teaching beat is the host talking over the projector, not fifteen people reading their
+   * phones while he does. It also has to stay off this screen for the same measured reason the
+   * Case File did: the phone reveal already carries the right/wrong verdict and the reveal
+   * paragraph, and this page has no room left to spend.
+   */
+  it('keeps the teaching panel on the projector, not on the phone', async () => {
+    const round0 = ROUNDS[0]
+    localStorage.setItem('aidet.run', JSON.stringify({ playerId: 'p1', codename: 'Alice' }))
+    vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
+      const u = String(url)
+      if (u.includes('/api/state')) return stateResponse({ phase: 'reveal', roundIndex: 0, caseId: round0.id, remainingMs: 0, youAnswered: true })
+      return { ok: true, status: 200, json: async () => ({}) } as Response
+    })
+    render(<PlayerPage />)
+    await waitFor(() => expect(screen.getByText(round0.reveal.th)).toBeInTheDocument())
+
+    expect(screen.queryByTestId('teaching')).toBeNull()
+    expect(screen.queryByText(round0.checkNextTime.th)).toBeNull()
+    expect(screen.queryByText(round0.failureMode.th)).toBeNull()
+  })
+
+  /*
    * The twin of PhoneBody.test.tsx's "an unknown player is ejected from the poll, not from a
    * vote". Before this, the phone learned it had been ejected only when the player tapped an
    * answer and got a 400 — so it sat on the waiting screen looking healthy and then threw them

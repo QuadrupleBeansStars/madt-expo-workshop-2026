@@ -73,6 +73,21 @@ export const DetectiveCaseSchema = z.object({
   options: z.array(CaseOptionSchema).length(4),
   reveal: LocalizedTextSchema,
   failureMode: LocalizedTextSchema,
+  /**
+   * The teaching beat, and the only part of a case that is meant to LEAVE the room.
+   *
+   * REQUIRED, unlike `storyboard`. `reveal` says what happened in this particular case; this says
+   * what to do about it next Tuesday, in front of a different question. A sixth case that ships
+   * without one would be a quiz question with no lesson attached, which is the failure this whole
+   * workshop exists to avoid — so the schema refuses it rather than rendering an empty panel.
+   *
+   * Write it as an INSTRUCTION, not a summary. If it cannot be written without restating `reveal`,
+   * the case does not need this field — it needs `failureMode`, which is right above.
+   *
+   * Case 5 is the shape test: the AI is RIGHT there, so the check is about not treating suspicion
+   * as a substitute for verification. Anything phrased as "here is the trick" breaks on it.
+   */
+  checkNextTime: LocalizedTextSchema,
 }).refine(
   (c) => c.options.filter((o) => o.correct).length === 1,
   { message: 'a case must have exactly one correct option' },

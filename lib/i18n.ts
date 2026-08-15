@@ -43,6 +43,11 @@ const STRINGS = {
   // Deliberately says "close" rather than "skip": this button stops on the reveal, it does not
   // jump the case. A host reading "skip" mid-session would expect the latter.
   hostRevealNow:    { th: '⏭ ปิดข้อนี้ เฉลยเลย', en: '⏭ Close it — reveal now' },
+  // The teaching beat on the reveal screen. `teachingTrick` is worded to survive case 5, where
+  // there is no trick — "what this one tested" works whether the AI lied or told the truth.
+  teachingTitle:    { th: 'บทเรียนจากข้อนี้', en: 'What this case teaches' },
+  teachingTrick:    { th: 'ข้อนี้ทดสอบอะไร', en: 'What it tested' },
+  teachingCheck:    { th: 'ครั้งหน้าให้เช็กอะไร', en: 'What to check next time' },
   hostReset:        { th: '↺ รีเซ็ตห้อง', en: '↺ Reset room' },
   // Armed state. Must NOT read as a repeat of the label — it is the last thing between the host
   // and ejecting every phone in the room, so it says what is about to happen.

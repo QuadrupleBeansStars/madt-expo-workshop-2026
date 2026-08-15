@@ -17,6 +17,7 @@ const caseWith = (corrections: boolean[]) => ({
   })),
   reveal: { th: 'เฉลย', en: 'r' },
   failureMode: { th: 'โหมด', en: 'mode' },
+  checkNextTime: { th: 'เช็ก', en: 'check' },
 })
 
 describe('DetectiveCaseSchema', () => {
