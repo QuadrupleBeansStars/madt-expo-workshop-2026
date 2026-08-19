@@ -130,9 +130,15 @@ export function Podium({ top, detectives }: { top: PodiumEntry[]; detectives: nu
         />
 
         <h1
-          className="det-screen-title absolute left-1/2 -translate-x-1/2 text-center"
+          /* NO `-translate-x-1/2` HERE. Tailwind v4 emits that utility as the standalone
+             `translate` property, which COMPOSES with `transform` rather than being overridden by
+             it — so this title, which needs an inline `transform` for its landing animation, was
+             shifted by half its width twice and sat 405px left of centre (measured). The inline
+             transform below owns the centring; the utility would silently double it. */
+          className="det-screen-title absolute text-center" 
           style={{
             top: '4cqh',
+            left: '50%',
             opacity: revealed >= 4 ? 1 : 0,
             transform: `translateX(-50%) scale(${revealed >= 4 ? 1 : 0.86})`,
             transition: reduced ? 'none' : 'opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 1.5, 0.4, 1)',
@@ -173,11 +179,18 @@ export function Podium({ top, detectives }: { top: PodiumEntry[]; detectives: nu
         {/* Last, over the whole screen's worth of result. */}
         <div
           aria-hidden={revealed >= 5 ? undefined : 'true'}
-          className="absolute left-1/2 z-30"
+          /* Same Tailwind v4 trap as the title above: `left` goes inline, never as a utility
+             paired with an inline `transform`. */
+          className="absolute z-30"
           style={{
-            /* Straddling the TOP EDGE of first place's card, the way a stamp lands on a document
-               rather than through the middle of what is written on it. */
-            top: '24cqh',
+            /* ON THE DESK, below the cards — not across the top of first place.
+               At 24cqh it landed straight through "คดีปิดแล้ว", through the cyan TOP 3 OF n line
+               and over the crown and the 1ST label: four things unreadable at once, because the
+               cards sit higher here than in the sketch and the stamp had nothing to land on but
+               content. The desk band under the cards was carrying nothing at all, which is what
+               the room reads as "the layout is not centred". One move fixes both. */
+            top: '85cqh',
+            left: '50%',
             fontFamily: 'var(--font-pixel), monospace',
             fontSize: '5.6cqh',
             letterSpacing: '0.08em',

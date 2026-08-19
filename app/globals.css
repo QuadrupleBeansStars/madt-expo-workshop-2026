@@ -440,8 +440,12 @@ body {
  * colour, quietly when idle and solid once ARMED. Armed and idle are different COLOURS, not just
  * different words: the host reads this at a glance from a metre away with a room watching.
  */
-.det-btn.det-btn-danger { background-color: #19030a; border-color: var(--det-pink); color: #ffd9e2; }
-.det-btn.det-btn-danger:hover { background-color: #2a0612; }
+/* AT REST IT LOOKS LIKE ITS SIBLINGS. It used to wear a pink border and pink-tinted text while
+   unarmed, which put the colour that MEANS armed on a button that was not — so from a metre away
+   a host could not tell the two states apart, and telling them apart is the entire purpose of the
+   two-step design. Pink now appears only when the next press really does eject the room. */
+.det-btn.det-btn-danger { background-color: #290852; border-color: #ffffff; color: #ffffff; }
+.det-btn.det-btn-danger:hover { background-color: #3f107c; }
 .det-btn.det-btn-danger[data-armed='true'] {
   background-color: var(--det-pink);
   border-color: #ffffff;
