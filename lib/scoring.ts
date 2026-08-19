@@ -18,9 +18,12 @@ export const MAX_SPEED_BONUS = 10
 
 /**
  * The anti-guess mechanic. Two buttons means a coin-flipper is right half the time; points alone
- * cannot tell thinking from flipping. Streaks can: P(3 correct in a row by guessing) is 12.5%,
- * and the answer key is arranged so an always-reject player never gets three in a row at all
- * (content/questions.test.ts).
+ * cannot tell thinking from flipping. Streaks can: P(3 correct in a row by guessing) is 12.5%.
+ *
+ * The answer key is arranged to break the ตีกลับ runs as short as its two จริง cases allow, which
+ * lets an always-reject player reach ×3 ONCE and score 1200 against a thinking player's 2400. It
+ * used to deny them ×3 entirely; that needs a third จริง case, and the full arithmetic is on the
+ * always-reject test in `scoring.test.ts`. Do not restate the old guarantee here.
  */
 export const MAX_STREAK_MULTIPLIER = 3
 

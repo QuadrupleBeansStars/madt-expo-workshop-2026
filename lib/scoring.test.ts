@@ -80,10 +80,11 @@ describe('scorePlayer', () => {
     const rejectedEverything = qs.map((q) => ans(q.id, 'reject'))
     expect(scorePlayer(rejectedEverything, qs).wrongPass).toBe(0)
     expect(scorePlayer(rejectedEverything, qs).correct).toBe(rejects.length)
-    expect(passes.length).toBe(3)
+    // Two, not v3's three — the team's set has two จริง cases. Pinned rather than derived so a
+    // content change that alters the guessing floor cannot slip through this file unnoticed.
+    expect(passes.length).toBe(2)
   })
 
-  // THE ANTI-GUESS PAYOFF (spec §4d): tapping ตีกลับ nine times must never reach ×3.
   it('reports the streak standing at the end of the walk', () => {
     const qs = QUESTIONS_IN_ORDER
     expect(scorePlayer(qs.map((q) => ans(q.id, q.verdict)), qs).streak).toBe(9)
@@ -108,13 +109,49 @@ describe('scorePlayer', () => {
     expect(perQuestion[qs[2].id]).toBeUndefined() // never answered — absence, not a false entry
   })
 
-  it('never lets an always-reject player reach the ×3 multiplier', () => {
+  /*
+   * WHAT THE MULTIPLIER PROMISES ABOUT GUESSING — and it is WEAKER than it used to be.
+   *
+   * THIS TEST USED TO ASSERT: "never lets an always-reject player reach the ×3 multiplier". v3's
+   * answer key had THREE จริง cases and placed them so no three ตีกลับ answers were ever adjacent;
+   * a player tapping ตีกลับ nine times scored 800 with six correct and never once reached ×3.
+   *
+   * WHY IT WEAKENED: the team's set (docs/superpowers/specs/2026-08-19-hallucination-nine-content.md)
+   * has TWO จริง cases among nine, and no arrangement of two can restore the old rule. With `p`
+   * จริง answers the `9 − p` rejects fall into at most `p + 1` runs, so the shortest possible
+   * longest run is `ceil((9 − p) / (p + 1))` — 3 at p=2, 2 at p=3. A run of three is unavoidable,
+   * so ×3 is reachable however the cases are ordered. The running order (จริง at 4 and 7) makes
+   * that run happen exactly ONCE instead of the four-question stretch the team's own numbering
+   * would have handed out.
+   *
+   * WHAT IT PROMISES NOW: an always-reject player gets seven of nine RIGHT and still scores half
+   * what a thinking player scores, and touches ×3 on one question only. That is the honest,
+   * weaker property. Do not restore the old wording over it.
+   *
+   * WHAT RESTORES THE OLD GUARANTEE: a THIRD จริง case. At p=3, placed at 3, 6 and 8, an
+   * always-reject player scores 800 with six correct and never reaches ×3 — v3's exact numbers.
+   * That is a content decision for the team; `content/questions.test.ts`'s run test already
+   * tightens to 2 on its own the moment a third one lands.
+   */
+  it('leaves an always-reject player at half a thinking player’s score, touching ×3 once', () => {
     const qs = QUESTIONS_IN_ORDER
-    const answers = qs.map((q) => ans(q.id, 'reject'))
-    const { total, correct } = scorePlayer(answers, qs)
-    expect(correct).toBe(6)
-    // six correct, longest streak 2: q1 100 | q3 100, q4 200 | q6 100, q7 200 | q9 100
-    expect(total).toBe(800)
-    expect(total).toBeLessThan(BASE_POINTS * (1 + 2 + 3 * 7))
+    const answers = qs.map((q) => ans(q.id, 'reject')) // 15_000ms — no speed bonus in the sums
+    const { total, correct, perQuestion } = scorePlayer(answers, qs)
+
+    // Seven right out of nine, because seven of the nine answers are มั่ว. Being right often is
+    // not the thing the score is measuring.
+    expect(correct).toBe(7)
+
+    // q1 100, q2 200, q3 300 | q4 wrong | q5 100, q6 200 | q7 wrong | q8 100, q9 200
+    expect(total).toBe(1200)
+
+    const perfect = BASE_POINTS * (1 + 2 + 3 * 7)
+    expect(perfect).toBe(2400)
+    expect(total, 'guessing must not come within reach of thinking').toBeLessThanOrEqual(perfect / 2)
+
+    const atMaxMultiplier = qs.filter(
+      (q) => perQuestion[q.id]?.points === BASE_POINTS * MAX_STREAK_MULTIPLIER,
+    )
+    expect(atMaxMultiplier.map((q) => q.order), 'only case 3 may pay ×3 to a guesser').toEqual([3])
   })
 })
