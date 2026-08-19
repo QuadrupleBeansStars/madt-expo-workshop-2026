@@ -50,9 +50,9 @@ describe('QUESTIONS', () => {
    * still passes while the anti-guess arrangement quietly disappears. The sequence is not
    * decorative — see the run test below for what each ตีกลับ run is worth.
    */
-  it('runs reject reject reject pass reject reject pass reject reject', () => {
+  it('runs pass reject reject reject reject reject reject pass reject', () => {
     const expected: Verdict[] = [
-      'reject', 'reject', 'reject', 'pass', 'reject', 'reject', 'pass', 'reject', 'reject',
+      'pass', 'reject', 'reject', 'reject', 'reject', 'reject', 'reject', 'pass', 'reject',
     ]
     const actual = byOrder()
     expected.forEach((verdict, i) => {
@@ -73,15 +73,22 @@ describe('QUESTIONS', () => {
    * numbering scored 6/1 here. Add a third จริง case and this test tightens to 2 by itself, which
    * is exactly the point at which `lib/scoring.test.ts` can go back to promising the strong rule.
    */
-  it('breaks the reject runs as short as two จริง cases allow, so ×3 is reachable once', () => {
+  /*
+   * This asserts what the arrangement COSTS, not that it is optimal — because it is not, and that
+   * was a deliberate trade. Case 1 is the room's warm-up, a joke about a comedy trio, and the team
+   * chose opening on it over 400 points of guessing resistance. Reordering to orders 4 and 7 would
+   * give runs of [3,2,2] and drop an always-reject player from 1600 to 1200; DO NOT make that
+   * change here to turn this green. The fix is a third จริง case, which makes runs of [2,2,2]
+   * possible with case 1 still first — and this test then fails loudly, asking to be updated.
+   */
+  it('pays for opening on the warm-up with one long reject run', () => {
     const qs = byOrder()
     const passCount = qs.filter((q) => q.verdict === 'pass').length
     const runs = rejectRuns(qs)
 
-    const bestPossible = Math.ceil((qs.length - passCount) / (passCount + 1))
-    expect(Math.max(...runs), 'a shorter longest-run is available — reorder the cases').toBe(bestPossible)
-    expect(runs.filter((r) => r >= 3), 'an always-reject player must reach ×3 at most once').toHaveLength(1)
-    expect(runs).toEqual([3, 2, 2])
+    expect(passCount, 'a third จริง case is what restores the ×3 guarantee').toBe(2)
+    expect(runs).toEqual([6, 1])
+    expect(Math.max(...runs)).toBeGreaterThan(Math.ceil((qs.length - passCount) / (passCount + 1)))
   })
 
   it('getQuestion finds by id and returns undefined otherwise', () => {
@@ -110,17 +117,17 @@ describe('the acts', () => {
    */
   it('opens each act with the case that sets up the other two', () => {
     const inAct = (n: 1 | 2 | 3) => byOrder().filter((q) => q.act === n).map((q) => q.id)
-    expect(inAct(1)).toEqual(['hyrox-itch', 'pa-da-confidence', 'mala-sweat'])
-    expect(inAct(2)).toEqual(['mum-teng-nong', 'ultra-smooth', 'five-more-minutes'])
-    expect(inAct(3)).toEqual(['octopus-hearts', 'million-views', 'einstein-fish'])
+    expect(inAct(1)).toEqual(['mum-teng-nong', 'ultra-smooth', 'five-more-minutes'])
+    expect(inAct(2)).toEqual(['hyrox-itch', 'pa-da-confidence', 'million-views'])
+    expect(inAct(3)).toEqual(['mala-sweat', 'octopus-hearts', 'einstein-fish'])
   })
 
   // The chips are the three cases just played, in the order the room was asked them. Reorder an
   // act's questions without reordering its chips and the act card recaps a game nobody played.
   it('lists each act chip in the order its questions were asked', () => {
-    expect(ACTS[0].chips).toEqual(['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', 'เหงื่อออก = ไขมันละลาย?'])
-    expect(ACTS[1].chips).toEqual(['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'])
-    expect(ACTS[2].chips).toEqual(['หัวใจ 3 ดวง', '1 ล้านวิว', 'คำคมของ Einstein'])
+    expect(ACTS[0].chips).toEqual(['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'])
+    expect(ACTS[1].chips).toEqual(['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', '1 ล้านวิว = ชอบ?'])
+    expect(ACTS[2].chips).toEqual(['เหงื่อออก = ไขมันละลาย?', 'หัวใจ 3 ดวง', 'คำคมของ Einstein'])
   })
 })
 
@@ -140,14 +147,17 @@ describe('the closing beat', () => {
 })
 
 describe('the opener', () => {
-  it('opens on a มั่ว case, so approving out of politeness costs the room round one', () => {
+  it('opens on the warm-up: a จริง case the room reads instantly', () => {
     const first = byOrder()[0]
-    expect(first.id).toBe('hyrox-itch')
-    // The duck is not obviously lying — it offers the explanation a gym would offer. A room that
-    // approves it has been fooled by a cause that merely sounds like one, which is act 1's whole
-    // subject. Opening on a จริง case would teach the opposite reflex in the round that sets the
-    // tone, and it is also the position the anti-guess arrangement cannot spare (see above).
-    expect(first.verdict).toBe('reject')
+    expect(first.id).toBe('mum-teng-nong')
+    /* Deliberately จริง, and deliberately first. หม่ำ, เท่ง and โหน่ง are one comedy troupe, so
+     * the room answers before it has finished reading — which is the point of a warm-up: everyone
+     * taps, everyone scores, nobody is behind before the game has started. It also establishes
+     * that ผ่าน is a real answer, so ตีกลับ is a judgement rather than the default.
+     *
+     * The cost is in `pays for opening on the warm-up with one long reject run` above. Do not
+     * "fix" it by moving this case. */
+    expect(first.verdict).toBe('pass')
     expect(first.act).toBe(1)
   })
 })

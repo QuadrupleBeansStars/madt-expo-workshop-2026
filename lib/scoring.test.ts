@@ -133,7 +133,26 @@ describe('scorePlayer', () => {
    * That is a content decision for the team; `content/questions.test.ts`'s run test already
    * tightens to 2 on its own the moment a third one lands.
    */
-  it('leaves an always-reject player at half a thinking player’s score, touching ×3 once', () => {
+  /*
+   * WHAT THIS PROMISES, AND WHAT IT USED TO.
+   *
+   * v3 promised something stronger: an always-reject player never reached the ×3 multiplier at
+   * all, scoring 800 of 2400 with six correct. That held because v3's key had THREE จริง cases,
+   * which is enough to keep every run of มั่ว answers down to two.
+   *
+   * The team's set has two, and case 1 — the warm-up — is one of them, so six มั่ว answers run
+   * consecutively from case 2 to case 7. A guesser now holds ×3 across four of them. The
+   * multiplier still separates guessing from thinking (1600 against 2400), but it no longer
+   * disqualifies guessing the way it did.
+   *
+   * A THIRD จริง CASE RESTORES IT COMPLETELY: at three, placed at orders 1, 4 and 7, every reject
+   * run is two long, an always-reject player scores 900, and ×3 is never reached — with the
+   * warm-up still opening the game. That is a content decision, and this comment exists so nobody
+   * reads the numbers below and concludes the mechanic is as strong as it was.
+   *
+   * If you are here because this test went red: the arrangement changed. Fix the content.
+   */
+  it('leaves an always-reject player well short of a thinking one, but no longer locks them out of ×3', () => {
     const qs = QUESTIONS_IN_ORDER
     const answers = qs.map((q) => ans(q.id, 'reject')) // 15_000ms — no speed bonus in the sums
     const { total, correct, perQuestion } = scorePlayer(answers, qs)
@@ -142,16 +161,18 @@ describe('scorePlayer', () => {
     // not the thing the score is measuring.
     expect(correct).toBe(7)
 
-    // q1 100, q2 200, q3 300 | q4 wrong | q5 100, q6 200 | q7 wrong | q8 100, q9 200
-    expect(total).toBe(1200)
+    // q1 wrong | q2 100, q3 200, q4 300, q5 300, q6 300, q7 300 | q8 wrong | q9 100
+    expect(total).toBe(1600)
 
     const perfect = BASE_POINTS * (1 + 2 + 3 * 7)
     expect(perfect).toBe(2400)
-    expect(total, 'guessing must not come within reach of thinking').toBeLessThanOrEqual(perfect / 2)
+    expect(total, 'guessing must stay clearly behind thinking').toBeLessThan(perfect * 0.7)
 
     const atMaxMultiplier = qs.filter(
       (q) => perQuestion[q.id]?.points === BASE_POINTS * MAX_STREAK_MULTIPLIER,
     )
-    expect(atMaxMultiplier.map((q) => q.order), 'only case 3 may pay ×3 to a guesser').toEqual([3])
+    // Four cases pay ×3 to a guesser. Under v3 this array was empty; a third จริง case empties it
+    // again. Asserted exactly, so shortening or lengthening the run cannot pass unnoticed.
+    expect(atMaxMultiplier.map((q) => q.order)).toEqual([4, 5, 6, 7])
   })
 })

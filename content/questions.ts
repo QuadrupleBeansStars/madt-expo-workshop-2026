@@ -12,18 +12,21 @@ import type { Act, Question } from '@/lib/types'
  *  1. `verdict` is the CORRECT ACTION, not "is the duck right". They happen to coincide, but the
  *     player's buttons say ผ่าน/ตีกลับ, and the copy everywhere else must match the buttons.
  *
- *  2. `order` is the RUNNING ORDER and it is NOT the team's numbering. The team supplied two จริง
- *     cases among nine, six of the seven มั่ว answers consecutive. A player tapping ตีกลับ at
- *     everything would have scored 1600 of 2400 and held the ×3 multiplier across four questions.
- *     Placing the two จริง cases at orders 4 and 7 — verdicts
- *     `reject reject reject pass reject reject pass reject reject` — drops that player to 1200.
- *     `questions.test.ts` asserts the sequence position by position.
+ *  2. `order` IS the team's own numbering, and that is a deliberate decision with a known cost.
+ *     Verdicts run `pass reject reject reject reject reject reject pass reject`, so a player
+ *     tapping ตีกลับ at everything scores 1600 of 2400 with seven correct, holding the ×3
+ *     multiplier from case 4 to case 7. An earlier pass moved the two จริง cases to orders 4 and 7,
+ *     which drops that to 1200 — but case 1 is the room's warm-up, a joke about a comedy trio
+ *     everyone in Thailand knows, and opening on it is worth more than the 400 points of guessing
+ *     resistance. The team made that call explicitly. `questions.test.ts` asserts the sequence
+ *     position by position, so a well-meaning re-sort cannot happen silently.
  *
- *     It does NOT restore v3's guarantee that an always-reject player never reaches ×3, and no
- *     arrangement can: with `p` จริง answers the rejects fall into `p + 1` runs, so keeping every
- *     run to two needs `9 − p ≤ 2(p + 1)`, i.e. `p ≥ 3`. At `p = 2` a run of three is unavoidable.
- *     A THIRD จริง CASE IS WHAT RESTORES IT — see the comment on the always-reject test in
- *     `lib/scoring.test.ts`. Until then, fix the arrangement, never the test.
+ *     THE REAL FIX IS A THIRD จริง CASE, not a re-sort. With `p` จริง answers the rejects fall
+ *     into `p + 1` runs, so keeping every run to two needs `9 − p ≤ 2(p + 1)`, i.e. `p ≥ 3`. At
+ *     `p = 2` a run of three is unavoidable wherever the two sit. With three จริง cases at orders
+ *     1, 4 and 7 an always-reject player scores 900 and never reaches ×3 at all — the warm-up
+ *     keeps its place AND the mechanic works. See the always-reject test in `lib/scoring.test.ts`.
+ *     Until then, fix the content, never the test.
  *
  *  3. `act` must run 1,1,1,2,2,2,3,3,3 IN ORDER. `lib/game.ts` derives the act card from
  *     `Math.floor(qIndex / 3)`, so a question whose `act` disagrees with its position puts a
@@ -36,11 +39,11 @@ import type { Act, Question } from '@/lib/types'
  * written as "there is no evidence Einstein said this", never as a citation proving it.
  */
 export const QUESTIONS: Question[] = [
-  // ── Act 1 · เกิดพร้อมกัน ไม่ใช่เป็นเหตุกัน ────────────────────────
+  // ── Act 2 · สิ่งที่ไม่ใช่หลักฐาน ──────────────────────────────────
   {
     id: 'hyrox-itch',
-    act: 1,
-    order: 1,
+    act: 2,
+    order: 4,
     ask: 'แบกกระสอบ HYROX แล้วคันหลัง แปลว่าอะไรครับ?',
     duckSays: 'กล้ามหลังกำลังโตแบบก้าวกระโดดครับ',
     highlight: 'กล้ามหลังกำลังโต',
@@ -50,8 +53,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'pa-da-confidence',
-    act: 1,
-    order: 2,
+    act: 2,
+    order: 5,
     ask: 'ป้าดาพูดว่า "ความจริงมีหนึ่งเดียว" เราควรเชื่อป้าดาเลยไหมครับ?',
     duckSays: 'ควรครับ เพราะป้าดาพูดด้วยความมั่นใจมาก',
     highlight: 'เพราะป้าดาพูดด้วยความมั่นใจมาก',
@@ -61,8 +64,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'mala-sweat',
-    act: 1,
-    order: 3,
+    act: 3,
+    order: 7,
     ask: 'กินหมาล่าแล้วเหงื่อออก แปลว่าอะไรครับ?',
     duckSays: 'แปลว่าไขมันกำลังละลายครับ',
     highlight: 'ไขมันกำลังละลาย',
@@ -71,23 +74,23 @@ export const QUESTIONS: Question[] = [
     tell: '"ยอดขายเพิ่มหลังยิงโฆษณา" ยังไม่พิสูจน์ว่าโฆษณาเป็นสาเหตุ',
   },
 
-  // ── Act 2 · สรุปเกินข้อมูล ────────────────────────────────────────
+  // ── Act 1 · สรุปเกินข้อมูล ────────────────────────────────────────
   {
     id: 'mum-teng-nong',
-    act: 2,
-    order: 4,
+    act: 1,
+    order: 1,
     ask: 'ถ้าเท่งเจอหม่ำ แล้วหม่ำเจอโหน่ง เท่งจะเจอโหน่งไหมครับ?',
     duckSays: 'เจอครับ เพราะเท่งเจอหม่ำ และหม่ำเจอโหน่งครับ',
     highlight: 'เพราะเท่งเจอหม่ำ และหม่ำเจอโหน่ง',
     verdict: 'pass',
     truth: 'ข้อนี้เป็ดไม่ได้เติมอะไรที่ไม่มีในโจทย์ มันต่อข้อมูลสองชิ้นที่ให้มาแล้วหยุดแค่นั้น ต่างจากอีกสองข้อในบทนี้ ที่มันเติมสิ่งที่ไม่มีใครบอกเข้าไปเอง',
     tell: 'AI เชื่อมข้อมูลหลายจุดได้ แต่ต้องเช็กว่าข้อสรุปตามจากข้อมูลจริงหรือไม่',
-    needsCheck: 'ถ้ามีคนแย้งว่า "เจอ" ไม่ใช่ความสัมพันธ์ที่ส่งต่อกันได้ ให้รับว่าถูก แล้วใช้เป็นตัวอย่างของการเช็กว่าข้อสรุปตามจากข้อมูลจริงไหม',
+    needsCheck: 'ข้อเปิด เป็นกึ่งมุก — หม่ำ เท่ง โหน่ง เป็นคณะเดียวกัน ห้องจะอ่านออกทันทีว่าเจอกันแน่ ไม่ต้องอธิบายอะไรเพิ่ม ถ้ามีคนแย้งเรื่องตรรกะ ใช้เป็นแต้มต่อได้เลยว่าเขากำลังทำสิ่งที่เกมนี้สอนพอดี แต่คำตอบยังเป็น "จริง" ตามเดิม',
   },
   {
     id: 'ultra-smooth',
-    act: 2,
-    order: 5,
+    act: 1,
+    order: 2,
     ask: 'เจลาโต้เขียนว่า "Ultra Smooth" กินยังไงถึงจะถูกครับ?',
     duckSays: 'ต้องกลืนเลยครับ เพราะเนื้อเนียนจนไม่ต้องเคี้ยว',
     highlight: 'ต้องกลืนเลยครับ',
@@ -97,8 +100,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'five-more-minutes',
-    act: 2,
-    order: 6,
+    act: 1,
+    order: 3,
     ask: 'เพื่อนบอกว่า "อีก 5 นาทีถึงบ้าน" ตอนนี้เพื่อนอยู่ไหนครับ?',
     duckSays: 'อยู่หน้าบ้านครับ',
     highlight: 'หน้าบ้าน',
@@ -107,11 +110,11 @@ export const QUESTIONS: Question[] = [
     tell: 'ถ้าข้อมูลไม่พอ อย่าเติมสิ่งที่ไม่รู้ — ควรบอกว่า "ยังระบุไม่ได้จากข้อมูลนี้"',
   },
 
-  // ── Act 3 · แหล่งกับความจริง คนละเรื่องกัน ────────────────────────
+  // ── Act 3 · ฟังดูน่าเชื่อ ไม่ใช่หลักฐาน ───────────────────────────
   {
     id: 'octopus-hearts',
     act: 3,
-    order: 7,
+    order: 8,
     ask: 'ปลาหมึกมีหัวใจ 3 ดวงจริงไหมครับ?',
     duckSays: 'จริงครับ ปลาหมึกมีหัวใจ 3 ดวง',
     highlight: 'ปลาหมึกมีหัวใจ 3 ดวง',
@@ -122,8 +125,8 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'million-views',
-    act: 3,
-    order: 8,
+    act: 2,
+    order: 6,
     ask: 'คลิปนี้มี 1 ล้านวิว แปลว่าคนดูชอบไหมครับ?',
     duckSays: 'ชอบครับ เพราะถ้าไม่ชอบคงไม่ดู',
     highlight: 'เพราะถ้าไม่ชอบคงไม่ดู',
@@ -154,14 +157,6 @@ export const QUESTIONS: Question[] = [
 export const ACTS: Act[] = [
   {
     n: 1,
-    nameTh: 'เกิดพร้อมกัน ไม่ใช่เป็นเหตุกัน',
-    nameEn: 'TOGETHER IS NOT BECAUSE',
-    body: 'สามข้อนี้เป็ดตอบเหมือนรู้สาเหตุ ทั้งที่มันเห็นแค่สองอย่างมาพร้อมกัน แล้วเลือกคำอธิบายที่ฟังดูดีที่สุดมาหนึ่งอัน ข้อกลางหนักกว่านั้น เพราะเหตุผลเดียวที่มันมีคือคนพูดมั่นใจ',
-    atWork: 'ถ้าเป็นงานจริง คือสรุปว่ายอดตกเพราะ Marketing ตั้งแต่ยังไม่ได้เปิด Data แล้วทั้งไตรมาสก็แก้ผิดจุด',
-    chips: ['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', 'เหงื่อออก = ไขมันละลาย?'],
-  },
-  {
-    n: 2,
     nameTh: 'สรุปเกินข้อมูล',
     nameEn: 'MORE THAN THE DATA SAYS',
     body: 'ข้อแรกเป็ดต่อข้อมูลที่โจทย์ให้มาแล้วหยุดแค่นั้น จึงตรวจได้ ส่วนอีกสองข้อมันเติมสิ่งที่ไม่มีใครบอกเข้าไปเอง ทั้งวิธีกินเจลาโต้ และตำแหน่งของเพื่อน',
@@ -169,12 +164,20 @@ export const ACTS: Act[] = [
     chips: ['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'],
   },
   {
+    n: 2,
+    nameTh: 'สิ่งที่ไม่ใช่หลักฐาน',
+    nameEn: 'THIS IS NOT EVIDENCE',
+    body: 'สามข้อนี้เป็ดมีเหตุผลมาให้ทุกครั้ง แต่ไม่มีอันไหนเป็นหลักฐานเลย — สองอย่างเกิดพร้อมกัน คนพูดมั่นใจ และตัวเลขก้อนเดียว ทั้งสามอย่างฟังดูหนักแน่นพอกัน และทั้งสามอย่างพิสูจน์อะไรไม่ได้',
+    atWork: 'ถ้าเป็นงานจริง คือสรุปว่ายอดตกเพราะ Marketing ตั้งแต่ยังไม่ได้เปิด Data แล้วทั้งไตรมาสก็แก้ผิดจุด',
+    chips: ['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', '1 ล้านวิว = ชอบ?'],
+  },
+  {
     n: 3,
-    nameTh: 'แหล่งกับความจริง คนละเรื่องกัน',
-    nameEn: 'THE SOURCE IS NOT THE CLAIM',
-    body: 'ข้อปลาหมึกฟังดูเหลือเชื่อที่สุดในเกม แต่จริง ส่วนอีกสองข้อมีตัวเลขจริงและชื่อจริงอยู่ในนั้น ขาดแค่ความเชื่อมโยง ความรู้สึกว่าน่าเชื่อหรือไม่น่าเชื่อ ไม่ใช่หลักฐาน',
+    nameTh: 'ฟังดูน่าเชื่อ ไม่ใช่หลักฐาน',
+    nameEn: 'PLAUSIBLE IS NOT PROVEN',
+    body: 'ข้อหมาล่าฟังดูสมเหตุสมผลแต่ผิด ข้อปลาหมึกฟังดูเหลือเชื่อแต่จริง และข้อสุดท้ายมีชื่อจริงอยู่ในนั้น ขาดแค่ความเชื่อมโยง ความรู้สึกว่าน่าเชื่อหรือไม่น่าเชื่อ ไม่เคยเป็นหลักฐาน',
     atWork: 'ถ้าเป็นงานจริง คืออ้างชื่อคนดังหรือตัวเลขผิดกลางห้องประชุม เสียความน่าเชื่อถือ ไม่ใช่แค่เสียงาน',
-    chips: ['หัวใจ 3 ดวง', '1 ล้านวิว', 'คำคมของ Einstein'],
+    chips: ['เหงื่อออก = ไขมันละลาย?', 'หัวใจ 3 ดวง', 'คำคมของ Einstein'],
   },
 ]
 
