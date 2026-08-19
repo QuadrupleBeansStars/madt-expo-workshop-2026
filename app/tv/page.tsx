@@ -10,6 +10,7 @@ import type { PublicGameState, Question } from '@/lib/types'
 import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS } from '@/lib/game'
 import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
+import { Duck } from '@/components/game/Duck'
 import { Dossier } from '@/components/game/Dossier'
 import { TimerBar } from '@/components/game/TimerBar'
 import { SplitBar } from '@/components/game/SplitBar'
@@ -1511,8 +1512,16 @@ function CaseBoard({ question }: { question: Question }) {
           * sentence, which is where a quotation's speaker belongs; the walking duck on the floor
           * below is the same character and does not need repeating at the same depth.
           */}
-        <p
-          className="det-thai"
+        {/* THE DUCK IS DRAWN, not typed. This was the 🦆 emoji, which renders as whatever face the
+            projector laptop happens to ship — a different bird on Windows, Android and macOS, and
+            on the one screen a hundred people look at, the character speaking should not change
+            between venues. `components/game/Duck.tsx` is the pixel duck the rest of the game uses:
+            yellow, deerstalker, magnifying glass raised.
+
+            `items-start` so the duck sits against the first line of a two-line answer instead of
+            floating in the middle of it. */}
+        <div
+          className="det-thai flex items-start gap-[1.6vw]"
           style={{
             background: '#eef4ff',
             borderLeft: '0.9vh solid var(--det-cyan)',
@@ -1522,8 +1531,9 @@ function CaseBoard({ question }: { question: Question }) {
             lineHeight: 1.35,
           }}
         >
-          <span aria-hidden="true">🦆 </span>&ldquo;{question.duckSays}&rdquo;
-        </p>
+          <Duck size="7.4vh" />
+          <p>&ldquo;{question.duckSays}&rdquo;</p>
+        </div>
       </Dossier>
     </div>
   )
