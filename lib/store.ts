@@ -37,6 +37,18 @@ export type LeaderboardEntry = {
   score: number
   wrongPass: number
   rank: number
+  /**
+   * What this player scored on the CURRENT question — the `+150` the standings puts beside their
+   * total. Absent off a question/reveal, and absent for a player who did not answer this one.
+   *
+   * It comes from the server because the projector cannot infer it. It used to diff the board
+   * against the board it saw at the previous reveal, which is right for the rank arrows and wrong
+   * for this: with ten visible places and a hundred players, someone climbing into the top ten
+   * from below has no previous row to diff against, so their whole running total was rendered as
+   * this question's gain. `+685` beside a total of `685` — visible only once a room is large
+   * enough for the board to churn, which is every real room.
+   */
+  gained?: number
 }
 
 type Snapshot = { players: Player[]; answers: Answer[]; game: GameState; seq: number }
@@ -281,9 +293,16 @@ export class MemoryRoomStore implements RoomStore {
   }
 
   getLeaderboard(): LeaderboardEntry[] {
+    const q = currentQuestion(this.game)
     const rows = this.activePlayers().map((p) => {
-      const { total, wrongPass } = scorePlayer(this.answersFor(p.id), QUESTIONS_IN_ORDER)
-      return { playerId: p.id, codename: p.codename, avatar: p.avatar, score: total, wrongPass, rank: 0 }
+      const { total, wrongPass, perQuestion } = scorePlayer(this.answersFor(p.id), QUESTIONS_IN_ORDER)
+      const gained = q ? perQuestion[q.id]?.points : undefined
+      const row: LeaderboardEntry = {
+        playerId: p.id, codename: p.codename, avatar: p.avatar, score: total, wrongPass, rank: 0,
+      }
+      // Assigned only when it exists — absence means "did not answer this one", which is not 0.
+      if (gained !== undefined) row.gained = gained
+      return row
     })
     // Ties keep a stable order by codename so the board does not shuffle between polls: two
     // players on the same score in different insertion order (e.g. after a rejoin) would

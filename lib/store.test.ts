@@ -919,3 +919,48 @@ describe('the reading beat is enforced by the server, not the UI', () => {
     expect(store.getLeaderboard()[0].score).toBe(BASE_POINTS + MAX_SPEED_BONUS)
   })
 })
+
+/*
+ * THE PER-QUESTION GAIN, which the projector used to infer and got wrong at scale.
+ *
+ * The standings shows `+150` beside a running total. That used to be computed on the projector by
+ * diffing the board against the board it saw at the previous reveal — correct for the rank arrows,
+ * wrong for this. With ten visible places and a hundred players, someone climbing into the top ten
+ * from below has no previous row to subtract from, so their whole running total was rendered as
+ * this question's gain: `+685` beside a total of `685`. Only a hundred-player room churns the
+ * board enough to show it, which is why it survived every ten-player test.
+ */
+describe('leaderboard gained', () => {
+  it('reports what a player scored on THIS question, not their running total', () => {
+    const store = new MemoryRoomStore()
+    const p = store.join('Ann', T0)
+    const q0 = QUESTIONS_IN_ORDER[0]
+    const q1 = QUESTIONS_IN_ORDER[1]
+
+    startToQuestion(store, T0)
+    store.recordAnswer({ playerId: p.id, questionId: q0.id, verdict: q0.verdict }, T0)
+    store.next(T0 + QUESTION_MS + NEXT_STEP_MS)          // -> reveal on q0
+    const afterFirst = store.getLeaderboard()[0]
+    expect(afterFirst.gained).toBe(afterFirst.score)      // first question: they ARE equal
+
+    store.next(T0 + QUESTION_MS + NEXT_STEP_MS * 2)       // -> reading q1
+    const t = T0 + QUESTION_MS + NEXT_STEP_MS * 2 + READING_MS
+    store.next(t)                                        // -> question q1
+    store.recordAnswer({ playerId: p.id, questionId: q1.id, verdict: q1.verdict }, t)
+    store.next(t + QUESTION_MS + NEXT_STEP_MS)           // -> reveal on q1
+
+    const row = store.getLeaderboard()[0]
+    // The whole point: the second question's gain is NOT the two-question total.
+    expect(row.gained).toBeLessThan(row.score)
+    expect(row.gained).toBe(row.score - afterFirst.score)
+  })
+
+  it('omits it for a player who did not answer this question — absence is not zero', () => {
+    const store = new MemoryRoomStore()
+    const p = store.join('Ann', T0)
+    startToQuestion(store, T0)
+    store.next(T0 + QUESTION_MS + NEXT_STEP_MS) // reveal, nobody answered
+    expect(store.getLeaderboard()[0].playerId).toBe(p.id)
+    expect(store.getLeaderboard()[0]).not.toHaveProperty('gained')
+  })
+})

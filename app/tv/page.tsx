@@ -441,12 +441,15 @@ export default function TvPage() {
    * and a ref inside it would be empty every single time.
    */
   const [rankDeltas, setRankDeltas] = useState<RankDeltas>({})
-  /* What each row SCORED on the question just closed — the `+300` beside the name. Diffed the same
-     way and in the same pass as the arrows, off the same snapshot, so the two can never disagree
-     about which board they are describing. */
-  const [gains, setGains] = useState<RankDeltas>({})
+  /* The `+150` beside a total comes from the SERVER now (`LeaderboardEntry.gained`), not from a
+     diff. Diffing is right for the arrows and wrong for this: with ten places and a hundred
+     players, someone climbing into the top ten from below has no previous row to subtract, so
+     their whole running total was rendered as this question's gain. */
+  const gainsFromBoard: RankDeltas = {}
+  for (const row of stats?.leaderboard ?? []) {
+    if (row.gained !== undefined && row.gained > 0) gainsFromBoard[row.codename] = row.gained
+  }
   const prevRanksRef = useRef<Record<string, number> | null>(null)
-  const prevScoresRef = useRef<Record<string, number> | null>(null)
   const snapshotKeyRef = useRef<string | null>(null)
   const board = stats?.leaderboard
   useEffect(() => {
@@ -457,12 +460,9 @@ export default function TvPage() {
     snapshotKeyRef.current = key
 
     const previous = prevRanksRef.current
-    const previousScores = prevScoresRef.current
     const current: Record<string, number> = {}
-    const currentScores: Record<string, number> = {}
-    for (const row of board) { current[row.codename] = row.rank; currentScores[row.codename] = row.score }
+    for (const row of board) { current[row.codename] = row.rank }
     const deltas: RankDeltas = {}
-    const scored: RankDeltas = {}
     if (previous) {
       for (const row of board) {
         const was = previous[row.codename]
@@ -470,16 +470,8 @@ export default function TvPage() {
         if (was !== undefined) deltas[row.codename] = was - row.rank
       }
     }
-    for (const row of board) {
-      // A player new to the board scored their whole total on this question, which IS their gain.
-      const wasScore = previousScores?.[row.codename] ?? 0
-      const gain = row.score - wasScore
-      if (gain > 0) scored[row.codename] = gain
-    }
     prevRanksRef.current = current
-    prevScoresRef.current = currentScores
     setRankDeltas(deltas)
-    setGains(scored)
   }, [state, board])
 
   /*
@@ -543,7 +535,7 @@ export default function TvPage() {
           origin={origin}
           question={question}
           rankDeltas={rankDeltas}
-          gains={gains}
+          gains={gainsFromBoard}
           revealBeat={revealBeat}
           tokenError={tokenError}
           hostToken={token}

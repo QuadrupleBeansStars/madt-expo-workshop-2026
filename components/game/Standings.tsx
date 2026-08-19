@@ -16,6 +16,8 @@ export type LeaderboardRow = {
   score: number
   wrongPass: number
   rank: number
+  /** What this row scored on the current question, from the server. Absent if they did not answer. */
+  gained?: number
 }
 
 /**
@@ -189,24 +191,30 @@ function StandingRow({
             the total: the total is where they are, this is what just happened. Fades in on the
             same beat as the arrow. Absent renders nothing — a player who scored zero on this
             question did not gain, and "+0" is a different statement from silence. */}
-        <span
-          className="shrink-0 tabular-nums"
-          style={{
-            fontFamily: 'var(--font-retro), monospace',
-            fontSize: '3.4vh',
-            color: 'var(--det-green)',
-            opacity: reduced || settled ? 1 : 0,
-            transition: reduced ? 'none' : `opacity ${STANDINGS_BEAT_MS}ms ease-out`,
-          }}
-        >
-          {gain !== undefined && gain > 0 ? `+${gain}` : ''}
-        </span>
-
-        <span
-          className="ml-auto shrink-0 tabular-nums"
-          style={{ fontFamily: 'var(--font-retro), monospace', fontSize: '4.6vh', color: 'var(--det-gold)' }}
-        >
-          {score.toLocaleString('en-US')}
+        {/* THE GAIN SITS AGAINST THE TOTAL, not in a column of its own on the far side of the
+            name. `+150` and `1,240` are one thought — what this question added, and what it added
+            up to — and separating them made the eye travel the width of the row to join them. The
+            pair is pushed right together by `ml-auto` on their wrapper, so the two numerals stay
+            adjacent at any row width and the name keeps all the slack. */}
+        <span className="ml-auto flex shrink-0 items-baseline gap-[0.8vw]">
+          <span
+            className="tabular-nums"
+            style={{
+              fontFamily: 'var(--font-retro), monospace',
+              fontSize: '3.4vh',
+              color: 'var(--det-green)',
+              opacity: reduced || settled ? 1 : 0,
+              transition: reduced ? 'none' : `opacity ${STANDINGS_BEAT_MS}ms ease-out`,
+            }}
+          >
+            {gain !== undefined && gain > 0 ? `+${gain}` : ''}
+          </span>
+          <span
+            className="tabular-nums"
+            style={{ fontFamily: 'var(--font-retro), monospace', fontSize: '4.6vh', color: 'var(--det-gold)' }}
+          >
+            {score.toLocaleString('en-US')}
+          </span>
         </span>
       </div>
     </li>
