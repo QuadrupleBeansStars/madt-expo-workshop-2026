@@ -8,6 +8,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 import type { PublicGameState, Question } from '@/lib/types'
 import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, READING_MS } from '@/lib/game'
+import { scoreAnswer } from '@/lib/scoring'
 import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
 import { Duck } from '@/components/game/Duck'
@@ -894,7 +895,19 @@ function Stage({
  * this workshop teaches. The bonus stays a silent tiebreaker.
  */
 function RulesStage() {
-  const chips = ['ถูก +100', 'ติดกัน2 +200', 'ติดกัน3+ +300', 'ผิด 0']
+  /* BUILT FROM THE SCORING CODE, never typed. These four strings are the room's only statement of
+   how points work and the one place a wrong number would never be noticed — nobody in the audience
+   can check it and nothing else on the projector repeats it. They were literals, and a retune of
+   the streak rule left them claiming +200/+300 while the game paid +150/+200.
+
+   `QUESTION_MS` elapsed means the slowest correct answer, so `speedBonus` is 0 and each figure is
+   base plus streak alone — exactly what a chip promises. */
+const chips = [
+  `ถูก +${scoreAnswer(true, 1, QUESTION_MS)}`,
+  `ติดกัน2 +${scoreAnswer(true, 2, QUESTION_MS)}`,
+  `ติดกัน3+ +${scoreAnswer(true, 3, QUESTION_MS)}`,
+  'ผิด 0',
+]
   return (
     <div className="relative flex min-h-0 flex-1 items-center justify-center">
       {/* The scrim. `.det`'s own wall is already dark; this is what makes the paper read as a sheet

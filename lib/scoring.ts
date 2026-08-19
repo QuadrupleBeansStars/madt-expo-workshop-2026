@@ -18,19 +18,27 @@ export const MAX_SPEED_BONUS = 10
 
 /**
  * The anti-guess mechanic. Two buttons means a coin-flipper is right half the time; points alone
- * cannot tell thinking from flipping. Streaks can: P(3 correct in a row by guessing) is 12.5%.
+ * cannot tell thinking from flipping, and a run of correct answers can.
  *
- * The answer key is arranged to break the ตีกลับ runs as short as its two จริง cases allow, which
- * lets an always-reject player reach ×3 ONCE and score 1200 against a thinking player's 2400. It
- * used to deny them ×3 entirely; that needs a third จริง case, and the full arithmetic is on the
- * always-reject test in `scoring.test.ts`. Do not restate the old guarantee here.
+ * A BONUS, NOT A MULTIPLIER. This was `BASE_POINTS * min(streak, 3)` — 100 / 200 / 300 — so one
+ * lucky run was worth triple and could carry a whole board by itself. Measured against the current
+ * answer key, dropping the multiplier costs almost nothing: a player tapping ตีกลับ nine times
+ * takes 70% of a perfect game under this scheme against 67% under the multiplier. The separation
+ * never came from the steepness — it comes from the KEY (content/questions.ts, whose two จริง cases
+ * are what a guesser trips on) — and paying triple for it only made a single streak louder than the
+ * nine decisions around it.
+ *
+ * A streak is now worth at most DOUBLE a plain correct answer: three tiers a rules screen can
+ * state and a room can hold in its head. A third จริง case remains the real fix for the guessing
+ * floor; the arithmetic is on the always-reject test in `scoring.test.ts`.
  */
-export const MAX_STREAK_MULTIPLIER = 3
+export const STREAK_STEP = 50
+export const MAX_STREAK_BONUS = 100
 
-/** @param streak consecutive correct answers INCLUDING the one being scored. */
-export function streakMultiplier(streak: number): number {
-  if (streak < 1) return 1
-  return Math.min(streak, MAX_STREAK_MULTIPLIER)
+/** @param streak consecutive correct answers INCLUDING the one being scored. 0 for the first. */
+export function streakBonus(streak: number): number {
+  if (streak < 2) return 0
+  return Math.min((streak - 1) * STREAK_STEP, MAX_STREAK_BONUS)
 }
 
 /**
@@ -48,10 +56,10 @@ export function speedBonus(elapsedMs: number): number {
   return Math.round(MAX_SPEED_BONUS * (remaining / SPEED_TARGET_MS))
 }
 
-/** The speed bonus is added AFTER the multiplier, never multiplied by it. See MAX_SPEED_BONUS. */
+/** Three additive parts — base, streak, speed. Nothing multiplies anything. */
 export function scoreAnswer(correct: boolean, streakAfter: number, elapsedMs: number): number {
   if (!correct) return 0
-  return BASE_POINTS * streakMultiplier(streakAfter) + speedBonus(elapsedMs)
+  return BASE_POINTS + streakBonus(streakAfter) + speedBonus(elapsedMs)
 }
 
 export type PlayerScore = {

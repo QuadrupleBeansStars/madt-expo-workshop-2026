@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  BASE_POINTS, MAX_SPEED_BONUS, MAX_STREAK_MULTIPLIER,
-  scoreAnswer, scorePlayer, speedBonus, streakMultiplier,
+  BASE_POINTS, MAX_SPEED_BONUS, MAX_STREAK_BONUS, STREAK_STEP,
+  scoreAnswer, scorePlayer, speedBonus, streakBonus,
 } from './scoring'
 import { QUESTION_COUNT, QUESTIONS_IN_ORDER } from './game'
 import type { Answer } from './types'
@@ -17,12 +17,15 @@ describe('the tiebreaker invariant', () => {
   })
 })
 
-describe('streakMultiplier', () => {
-  it('is 1, 2, then 3 forever', () => {
-    expect([1, 2, 3, 4, 9].map(streakMultiplier)).toEqual([1, 2, 3, 3, 3])
+describe('streakBonus', () => {
+  /* A BONUS, not a multiplier. The first correct answer earns none — the bonus is for the RUN, and
+     a run needs two. Then +50 a step to a ceiling of +100, so a streak is worth at most double a
+     plain correct answer rather than the triple the multiplier paid. */
+  it('starts at the second in a row and climbs by a step to its ceiling', () => {
+    expect([0, 1, 2, 3, 4, 9].map(streakBonus)).toEqual([0, 0, STREAK_STEP, MAX_STREAK_BONUS, MAX_STREAK_BONUS, MAX_STREAK_BONUS])
   })
-  it('never exceeds the cap', () => {
-    expect(streakMultiplier(99)).toBe(MAX_STREAK_MULTIPLIER)
+  it('caps a streak at double a plain correct answer, never more', () => {
+    expect(BASE_POINTS + streakBonus(99)).toBe(BASE_POINTS * 2)
   })
 })
 
@@ -39,9 +42,10 @@ describe('scoreAnswer', () => {
   it('pays nothing for a wrong answer, however fast', () => {
     expect(scoreAnswer(false, 3, 0)).toBe(0)
   })
-  it('multiplies the base but NOT the speed bonus', () => {
-    // 100*3 + 10, never (100+10)*3 — multiplying the bonus breaks the invariant above.
-    expect(scoreAnswer(true, 3, 0)).toBe(BASE_POINTS * 3 + MAX_SPEED_BONUS)
+  it('adds its three parts and multiplies none of them', () => {
+    // base + streak + speed, each earned separately. Multiplying any pair by another would put a
+    // fast streak beyond the reach of a careful player, which is what MAX_SPEED_BONUS forbids.
+    expect(scoreAnswer(true, 3, 0)).toBe(BASE_POINTS + MAX_STREAK_BONUS + MAX_SPEED_BONUS)
   })
 })
 
@@ -51,8 +55,8 @@ describe('scorePlayer', () => {
     const answers = qs.map((q) => ans(q.id, q.verdict, 15_000)) // all correct, no speed bonus
     const { total, correct } = scorePlayer(answers, qs)
     expect(correct).toBe(9)
-    // ×1 + ×2 + ×3 seven times
-    expect(total).toBe(BASE_POINTS * (1 + 2 + 3 * 7))
+    // Nine bases, plus the streak bonus climbing 0, +50, +100 and holding there.
+    expect(total).toBe(qs.reduce((sum, _q, i) => sum + BASE_POINTS + streakBonus(i + 1), 0))
   })
 
   it('resets the streak on a wrong answer and on a missing one', () => {
@@ -63,11 +67,14 @@ describe('scorePlayer', () => {
       ans(qs[0].id, qs[0].verdict), ans(qs[1].id, qs[1].verdict),
       ans(qs[2].id, flip(qs[2].verdict)), ans(qs[3].id, qs[3].verdict),
     ]
-    expect(scorePlayer(answers, qs).total).toBe(100 + 200 + 0 + 100)
+    // streak 1, streak 2, nothing, then streak 1 again — the reset is the whole assertion.
+    const one = BASE_POINTS + streakBonus(1)
+    const two = BASE_POINTS + streakBonus(2)
+    expect(scorePlayer(answers, qs).total).toBe(one + two + 0 + one)
 
     // skipping question 3 entirely must also reset, not carry the streak across the gap
     const withGap = [ans(qs[0].id, qs[0].verdict), ans(qs[1].id, qs[1].verdict), ans(qs[3].id, qs[3].verdict)]
-    expect(scorePlayer(withGap, qs).total).toBe(100 + 200 + 100)
+    expect(scorePlayer(withGap, qs).total).toBe(one + two + one)
   })
 
   it('counts wrongPass ONLY for approving something that should have been rejected', () => {
@@ -152,7 +159,7 @@ describe('scorePlayer', () => {
    *
    * If you are here because this test went red: the arrangement changed. Fix the content.
    */
-  it('leaves an always-reject player well short of a thinking one, but no longer locks them out of ×3', () => {
+  it('leaves an always-reject player well short of a thinking one, but no longer locked out of the ceiling', () => {
     const qs = QUESTIONS_IN_ORDER
     const answers = qs.map((q) => ans(q.id, 'reject')) // 15_000ms — no speed bonus in the sums
     const { total, correct, perQuestion } = scorePlayer(answers, qs)
@@ -161,19 +168,21 @@ describe('scorePlayer', () => {
     // not the thing the score is measuring.
     expect(correct).toBe(7)
 
-    // q1 wrong | q2 100, q3 200, q4 300, q5 300, q6 300, q7 300 | q8 wrong | q9 100
-    expect(total).toBe(1600)
+    // q1 wrong | q2..q7 a run of six, the bonus climbing then holding | q8 wrong | q9 a fresh one
+    const run = [1, 2, 3, 4, 5, 6].reduce((sum, n) => sum + BASE_POINTS + streakBonus(n), 0)
+    expect(total).toBe(run + BASE_POINTS + streakBonus(1))
 
-    const perfect = BASE_POINTS * (1 + 2 + 3 * 7)
-    expect(perfect).toBe(2400)
-    expect(total, 'guessing must stay clearly behind thinking').toBeLessThan(perfect * 0.7)
+    // A perfect game: nine correct, the bonus climbing to its ceiling and staying there.
+    const perfect = qs.reduce((sum, _q, i) => sum + BASE_POINTS + streakBonus(i + 1), 0)
+    expect(perfect).toBe(1650)
+    expect(total, 'guessing must stay clearly behind thinking').toBeLessThan(perfect * 0.75)
 
-    const atMaxMultiplier = qs.filter(
-      (q) => perQuestion[q.id]?.points === BASE_POINTS * MAX_STREAK_MULTIPLIER,
+    const atCeiling = qs.filter(
+      (q) => perQuestion[q.id]?.points === BASE_POINTS + MAX_STREAK_BONUS,
     )
-    // Four cases pay ×3 to a guesser. Under v3 this array was empty; a third จริง case empties it
-    // again. Asserted exactly, so shortening or lengthening the run cannot pass unnoticed.
-    expect(atMaxMultiplier.map((q) => q.order)).toEqual([4, 5, 6, 7])
+    // Four cases pay a guesser the full streak bonus. Under v3 this array was empty; a third จริง
+    // case empties it again. Asserted exactly, so changing the run length cannot pass unnoticed.
+    expect(atCeiling.map((q) => q.order)).toEqual([4, 5, 6, 7])
   })
 })
 
