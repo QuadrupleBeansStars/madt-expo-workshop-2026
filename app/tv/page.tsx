@@ -1267,19 +1267,12 @@ function Lobby({
               own view of the same room, and when the board runs out of shelves this is what still
               tells the truth. */}
           <span className="det-term text-[4.6vh] text-[var(--det-gold)]">{playerCount}</span>
-          {/* ALWAYS rendered, merely invisible when there is no overflow — and reserving a minimum
-              width so the digit count cannot change it either.
-              A conditional span here is a chicken-and-egg: the packer measures this paragraph to
-              know where it may not place cards, but only learns `capped` by running, so the text
-              appeared AFTER the measurement and the counter grew out from under cards already
-              placed. Two names sat on top of it. Reserving the worst case up front costs a strip
-              of board that was never usable anyway. */}
-          <span
-            className="det-thai inline-block min-w-[16vw] text-[3.1vh]"
-            style={{ color: 'var(--det-cyan)', visibility: capped > 0 ? 'visible' : 'hidden' }}
-          >
-            {capped > 0 ? `(กระดานเต็ม +${capped})` : ' '}
-          </span>
+          {/* NO overflow note. That the board holds fewer cards than the room holds is not
+              something the room needs told: a player is looking for their own name, and the count
+              beside it is the authoritative number either way. Announcing "+36 did not fit" only
+              points at a limit nobody was troubled by — and it made this paragraph's width depend
+              on a number known only AFTER packing, which is how two name cards ended up sitting
+              on top of it. */}
         </p>
       </div>
     </div>
