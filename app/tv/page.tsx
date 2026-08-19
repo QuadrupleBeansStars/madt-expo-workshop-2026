@@ -1510,16 +1510,19 @@ function FileHeader({ text }: { text: string }) {
 function CaseBoard({ question }: { question: Question }) {
   return (
     /*
-     * `pb-[27vh]` IS THE ROOM'S HEADROOM, not a taste margin, and 12vh was not enough of it. The
-     * characters stand on the desk surface near the bottom of the frame and reach about 20vh tall,
-     * so a sheet ending 12vh from the bottom lay across both of them from the chest down. This
-     * ends the paper above their hats and leaves the desk band to the two of them.
+     * `pb-[16vh]` IS THE ROOM'S HEADROOM, and the number is arithmetic rather than taste.
+     *
+     * MEASURED FROM THIS BOX, NOT FROM THE SCREEN — which is what I got wrong twice. This wrapper
+     * ends at 86.9vh, because the status band below it takes the rest, so its padding is subtracted
+     * from there and not from 100. The detective's hat tops out at 72.5vh (feet 92.5, height 20),
+     * so the sheet must end just above that: 86.9 − 16 = 70.9vh, clear by about 1.5vh. At 27 the
+     * paper stopped at 60vh and left a band of empty wall the size of the characters themselves.
      *
      * `px` in vh rather than vw on purpose: every other measurement on this stage is a fraction of
      * HEIGHT, and mixing the two makes the layout a different shape on a 16:10 panel than on 16:9
      * — which is the one thing the projector is not allowed to do.
      */
-    <div className="flex min-h-0 flex-1 flex-col px-[7vh] pt-[2vh] pb-[27vh]">
+    <div className="flex min-h-0 flex-1 flex-col px-[7vh] pt-[2vh] pb-[16vh]">
       {/* `pt-[10vh]` on the BODY clears the CLASSIFIED rubber stamp, which `.det-dossier::before`
           pins to the paper's own top-right corner at -11 degrees. Vertically rather than with a
           right-hand `padding`: a reserve on the right narrows every line on the sheet, for the
