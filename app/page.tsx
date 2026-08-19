@@ -286,7 +286,6 @@ function PhoneBody({
       )}
 
       {phase === 'reveal' && <RevealSheet you={state?.you} />}
-      {phase === 'actcard' && <LookUpSheet mark="👀" line="ดูจอใหญ่" note="ฟังบทเรียนของบทนี้ก่อน" />}
       {phase === 'tally' && (
         <LookUpSheet
           mark="📊"

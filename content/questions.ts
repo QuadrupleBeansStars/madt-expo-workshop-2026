@@ -1,4 +1,4 @@
-import type { Act, Question } from '@/lib/types'
+import type { Question } from '@/lib/types'
 
 /**
  * The nine cases. Thai only (spec §6b).
@@ -28,21 +28,14 @@ import type { Act, Question } from '@/lib/types'
  *     keeps its place AND the mechanic works. See the always-reject test in `lib/scoring.test.ts`.
  *     Until then, fix the content, never the test.
  *
- *  3. `act` must run 1,1,1,2,2,2,3,3,3 IN ORDER. `lib/game.ts` derives the act card from
- *     `Math.floor(qIndex / 3)`, so a question whose `act` disagrees with its position puts a
- *     question under an act card that does not describe it. The acts group by KIND OF WRONGNESS,
- *     not by topic — which is why act 1 is the all-มั่ว causation act and the two จริง cases open
- *     acts 2 and 3.
  *
  * Case 09 is a REAL misattribution. Do not replace it with an invented journal or case number:
  * the repo's content rule forbids fabricating evidence that imitates a real outlet, and it is
  * written as "there is no evidence Einstein said this", never as a citation proving it.
  */
 export const QUESTIONS: Question[] = [
-  // ── Act 2 · สิ่งที่ไม่ใช่หลักฐาน ──────────────────────────────────
   {
     id: 'hyrox-itch',
-    act: 2,
     order: 4,
     ask: 'แบกกระสอบ HYROX แล้วคันหลัง แปลว่าอะไรครับ?',
     duckSays: 'กล้ามหลังกำลังโตแบบก้าวกระโดดครับ',
@@ -53,7 +46,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'pa-da-confidence',
-    act: 2,
     order: 5,
     ask: 'ป้าดาพูดว่า "ความจริงมีหนึ่งเดียว" เราควรเชื่อป้าดาเลยไหมครับ?',
     duckSays: 'ควรครับ เพราะป้าดาพูดด้วยความมั่นใจมาก',
@@ -64,7 +56,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'mala-sweat',
-    act: 3,
     order: 7,
     ask: 'กินหมาล่าแล้วเหงื่อออก แปลว่าอะไรครับ?',
     duckSays: 'แปลว่าไขมันกำลังละลายครับ',
@@ -74,10 +65,8 @@ export const QUESTIONS: Question[] = [
     tell: '"ยอดขายเพิ่มหลังยิงโฆษณา" ยังไม่พิสูจน์ว่าโฆษณาเป็นสาเหตุ',
   },
 
-  // ── Act 1 · สรุปเกินข้อมูล ────────────────────────────────────────
   {
     id: 'mum-teng-nong',
-    act: 1,
     order: 1,
     ask: 'ถ้าเท่งเจอหม่ำ แล้วหม่ำเจอโหน่ง เท่งจะเจอโหน่งไหมครับ?',
     duckSays: 'เจอครับ เพราะเท่งเจอหม่ำ และหม่ำเจอโหน่งครับ',
@@ -89,7 +78,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'ultra-smooth',
-    act: 1,
     order: 2,
     ask: 'ร้านเจลาโต้แห่งหนึ่งเขียนว่า "Ultra Smooth" กินยังไงถึงจะถูกครับ?',
     duckSays: 'ต้องกลืนเลยครับ เพราะเนื้อเนียนจนไม่ต้องเคี้ยว',
@@ -100,7 +88,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'five-more-minutes',
-    act: 1,
     order: 3,
     ask: 'เพื่อนบอกว่า "อีก 5 นาทีถึงบ้าน" ตอนนี้เพื่อนอยู่ไหนครับ?',
     duckSays: 'อยู่หน้าบ้านครับ',
@@ -110,10 +97,8 @@ export const QUESTIONS: Question[] = [
     tell: 'ถ้าข้อมูลไม่พอ อย่าเติมสิ่งที่ไม่รู้ — ควรบอกว่า "ยังระบุไม่ได้จากข้อมูลนี้"',
   },
 
-  // ── Act 3 · ฟังดูน่าเชื่อ ไม่ใช่หลักฐาน ───────────────────────────
   {
     id: 'octopus-hearts',
-    act: 3,
     order: 8,
     ask: 'ปลาหมึกมีหัวใจ 3 ดวงจริงไหมครับ?',
     duckSays: 'จริงครับ ปลาหมึกมีหัวใจ 3 ดวง',
@@ -125,7 +110,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'million-views',
-    act: 2,
     order: 6,
     ask: 'คลิปนี้มี 1 ล้านวิว แปลว่าคนดูชอบไหมครับ?',
     duckSays: 'ชอบครับ เพราะถ้าไม่ชอบคงไม่ดู',
@@ -136,7 +120,6 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'einstein-fish',
-    act: 3,
     order: 9,
     ask: '"ถ้าตัดสินปลาจากการปีนต้นไม้ ปลาจะคิดว่าตัวเองโง่" เป็นของ Einstein ไหมครับ?',
     duckSays: 'ใช่ครับ Einstein เป็นคนพูด',
@@ -148,38 +131,6 @@ export const QUESTIONS: Question[] = [
   },
 ]
 
-/**
- * Shown once every three questions. `atWork` is what the host's closing line is assembled from.
- *
- * ORDER MATTERS TWICE: `ACTS[n]` is picked by position (`lib/game.ts`), and each act's `chips` are
- * listed in the order its three questions were just asked.
- */
-export const ACTS: Act[] = [
-  {
-    n: 1,
-    nameTh: 'สรุปเกินข้อมูล',
-    nameEn: 'MORE THAN THE DATA SAYS',
-    body: 'ข้อแรกเป็ดต่อข้อมูลที่โจทย์ให้มาแล้วหยุดแค่นั้น จึงตรวจได้ ส่วนอีกสองข้อมันเติมสิ่งที่ไม่มีใครบอกเข้าไปเอง ทั้งวิธีกินเจลาโต้ และตำแหน่งของเพื่อน',
-    atWork: 'ถ้าเป็นงานจริง คือรายงานที่เขียนว่าลูกค้าจะซื้อซ้ำ ทั้งที่แบบสอบถามถามแค่ว่าพอใจไหม',
-    chips: ['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'],
-  },
-  {
-    n: 2,
-    nameTh: 'สิ่งที่ไม่ใช่หลักฐาน',
-    nameEn: 'THIS IS NOT EVIDENCE',
-    body: 'สามข้อนี้เป็ดมีเหตุผลมาให้ทุกครั้ง แต่ไม่มีอันไหนเป็นหลักฐานเลย — สองอย่างเกิดพร้อมกัน คนพูดมั่นใจ และตัวเลขก้อนเดียว ทั้งสามอย่างฟังดูหนักแน่นพอกัน และทั้งสามอย่างพิสูจน์อะไรไม่ได้',
-    atWork: 'ถ้าเป็นงานจริง คือสรุปว่ายอดตกเพราะ Marketing ตั้งแต่ยังไม่ได้เปิด Data แล้วทั้งไตรมาสก็แก้ผิดจุด',
-    chips: ['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', '1 ล้านวิว = ชอบ?'],
-  },
-  {
-    n: 3,
-    nameTh: 'ฟังดูน่าเชื่อ ไม่ใช่หลักฐาน',
-    nameEn: 'PLAUSIBLE IS NOT PROVEN',
-    body: 'ข้อหมาล่าฟังดูสมเหตุสมผลแต่ผิด ข้อปลาหมึกฟังดูเหลือเชื่อแต่จริง และข้อสุดท้ายมีชื่อจริงอยู่ในนั้น ขาดแค่ความเชื่อมโยง ความรู้สึกว่าน่าเชื่อหรือไม่น่าเชื่อ ไม่เคยเป็นหลักฐาน',
-    atWork: 'ถ้าเป็นงานจริง คืออ้างชื่อคนดังหรือตัวเลขผิดกลางห้องประชุม เสียความน่าเชื่อถือ ไม่ใช่แค่เสียงาน',
-    chips: ['เหงื่อออก = ไขมันละลาย?', 'หัวใจ 3 ดวง', 'คำคมของ Einstein'],
-  },
-]
 
 /**
  * THE CLOSING BEAT, after case 9. The team supplied it word for word — see "The closing remark" in

@@ -9,14 +9,13 @@ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : us
 import type { PublicGameState, Question } from '@/lib/types'
 import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, READING_MS } from '@/lib/game'
 import { scoreAnswer } from '@/lib/scoring'
-import { ACTS, CLOSING_LINES } from '@/content/questions'
+import { CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
 import { Duck } from '@/components/game/Duck'
 import { Dossier } from '@/components/game/Dossier'
 import { TimerBar } from '@/components/game/TimerBar'
 import { SplitBar } from '@/components/game/SplitBar'
 import { Standings, type LeaderboardRow, type RankDeltas } from '@/components/game/Standings'
-import { ActCard } from '@/components/game/ActCard'
 import { Tally } from '@/components/game/Tally'
 import { Podium } from '@/components/game/Podium'
 import { ResetButton } from '@/components/host/ResetButton'
@@ -80,7 +79,7 @@ const TYPE = {
 /**
  * The phases the investigation room is painted behind (spec §6).
  *
- * `reveal`, `actcard`, `tally` and `podium` are deliberately absent: those four carry the content
+ * `reveal`, `tally` and `podium` are deliberately absent: those three carry the content
  * the room exists to frame — a case file being read out, an act's lesson, the room's own numbers —
  * and a floor with someone walking on it competes with all of them. They keep `.det`'s flat wall
  * colour and nothing else.
@@ -144,7 +143,7 @@ const LAMP_CONE =
    question. One ground throughout is what the team asked for, and it is the rules screen's ground
    they picked. Row and panel fills had to stop being translucent white to survive it. */
 const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(
-  ['lobby', 'rules', 'reading', 'question', 'reveal', 'actcard', 'tally', 'podium'],
+  ['lobby', 'rules', 'reading', 'question', 'reveal', 'tally', 'podium'],
 )
 
 /**
@@ -855,14 +854,6 @@ function Stage({
   /* THE FULL-BLEED MOMENTS. No dossier is forced onto these three — they are single ideas that
      want the whole stage, and a case file wrapped round a podium would be decoration pretending
      to be structure. They keep the HUD only so the host's controls never move between phases. */
-  if (state.phase === 'actcard') {
-    const actIndex = state.actIndex ?? 0
-    return frame({
-      plate: `ACT ${actIndex + 1} / ${ACTS.length}`,
-      status: `บทที่ ${actIndex + 1} จาก ${ACTS.length}`,
-      children: <ActCard act={ACTS[actIndex]} />,
-    })
-  }
 
   if (state.phase === 'tally') {
     return frame({

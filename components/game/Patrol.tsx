@@ -18,7 +18,7 @@ import { useEffect, useRef } from 'react'
  * (sin(frame * 0.22) * 3), the leg swing (sin(frame * 0.22) * 12) and the duck's idle bounce
  * (sin(frame * 0.28) * 3) are its constants.
  *
- * NOT painted behind `reveal`, `actcard`, `tally` or `podium`: those screens carry the content the
+ * NOT painted behind `reveal`, `tally` or `podium`: those screens carry the content the
  * room exists to frame, and a moving floor competes with them. They keep `.det`'s own wall colour
  * and nothing else — which is why the predicate lives at the call site and not in here.
  */

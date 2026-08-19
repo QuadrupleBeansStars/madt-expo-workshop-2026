@@ -313,7 +313,6 @@ describe('store game state', () => {
     expect(pub.phase).toBe('question')
     expect(pub.qIndex).toBe(0)
     expect(pub.questionId).toBe(Q0.id)
-    expect(pub.actIndex).toBeNull() // only present on `actcard`
     expect(pub.playerCount).toBe(2)
     expect(pub.answeredCount).toBe(1)
     expect(pub.remainingMs).toBe(1000 + QUESTION_MS - 2000)
@@ -569,8 +568,7 @@ function roomAt(qIndex: number, n = 3) {
     t += NEXT_STEP_MS
     store.next(t) // question -> reveal
     t += NEXT_STEP_MS
-    store.next(t) // reveal -> reading or actcard
-    if (store.getGameState().phase === 'actcard') { t += NEXT_STEP_MS; store.next(t) } // actcard -> reading
+    store.next(t) // reveal -> reading (there is no act card between cases any more)
     if (store.getGameState().phase === 'reading') { t += NEXT_STEP_MS; store.next(t) } // reading -> next question
   }
   return { store, players }
@@ -614,8 +612,7 @@ describe('the room tally', () => {
       t += NEXT_STEP_MS
       store.next(t) // question -> reveal
       t += NEXT_STEP_MS
-      store.next(t) // reveal -> reading, actcard, or (on the last question) tally
-      if (store.getGameState().phase === 'actcard') { t += NEXT_STEP_MS; store.next(t) } // actcard -> reading or tally
+      store.next(t) // reveal -> reading, or (on the last question) tally
       // On every question but the last, that landed on 'reading' — clear it for the next iteration.
       // On the last question it lands on 'tally' instead, and there is no reading beat to clear.
       if (store.getGameState().phase === 'reading') { t += NEXT_STEP_MS; store.next(t) } // reading -> question

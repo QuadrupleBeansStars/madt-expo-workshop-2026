@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { QUESTIONS, ACTS, CLOSING_LINES, getQuestion } from './questions'
-import { QuestionSchema, ActSchema } from '@/lib/types'
+import { QUESTIONS, CLOSING_LINES, getQuestion } from './questions'
+import { QuestionSchema } from '@/lib/types'
 import type { Question, Verdict } from '@/lib/types'
 
 const byOrder = (): Question[] => [...QUESTIONS].sort((a, b) => a.order - b.order)
@@ -32,16 +32,6 @@ describe('QUESTIONS', () => {
     }
   })
 
-  it('has three acts of three, and act numbers follow play order', () => {
-    expect(ACTS).toHaveLength(3)
-    for (const a of ACTS) {
-      const r = ActSchema.safeParse(a)
-      expect(r.success, `act ${a.n}: ${JSON.stringify(r.error?.issues)}`).toBe(true)
-    }
-    // lib/game.ts derives the act card from Math.floor(qIndex / 3). A question whose `act`
-    // disagrees with its position puts it under an act card that does not describe it.
-    expect(byOrder().map((q) => q.act)).toEqual([1, 1, 1, 2, 2, 2, 3, 3, 3])
-  })
 
   /*
    * THE ANSWER KEY, POSITION BY POSITION.
@@ -127,29 +117,6 @@ describe('QUESTIONS', () => {
   })
 })
 
-describe('the acts', () => {
-  /*
-   * The acts group by KIND OF WRONGNESS, not by topic, and the grouping is what forces the
-   * running order: acts run 1,1,1 / 2,2,2 / 3,3,3 by position and the two จริง cases have to sit
-   * at 4 and 7, so the all-มั่ว causation group has to be act 1 and the other two groups each
-   * have to OPEN with their จริง case. Move a case between acts and one of those breaks.
-   */
-  it('opens each act with the case that sets up the other two', () => {
-    const inAct = (n: 1 | 2 | 3) => byOrder().filter((q) => q.act === n).map((q) => q.id)
-    expect(inAct(1)).toEqual(['mum-teng-nong', 'ultra-smooth', 'five-more-minutes'])
-    expect(inAct(2)).toEqual(['hyrox-itch', 'pa-da-confidence', 'million-views'])
-    expect(inAct(3)).toEqual(['mala-sweat', 'octopus-hearts', 'einstein-fish'])
-  })
-
-  // The chips are the three cases just played, in the order the room was asked them. Reorder an
-  // act's questions without reordering its chips and the act card recaps a game nobody played.
-  it('lists each act chip in the order its questions were asked', () => {
-    expect(ACTS[0].chips).toEqual(['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'])
-    expect(ACTS[1].chips).toEqual(['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', '1 ล้านวิว = ชอบ?'])
-    expect(ACTS[2].chips).toEqual(['เหงื่อออก = ไขมันละลาย?', 'หัวใจ 3 ดวง', 'คำคมของ Einstein'])
-  })
-})
-
 describe('the closing beat', () => {
   /*
    * The team supplied this word for word and nothing renders it yet (see CLOSING_LINES' own
@@ -177,6 +144,5 @@ describe('the opener', () => {
      * The cost is in `pays for opening on the warm-up with one long reject run` above. Do not
      * "fix" it by moving this case. */
     expect(first.verdict).toBe('pass')
-    expect(first.act).toBe(1)
   })
 })

@@ -1,11 +1,9 @@
 import type { GameState, Question } from './types'
-import { ACTS, QUESTIONS } from '@/content/questions'
+import { QUESTIONS } from '@/content/questions'
 
 /** Play order. Everything downstream indexes into THIS, never into QUESTIONS' source order. */
 export const QUESTIONS_IN_ORDER: Question[] = [...QUESTIONS].sort((a, b) => a.order - b.order)
 export const QUESTION_COUNT = QUESTIONS_IN_ORDER.length
-export const QUESTIONS_PER_ACT = QUESTION_COUNT / ACTS.length
-export const ACT_COUNT = ACTS.length
 
 /**
  * 15s. v2 ran 45-60s windows built for four long option labels and a Case File to read; v3 has one
@@ -127,7 +125,7 @@ export function nextState(s: GameState, now: number): GameState {
     case 'lobby':
       return rulesState(now)
     // The ONLY edge out of `rules`, and nothing leads back into it: every later question reaches
-    // `reading` from `reveal` or `actcard` below, so the room sees this screen once.
+    // `reading` from `reveal` below, so the room sees this screen once.
     case 'rules':
       return startedState(now)
     case 'reading':
@@ -136,13 +134,11 @@ export function nextState(s: GameState, now: number): GameState {
       // UNTIMED, like `rules`. The reveal carries the verdict, then the standings on a second
       // press; a clock that took the screen away mid-explanation was the host fighting the room.
       return untimed('reveal', s.qIndex, now)
+    /* NO ACT CARD. A summary closed every third question and the team cut it: the reveal already
+       explains the case it belongs to, and a fourth screen between one question and the next was
+       three more stops in a game the room is meant to move through. The lesson lands on the reveal
+       and again on the closing tally. */
     case 'reveal': {
-      const finished = s.qIndex + 1
-      // An act card closes every third question, including the last one.
-      if (finished % QUESTIONS_PER_ACT === 0) return untimed('actcard', s.qIndex, now)
-      return readingState(finished, now)
-    }
-    case 'actcard': {
       const next = s.qIndex + 1
       if (next >= QUESTION_COUNT) return untimed('tally', s.qIndex, now)
       return readingState(next, now)
@@ -179,7 +175,3 @@ export function currentQuestion(s: GameState): Question | null {
   return QUESTIONS_IN_ORDER[s.qIndex] ?? null
 }
 
-export function currentActIndex(s: GameState): number | null {
-  if (s.phase !== 'actcard') return null
-  return Math.floor(s.qIndex / QUESTIONS_PER_ACT)
-}

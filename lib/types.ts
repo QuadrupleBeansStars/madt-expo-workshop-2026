@@ -39,8 +39,6 @@ export const StoryboardSchema = z.array(StoryPanelSchema).min(2).max(4)
 export const VerdictSchema = z.enum(['pass', 'reject'])
 export type Verdict = z.infer<typeof VerdictSchema>
 
-const ActNumberSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
-
 /**
  * One question. Length caps are the projector budget, not style: `ask` renders at one size on a
  * 1366x768 screen and `duckSays` sits in a speech bubble beside a large duck. Exceeding them does
@@ -48,7 +46,6 @@ const ActNumberSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
  */
 export const QuestionSchema = z.object({
   id: z.string().min(1),
-  act: ActNumberSchema,
   order: z.number().int().min(1).max(9),
   ask: z.string().min(1).max(80),
   duckSays: z.string().min(1).max(140),
@@ -63,17 +60,6 @@ export const QuestionSchema = z.object({
   message: 'highlight must be an exact substring of duckSays',
 })
 export type Question = z.infer<typeof QuestionSchema>
-
-export const ActSchema = z.object({
-  n: ActNumberSchema,
-  nameTh: z.string().min(1),
-  nameEn: z.string().min(1),
-  body: z.string().min(1).max(220),
-  /** The "ถ้าเป็นงานจริง" line. The host's closing rolls all three of these together. */
-  atWork: z.string().min(1).max(160),
-  chips: z.tuple([z.string().min(1), z.string().min(1), z.string().min(1)]),
-})
-export type Act = z.infer<typeof ActSchema>
 
 export const DifficultySchema = z.enum(['easy', 'medium', 'hard', 'expert', 'final'])
 export type Difficulty = z.infer<typeof DifficultySchema>
@@ -139,22 +125,23 @@ export type Answer = { playerId: string; questionId: string; verdict: Verdict; e
 
 /**
  * `rules` sits between `lobby` and the FIRST `reading` and is never entered again — question 2
- * onward goes straight from `reveal`/`actcard` back to `reading` (see `lib/game.ts#nextState`).
+ * onward goes straight from `reveal` back to `reading` (see `lib/game.ts#nextState`).
  * It is host-advanced with no countdown: `reading` and `question` have clocks because the room
  * has to move together; a hundred people read a rules screen at a hundred speeds, and it is the
  * one screen where spending an extra ten seconds costs the run nothing.
  */
-export type Phase = 'lobby' | 'rules' | 'reading' | 'question' | 'reveal' | 'actcard' | 'tally' | 'podium'
+export type Phase = 'lobby' | 'rules' | 'reading' | 'question' | 'reveal' | 'tally' | 'podium'
 
 /** Server-authoritative. `phaseStartedAt`/`phaseDurationMs` are the ONLY clock. */
 export type GameState = {
   phase: Phase
-  /** 0-based index into QUESTIONS_IN_ORDER. On `actcard` it is the LAST question of that act. */
+  /** 0-based index into QUESTIONS_IN_ORDER. */
   qIndex: number
   phaseStartedAt: number
-  /** 0 for untimed phases (lobby, actcard, tally, podium). */
+  /** 0 for the host-advanced phases: lobby, rules, reveal, tally, podium. */
   phaseDurationMs: number
-  /** Host froze the reveal auto-advance. Only ever true during `reveal`. */
+  /** @deprecated The reveal is untimed and nothing freezes it. Kept so a persisted v3.1
+   *  snapshot still parses; no code reads it. */
   holding: boolean
 }
 
@@ -163,8 +150,6 @@ export type PublicGameState = {
   phase: Phase
   qIndex: number
   questionId: string | null
-  /** 0-based act index, present on `actcard` only. */
-  actIndex: number | null
   remainingMs: number
   answeredCount: number
   playerCount: number

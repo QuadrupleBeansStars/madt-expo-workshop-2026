@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  ACT_COUNT, LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, QUESTIONS_IN_ORDER,
-  currentActIndex, currentQuestion, nextState, remainingMs, rulesState, shouldExpire, startedState,
+  LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState, shouldExpire, startedState,
 } from './game'
 import type { GameState, Phase } from './types'
 
@@ -30,46 +29,23 @@ function walkFromLobby(): Phase[] {
 }
 
 describe('the phase sequence', () => {
-  it('runs 9 question/reveal pairs with an act card after every third', () => {
+  /* Nine question/reveal pairs and nothing between them. An act card used to close every third
+     question; the team cut it, so the room goes question -> reveal -> next question with no fourth
+     screen in the way. `seen` carrying no other phase kind is the assertion that keeps a new one
+     from being slipped in unnoticed. */
+  it('runs 9 question/reveal pairs and goes straight from one case to the next', () => {
     const seen = walk()
     expect(seen.filter((p) => p === 'question')).toHaveLength(QUESTION_COUNT)
     expect(seen.filter((p) => p === 'reveal')).toHaveLength(QUESTION_COUNT)
-    expect(seen.filter((p) => p === 'actcard')).toHaveLength(3)
-    expect(seen.at(-3)).toBe('actcard')
+    // `walk()` starts from `startedState`, which is already past the rules screen.
+    expect(new Set(seen)).toEqual(new Set(['reading', 'question', 'reveal', 'tally', 'podium']))
     expect(seen.at(-2)).toBe('tally')
     expect(seen.at(-1)).toBe('podium')
-  })
-
-  it('puts the act cards after questions 3, 6 and 9 and nowhere else', () => {
-    let s = startedState(T0)
-    const cardAfter: number[] = []
-    for (let i = 0; i < 100 && s.phase !== 'podium'; i++) {
-      const prev = s
-      s = nextState(s, T0)
-      if (s.phase === 'actcard') cardAfter.push(prev.qIndex + 1)
-    }
-    expect(cardAfter).toEqual([3, 6, 9])
-  })
-
-  // The actcard trigger is `finished % QUESTIONS_PER_ACT === 0`, and QUESTIONS_PER_ACT is a plain
-  // division (QUESTION_COUNT / ACT_COUNT). That only lands on clean boundaries while the content
-  // divides evenly. If a future edit makes it fractional, act cards silently stop firing on the
-  // right question and nothing above would notice — this is the guard for that content invariant.
-  it('the question count divides evenly into acts', () => {
-    expect(QUESTION_COUNT % ACT_COUNT).toBe(0)
   })
 
   it('is terminal at podium', () => {
     const podium = { phase: 'podium', qIndex: 8, phaseStartedAt: T0, phaseDurationMs: 0, holding: false } as GameState
     expect(nextState(podium, T0 + 5000)).toEqual(podium)
-  })
-
-  it('exposes the act index on actcard and nowhere else', () => {
-    let s = startedState(T0)
-    for (let i = 0; i < 100 && s.phase !== 'actcard'; i++) s = nextState(s, T0)
-    expect(s.phase).toBe('actcard') // guards against the loop above silently walking past a regression
-    expect(currentActIndex(s)).toBe(0)
-    expect(currentActIndex(startedState(T0))).toBeNull()
   })
 
   it('names the current question during question and reveal only', () => {
@@ -98,8 +74,8 @@ describe('expiry', () => {
 
   it('never expires an untimed phase', () => {
     let s = startedState(T0)
-    for (let i = 0; i < 100 && s.phase !== 'actcard'; i++) s = nextState(s, T0)
-    expect(s.phase).toBe('actcard') // guards against the loop above silently walking past a regression
+    for (let i = 0; i < 100 && s.phase !== 'tally'; i++) s = nextState(s, T0)
+    expect(s.phase).toBe('tally') // guards against the loop above silently walking past a regression
     expect(shouldExpire(s, T0 + 60 * 60 * 1000, 5, 5)).toBe(false)
   })
 
@@ -138,7 +114,6 @@ describe('the rules screen', () => {
 
   it('shows no question of its own — the room is reading rules, not evidence', () => {
     expect(currentQuestion(rulesState(T0))).toBeNull()
-    expect(currentActIndex(rulesState(T0))).toBeNull()
   })
 })
 

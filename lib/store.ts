@@ -5,7 +5,7 @@ import { avatarFor } from './avatars'
 import { scorePlayer } from './scoring'
 import {
   LOBBY_STATE, NEXT_GUARD_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState,
-  shouldExpire, currentActIndex,
+  shouldExpire,
 } from './game'
 
 export interface RoomStore {
@@ -62,8 +62,8 @@ function isValidPlayer(p: unknown): p is Player {
  * Same hazard, the GameState half of it: a v2 snapshot has no `qIndex` and no `holding`, so both
  * come back `undefined` — checking `phase` alone would let that through. `qIndex` also gets a
  * bounds check here rather than trusting the file: it comes straight off disk and both
- * `currentQuestion` and `currentActIndex` index `QUESTIONS_IN_ORDER` with it. `currentQuestion`
- * guards with `?? null`; `currentActIndex` does not — a corrupt or hand-edited `qIndex` is where
+ * `currentQuestion` indexes `QUESTIONS_IN_ORDER` with it and guards with `?? null` — a corrupt
+ * or hand-edited `qIndex` is where
  * that surfaces, so it is rejected here instead of downstream.
  */
 function isValidGameState(g: unknown): g is GameState {
@@ -335,7 +335,6 @@ export class MemoryRoomStore implements RoomStore {
       phase: this.game.phase,
       qIndex: this.game.qIndex,
       questionId: q?.id ?? null,
-      actIndex: currentActIndex(this.game),
       remainingMs: remainingMs(this.game, now),
       answeredCount: this.answeredCountFor(q?.id ?? null),
       playerCount: this.activePlayers().length,

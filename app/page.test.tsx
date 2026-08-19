@@ -157,18 +157,6 @@ describe('the phone on a reveal, reloaded mid-phase (picks is empty)', () => {
   })
 })
 
-describe('the phone on an act card', () => {
-  it('gives the player nothing to read, so they look up at the projector', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(
-      JSON.stringify(state({ phase: 'actcard', actIndex: 0, questionId: null })),
-      { headers: { 'content-type': 'application/json' } },
-    )))
-    render(<Page />)
-    expect(await screen.findByText(/ดูจอใหญ่/)).toBeInTheDocument()
-    expect(screen.queryAllByRole('button')).toHaveLength(0)
-  })
-})
-
 // CRITICAL 3 (final whole-branch review): recovered from git history (the v2 file had this under
 // the name "a reset ejects the phone from the poll, without waiting for a tap") — the v3 rewrite
 // replaced this whole file with a sample block and the test vanished, even though app/page.tsx

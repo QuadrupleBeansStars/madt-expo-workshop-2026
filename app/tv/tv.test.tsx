@@ -8,7 +8,6 @@ import '@testing-library/jest-dom/vitest'
 import TV from './page'
 import { QUESTIONS_IN_ORDER, QUESTION_MS, READING_MS } from '@/lib/game'
 import { scoreAnswer } from '@/lib/scoring'
-import { ACTS } from '@/content/questions'
 import { SplitBar } from '@/components/game/SplitBar'
 import { t } from '@/lib/i18n'
 
@@ -117,14 +116,6 @@ describe('the projector', () => {
     expect(screen.getByText(q0.truth)).toBeInTheDocument()
     expect(screen.queryByText('หมูกรอบ')).toBeNull()
   }, 12000)
-
-  it('names the trick on an act card and carries the at-work line', async () => {
-    mockFetch({ ...base, phase: 'actcard', actIndex: 0, questionId: null })
-    render(<TV />)
-    expect(await screen.findByText(ACTS[0].nameTh)).toBeInTheDocument()
-    expect(screen.getByText(ACTS[0].nameEn)).toBeInTheDocument()
-    expect(screen.getByText(ACTS[0].atWork)).toBeInTheDocument()
-  })
 
   // The number COUNTS UP over ~2s now (spec §9) — it is the one number the whole workshop walks
   // toward, and a number already sitting there when the screen appears has been read and dismissed
