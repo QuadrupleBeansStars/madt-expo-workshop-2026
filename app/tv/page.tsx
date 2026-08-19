@@ -487,7 +487,7 @@ export default function TvPage() {
    */
   return (
     <main
-      className="det relative min-h-screen overflow-hidden px-8 py-[min(2rem,2.2vh)]"
+      className="det relative min-h-screen overflow-hidden px-[3.4vh] py-[2.2vh]"
       style={{ '--det-btn-size': TYPE.control, '--det-btn-pad': '1.6vh 3.2vh' } as React.CSSProperties}
     >
       {/*
@@ -931,7 +931,7 @@ const chips = [
                 and red. Written as a sentence they were a slash between two parentheses; drawn as
                 two boxes they are the two things about to appear under every thumb in the room,
                 in the same inks and the same order. */}
-            <span className="flex gap-[1.6vw]">
+            <span className="flex gap-[2.8vh]">
               {[
                 { label: '✓ ผ่าน — เชื่อได้', ink: '#1c7a2e' },
                 { label: '✗ ตีกลับ — มีปัญหา', ink: '#b3253f' },
@@ -1446,10 +1446,10 @@ function HudClock({ remainingMs }: { remainingMs: number }) {
   return (
     <span
       className="det-term flex items-baseline gap-[1vh] tabular-nums"
-      style={{ fontSize: '6.4vh', color: urgent ? 'var(--det-pink)' : 'var(--det-gold)', lineHeight: 1 }}
+      style={{ fontSize: '10vh', color: urgent ? 'var(--det-pink)' : 'var(--det-gold)', lineHeight: 1 }}
       aria-label={`เหลือเวลา ${secs} วินาที`}
     >
-      <span aria-hidden="true" style={{ fontSize: '4vh' }}>⏱</span>
+      <span aria-hidden="true" style={{ fontSize: '5.6vh' }}>⏱</span>
       {secs}
     </span>
   )
@@ -1459,7 +1459,7 @@ function DotCountdown({ remainingMs }: { remainingMs: number }) {
   const DOTS = 10
   const lit = Math.max(0, Math.min(DOTS, Math.ceil(remainingMs / 1000)))
   return (
-    <div className="flex items-center gap-[1.2vw]" role="presentation">
+    <div className="flex items-center gap-[2.1vh]" role="presentation">
       {Array.from({ length: DOTS }, (_, i) => (
         <span
           key={i}
@@ -1479,7 +1479,7 @@ function DotCountdown({ remainingMs }: { remainingMs: number }) {
  *  paper's own top-right corner. */
 function FileHeader({ text }: { text: string }) {
   return (
-    <div className="det-dossier-head det-term pr-[20vw] text-[3.1vh]">
+    <div className="det-dossier-head det-term pr-[35vh] text-[3.1vh]">
       {text}
     </div>
   )
@@ -1510,12 +1510,16 @@ function FileHeader({ text }: { text: string }) {
 function CaseBoard({ question }: { question: Question }) {
   return (
     /*
-     * `pb-[12vh]` IS THE ROOM'S HEADROOM, not a taste margin. The case file lies on the desk in
-     * front of an investigation room whose floor the backdrop paints across the bottom, and whose
-     * detective's hat reaches above his own feet-line into the band below it. A sheet that simply
-     * took the whole stage cut both characters off at the waist.
+     * `pb-[27vh]` IS THE ROOM'S HEADROOM, not a taste margin, and 12vh was not enough of it. The
+     * characters stand on the desk surface near the bottom of the frame and reach about 20vh tall,
+     * so a sheet ending 12vh from the bottom lay across both of them from the chest down. This
+     * ends the paper above their hats and leaves the desk band to the two of them.
+     *
+     * `px` in vh rather than vw on purpose: every other measurement on this stage is a fraction of
+     * HEIGHT, and mixing the two makes the layout a different shape on a 16:10 panel than on 16:9
+     * — which is the one thing the projector is not allowed to do.
      */
-    <div className="flex min-h-0 flex-1 flex-col px-[4vw] pt-[2vh] pb-[12vh]">
+    <div className="flex min-h-0 flex-1 flex-col px-[7vh] pt-[2vh] pb-[27vh]">
       {/* `pt-[10vh]` on the BODY clears the CLASSIFIED rubber stamp, which `.det-dossier::before`
           pins to the paper's own top-right corner at -11 degrees. Vertically rather than with a
           right-hand `padding`: a reserve on the right narrows every line on the sheet, for the
@@ -1541,7 +1545,7 @@ function CaseBoard({ question }: { question: Question }) {
             `items-start` so the duck sits against the first line of a two-line answer instead of
             floating in the middle of it. */}
         <div
-          className="det-thai flex items-start gap-[1.6vw]"
+          className="det-thai flex items-start gap-[2.8vh]"
           style={{
             background: '#eef4ff',
             borderLeft: '0.9vh solid var(--det-cyan)',
@@ -1603,7 +1607,7 @@ function RevealStage({
   const truthLabel = question.verdict === 'reject' ? 'เป็ดพลาดตรงนี้' : 'ทำไมข้อนี้เชื่อได้'
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-[2vh] px-[4vw] pt-[2vh] pb-[2vh]">
+    <div className="flex min-h-0 flex-1 flex-col gap-[2vh] px-[7vh] pt-[2vh] pb-[2vh]">
       {/*
         * THE VERDICT, very large, at the top and centred — the first thing the room reads and the
         * only word on the screen that answers the question they just voted on. Thai face, NOT the

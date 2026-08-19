@@ -30,21 +30,22 @@ const REF_W = 1280
 const REF_H = 720
 /** `ctx.fillRect(0, 520, w, h - 520)` — the floor line, 72.2% down the reference's own slide. */
 const REF_FLOOR = 520
-/* 0.68, NOT the reference's own 520/720 = 0.722. The desk edge is drawn by CSS at 68% (the hard
-   cut in DESK_GROUND), and the characters have to stand ON that line — four percent of a 1080-tall
-   projector is 43px of the detective hovering above the floor he is supposed to be walking on. */
-const FLOOR_FRACTION = 0.68
-
-
 /*
- * Both characters are positioned RELATIVE TO THE FLOOR LINE, not to the bottom of the canvas. The
- * reference hard-codes `player.y = 535` and `duck.y = 585` against a floor at 520, so the man
- * stands 15 units into the floor band and the duck 65 — the duck reads as standing further back in
- * the room, which is the whole reason they are not on one baseline. Anchoring to the canvas bottom
- * instead would collapse that the moment the canvas is not 720 tall.
+ * WRITTEN AS FRACTIONS OF THE STAGE, not as offsets from the reference's own floor line — which I
+ * misread twice, in opposite directions, before writing it this way.
+ *
+ * The trap: `REF_FLOOR = 520` is where the reference's WALL MEETS ITS FLOOR, and its sprites are
+ * drawn from their TOP downward (`player.y = 535`, height 135), so the man's feet actually land at
+ * 670 of 720 — 93% down, not 72%. Reading 520 as "the line they stand on" put them at the back
+ * wall, where the case file covered them; correcting the fraction while keeping offsets that were
+ * already relative to it pushed them off the bottom of the screen instead.
+ *
+ * So: no floor line, no offsets. Each figure gets a HEIGHT and a FEET position, both as fractions
+ * of the stage, and the numbers say exactly where they land. The duck's feet sit slightly lower
+ * than the man's, which is what makes it read as standing nearer the viewer.
  */
-const MAN = { w: 75, h: 135, speed: 1.5, top: 535 - REF_FLOOR }
-const DUCK = { w: 45, h: 55, top: 585 - REF_FLOOR }
+const MAN = { hFrac: 0.20, feetFrac: 0.925, aspect: 75 / 135, speed: 1.5 }
+const DUCK = { hFrac: 0.082, feetFrac: 0.945, aspect: 45 / 55 }
 
 /** `duck.x` chases `player.x - player.direction * 70`. */
 const FOLLOW = 70
@@ -129,12 +130,13 @@ function drawDuckSprite(
   ctx.restore()
 }
 
-export function Patrol({ className = '', floor = FLOOR_FRACTION }: {
+export function Patrol({ className = '', floor = MAN.feetFrac }: {
   /** Positioning belongs to the caller — this is a backdrop, so it wants `absolute inset-0`. */
   className?: string
   /**
-   * Where the floor line sits, as a fraction of the canvas height. `0.722` is the reference's own
-   * `fillRect(0, 520, …)` on a 720-tall slide, and is what `/tv` uses unchanged.
+   * Where the DETECTIVE'S FEET land, as a fraction of the canvas height — not a floor line. The
+   * ground itself is CSS now, and this canvas draws only the two figures, so the one number that
+   * matters is where they stand.
    *
    * A PROP because a 16:9 constant does not survive the trip to 9:19.5. On a 390x844 phone the
    * bottom 28% is where the two vote buttons live (2 x 104px + a 20px gap + 24px of padding, so
@@ -200,8 +202,15 @@ export function Patrol({ className = '', floor = FLOOR_FRACTION }: {
          a flat fill cannot reproduce. One ground, one place it is defined; this draws only the two
          characters that walk on it. */
       ctx.clearRect(0, 0, vw, vh)
-      drawDuckSprite(ctx, duckX, floorY + DUCK.top, DUCK.w, DUCK.h, man.dir, frame)
-      drawSherlockSprite(ctx, man.x, floorY + MAN.top, MAN.w, MAN.h, man.dir, frame)
+      const manH = vh * MAN.hFrac
+      const manW = manH * MAN.aspect
+      const duckH = vh * DUCK.hFrac
+      const duckW = duckH * DUCK.aspect
+      /* `floorY` IS the detective's feet line — the prop, not the constant, so a caller that
+         passes its own (the phone does) actually moves them. The duck stands slightly nearer the
+         viewer, and that offset scales with the figures rather than being a fixed pixel gap. */
+      drawDuckSprite(ctx, duckX, floorY + (DUCK.feetFrac - MAN.feetFrac) * vh - duckH, duckW, duckH, man.dir, frame)
+      drawSherlockSprite(ctx, man.x, floorY - manH, manW, manH, man.dir, frame)
     }
 
     measure()

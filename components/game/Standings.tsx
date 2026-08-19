@@ -73,7 +73,7 @@ export function Standings({
   if (entries.length === 0) return null
   const rows = entries.slice(0, STANDINGS_PLACES)
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center px-[6vw]">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center px-[10.7vh]">
       {/* `paddingTop`: Thai upper vowels and tone marks sit ABOVE the em box, and at 9vh with this
           title's glow they reach into whatever is directly above. The padding is the clearance. */}
       <h2 className="det-screen-title shrink-0" style={{ paddingTop: '1.2vh' }}>
@@ -130,7 +130,7 @@ function StandingRow({
       }}
     >
       <div
-        className="flex w-full items-center gap-[1.2vw] overflow-hidden rounded-[0.6vh] pr-[1.8vw]"
+        className="flex w-full items-center gap-[2.1vh] overflow-hidden rounded-[0.6vh] pr-[3.2vh]"
         style={{
           /* 78% of the pitch with a line-height of 1 keeps the text inside the box at every stage
              height and still leaves a visible gap between every pair — which is what the spec's
@@ -152,7 +152,7 @@ function StandingRow({
             the top three read from the back of the hall before any numeral is legible. */}
         <span
           aria-hidden="true"
-          className="h-full w-[0.9vw] shrink-0"
+          className="h-full w-[1.6vh] shrink-0"
           style={{ background: top3 ? RAIL[row.rank - 1] : RAIL_NEUTRAL }}
         />
 
@@ -170,7 +170,7 @@ function StandingRow({
         <span
           data-rank-change={direction}
           aria-hidden="true"
-          className="w-[5.5vw] shrink-0 text-center"
+          className="w-[9.8vh] shrink-0 text-center"
           style={{
             fontFamily: 'var(--font-retro), monospace',
             fontSize: '3.4vh',
@@ -196,7 +196,7 @@ function StandingRow({
             up to — and separating them made the eye travel the width of the row to join them. The
             pair is pushed right together by `ml-auto` on their wrapper, so the two numerals stay
             adjacent at any row width and the name keeps all the slack. */}
-        <span className="ml-auto flex shrink-0 items-baseline gap-[0.8vw]">
+        <span className="ml-auto flex shrink-0 items-baseline gap-[1.4vh]">
           <span
             className="tabular-nums"
             style={{
