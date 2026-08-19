@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { QUESTIONS, ACTS, getQuestion } from './questions'
+import { QUESTIONS, ACTS, CLOSING_LINES, getQuestion } from './questions'
 import { QuestionSchema, ActSchema } from '@/lib/types'
 import type { Question, Verdict } from '@/lib/types'
 
@@ -121,6 +121,21 @@ describe('the acts', () => {
     expect(ACTS[0].chips).toEqual(['คันหลัง = กล้ามโต?', 'มั่นใจ = ถูก?', 'เหงื่อออก = ไขมันละลาย?'])
     expect(ACTS[1].chips).toEqual(['ข้อสรุปที่ตามจากข้อมูล', 'Ultra Smooth', 'อีก 5 นาทีถึงบ้าน'])
     expect(ACTS[2].chips).toEqual(['หัวใจ 3 ดวง', '1 ล้านวิว', 'คำคมของ Einstein'])
+  })
+})
+
+describe('the closing beat', () => {
+  /*
+   * The team supplied this word for word and nothing renders it yet (see CLOSING_LINES' own
+   * comment). Pinned so that whoever wires it onto the tally or podium cannot quietly paraphrase
+   * the one line the team emphasised — which is the line the room is meant to leave with.
+   */
+  it('carries the team’s closing remark verbatim, ending on the line they emphasised', () => {
+    expect(CLOSING_LINES).toEqual([
+      'ในเกม คุณจับ Hallucination ได้ เพราะคุณหยุดคิดก่อนเชื่อ',
+      'ในงานจริงก็เหมือนกัน — อย่าให้ AI เป็นคนตัดสินใจแทนเรา',
+      'AI ช่วยคิดได้ แต่คนต้อง Verify ก่อนใช้',
+    ])
   })
 })
 

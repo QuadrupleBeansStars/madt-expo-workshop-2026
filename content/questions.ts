@@ -43,7 +43,7 @@ export const QUESTIONS: Question[] = [
     order: 1,
     ask: 'แบกกระสอบ HYROX แล้วคันหลัง แปลว่าอะไรครับ?',
     duckSays: 'กล้ามหลังกำลังโตแบบก้าวกระโดดครับ',
-    highlight: 'กล้ามหลังกำลังโตแบบก้าวกระโดด',
+    highlight: 'กล้ามหลังกำลังโต',
     verdict: 'reject',
     truth: 'คันหลังเกิดได้ทั้งจากเหงื่อ ผ้าเสียดสี หรือฝุ่นจากกระสอบ เป็ดหยิบคำอธิบายที่ฟังดูดีที่สุดมาอันเดียว แล้วพูดเหมือนเป็นสาเหตุจริง สองอย่างเกิดพร้อมกัน ไม่ได้แปลว่าอันหนึ่งทำให้เกิดอีกอัน',
     tell: 'ยอดขายตกไม่ได้แปลว่าสาเหตุคือ Marketing ต้องหาว่าอะไรเป็น Driver จริง',
@@ -101,7 +101,7 @@ export const QUESTIONS: Question[] = [
     order: 6,
     ask: 'เพื่อนบอกว่า "อีก 5 นาทีถึงบ้าน" ตอนนี้เพื่อนอยู่ไหนครับ?',
     duckSays: 'อยู่หน้าบ้านครับ',
-    highlight: 'อยู่หน้าบ้าน',
+    highlight: 'หน้าบ้าน',
     verdict: 'reject',
     truth: 'ประโยคนั้นบอกแค่เวลา ไม่ได้บอกตำแหน่ง เพื่อนอาจติดไฟแดงอยู่อีกสามกิโลก็ได้ คำตอบที่ซื่อสัตย์คือ "ยังระบุไม่ได้จากข้อมูลนี้" ไม่ใช่เดาให้ฟังดูมีคำตอบ',
     tell: 'ถ้าข้อมูลไม่พอ อย่าเติมสิ่งที่ไม่รู้ — ควรบอกว่า "ยังระบุไม่ได้จากข้อมูลนี้"',
@@ -176,6 +176,23 @@ export const ACTS: Act[] = [
     atWork: 'ถ้าเป็นงานจริง คืออ้างชื่อคนดังหรือตัวเลขผิดกลางห้องประชุม เสียความน่าเชื่อถือ ไม่ใช่แค่เสียงาน',
     chips: ['หัวใจ 3 ดวง', '1 ล้านวิว', 'คำคมของ Einstein'],
   },
+]
+
+/**
+ * THE CLOSING BEAT, after case 9. The team supplied it word for word — see "The closing remark" in
+ * `docs/superpowers/specs/2026-08-19-hallucination-nine-content.md`. The last line is the one they
+ * emphasised and the one the room should leave with.
+ *
+ * NOTHING RENDERS THIS YET, and that is a handoff, not an oversight. It lives here because it is
+ * Thai the room reads and every such string in this workshop lives under `content/`; the screen it
+ * belongs on is `tally` or `podium`, and `components/game/Tally.tsx` currently hardcodes a closing
+ * line of its own that this is meant to sit beside or replace. Whoever wires it up should import
+ * it rather than retype it — a second copy of room-facing copy is how the two drift.
+ */
+export const CLOSING_LINES: readonly string[] = [
+  'ในเกม คุณจับ Hallucination ได้ เพราะคุณหยุดคิดก่อนเชื่อ',
+  'ในงานจริงก็เหมือนกัน — อย่าให้ AI เป็นคนตัดสินใจแทนเรา',
+  'AI ช่วยคิดได้ แต่คนต้อง Verify ก่อนใช้',
 ]
 
 const BY_ID = new Map(QUESTIONS.map((q) => [q.id, q]))
