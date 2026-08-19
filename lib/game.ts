@@ -12,7 +12,7 @@ export const ACT_COUNT = ACTS.length
  * question line and one duck sentence, and the room finishes in single digits. A window longer
  * than the reading buys dead air, not thought.
  */
-export const QUESTION_MS = 15_000
+export const QUESTION_MS = 10_000
 
 /**
  * The beat before the answer window opens, 10s of it. The room reads the question and the duck's
@@ -60,6 +60,7 @@ export const READING_MS = 10_000
  * 12s, and it AUTO-ADVANCES. This is the beat that makes nine rounds feel rapid instead of nine
  * separate host presses. The host's escape hatch is `toggleHold`, not a per-reveal button.
  */
+/** @deprecated The reveal is untimed — kept only so a persisted v3.1 snapshot still parses. */
 export const REVEAL_MS = 12_000
 
 /**
@@ -132,7 +133,9 @@ export function nextState(s: GameState, now: number): GameState {
     case 'reading':
       return questionState(s.qIndex, now)
     case 'question':
-      return { phase: 'reveal', qIndex: s.qIndex, phaseStartedAt: now, phaseDurationMs: REVEAL_MS, holding: false }
+      // UNTIMED, like `rules`. The reveal carries the verdict, then the standings on a second
+      // press; a clock that took the screen away mid-explanation was the host fighting the room.
+      return untimed('reveal', s.qIndex, now)
     case 'reveal': {
       const finished = s.qIndex + 1
       // An act card closes every third question, including the last one.
@@ -151,15 +154,9 @@ export function nextState(s: GameState, now: number): GameState {
   }
 }
 
-/** Host freeze for the reveal auto-advance. A no-op anywhere else — it must never skip a phase. */
-export function toggleHold(s: GameState): GameState {
-  if (s.phase !== 'reveal') return s
-  return { ...s, holding: !s.holding }
-}
-
+/** Reading and question are the only phases with a clock now; everything else is a host press. */
 export function remainingMs(s: GameState, now: number): number {
-  if (s.phase !== 'reading' && s.phase !== 'question' && s.phase !== 'reveal') return 0
-  if (s.holding) return 0
+  if (s.phase !== 'reading' && s.phase !== 'question') return 0
   return Math.max(0, s.phaseStartedAt + s.phaseDurationMs - now)
 }
 
@@ -172,10 +169,8 @@ export function shouldExpire(s: GameState, now: number, activeCount: number, ans
     if (now >= s.phaseStartedAt + s.phaseDurationMs) return true
     return activeCount > 0 && answeredCount >= activeCount
   }
-  if (s.phase === 'reveal') {
-    if (s.holding) return false
-    return now >= s.phaseStartedAt + s.phaseDurationMs
-  }
+  // No reveal branch: the reveal is untimed and leaves only on a host press, so nothing here can
+  // take it away while the host is still talking over it.
   return false
 }
 

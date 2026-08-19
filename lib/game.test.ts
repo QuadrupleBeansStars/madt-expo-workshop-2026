@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  ACT_COUNT, LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, REVEAL_MS, QUESTIONS_IN_ORDER,
+  ACT_COUNT, LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, QUESTIONS_IN_ORDER,
   currentActIndex, currentQuestion, nextState, remainingMs, rulesState, shouldExpire, startedState,
-  toggleHold,
 } from './game'
 import type { GameState, Phase } from './types'
 
@@ -95,18 +94,7 @@ describe('expiry', () => {
     expect(shouldExpire(s, T0 + 1, 0, 0)).toBe(false) // an empty room never auto-advances
   })
 
-  it('auto-advances the reveal, which is what makes it feel rapid', () => {
-    const reveal = nextState(nextState(startedState(T0), T0), T0) // reading -> question -> reveal
-    expect(reveal.phase).toBe('reveal')
-    expect(shouldExpire(reveal, T0 + REVEAL_MS, 5, 5)).toBe(true)
-  })
 
-  it('freezes the reveal while the host is holding', () => {
-    const held = toggleHold(nextState(nextState(startedState(T0), T0), T0)) // reading -> question -> reveal
-    expect(held.holding).toBe(true)
-    expect(shouldExpire(held, T0 + REVEAL_MS * 10, 5, 5)).toBe(false)
-    expect(remainingMs(held, T0 + REVEAL_MS * 10)).toBe(0)
-  })
 
   it('never expires an untimed phase', () => {
     let s = startedState(T0)
@@ -115,10 +103,6 @@ describe('expiry', () => {
     expect(shouldExpire(s, T0 + 60 * 60 * 1000, 5, 5)).toBe(false)
   })
 
-  it('only ever holds on a reveal', () => {
-    expect(toggleHold(startedState(T0)).holding).toBe(false)
-    expect(toggleHold(LOBBY_STATE).holding).toBe(false)
-  })
 })
 
 describe('the rules screen', () => {
@@ -199,5 +183,17 @@ describe('the reading beat', () => {
   it('counts down during reading', () => {
     const s = startedState(T0)
     expect(remainingMs(s, T0 + 2000)).toBe(READING_MS - 2000)
+  })
+
+  /* The reveal is UNTIMED since v3.2 — it leaves only on a host press, so no clock can take the
+     screen away while the host is still talking over it. `hold` existed solely to freeze the old
+     auto-advance and was removed with it. This is the assertion that would catch a clock being
+     put back: an hour later, on a reveal, nothing expires and nothing is counting down. */
+  it('never expires a reveal — it waits for the host, however long that is', () => {
+    const reveal = nextState(nextState(startedState(T0), T0), T0) // reading -> question -> reveal
+    expect(reveal.phase).toBe('reveal')
+    expect(reveal.phaseDurationMs).toBe(0)
+    expect(shouldExpire(reveal, T0 + 60 * 60 * 1000, 5, 5)).toBe(false)
+    expect(remainingMs(reveal, T0 + 60 * 60 * 1000)).toBe(0)
   })
 })

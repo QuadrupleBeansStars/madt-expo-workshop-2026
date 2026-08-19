@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
  * early-return on a null ref anyway. */
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 import type { PublicGameState, Question } from '@/lib/types'
-import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, REVEAL_MS } from '@/lib/game'
+import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS } from '@/lib/game'
 import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
 import { Dossier } from '@/components/game/Dossier'
@@ -137,7 +137,13 @@ const LAMP_CONE =
  *  a board, which is the same object the lobby is made of, so the end of the game reads as the
  *  same room as the start. On flat black the spotlight cone behind first place also had nothing to
  *  fall on and rendered as a grey rectangle with visible edges. */
-const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(['lobby', 'rules', 'reading', 'question', 'podium'])
+/* EVERY phase. The reveal, the act card and the standings used to sit on flat black while the
+   lobby, the rules screen and the podium stood in the room — so the game changed worlds twice per
+   question. One ground throughout is what the team asked for, and it is the rules screen's ground
+   they picked. Row and panel fills had to stop being translucent white to survive it. */
+const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(
+  ['lobby', 'rules', 'reading', 'question', 'reveal', 'actcard', 'tally', 'podium'],
+)
 
 /**
  * NO `crt` CLASS ANYWHERE. `.crt::after` is still in app/globals.css as dead code, and this repo
@@ -343,36 +349,18 @@ export default function TvPage() {
    * So the FIRST ถัดไป on a reveal flips this and posts nothing (see `onNext`), and the second
    * one advances the room. A press cannot skip the standings because the press IS what shows them.
    *
-   * THE FALLBACK BELOW IS NOT THE INTENDED PATH and is not a return of the old timer: the SERVER
-   * auto-advances a reveal after REVEAL_MS whether or not anyone pressed anything, so without it a
-   * host who simply talks through the reveal would still lose the standings — the one failure this
-   * change exists to remove. It fires late, leaving the standings up for the rest of the window.
+   * NO FALLBACK TIMER. There used to be one, because the SERVER auto-advanced a reveal after
+   * REVEAL_MS whether or not anyone pressed anything — so a host who simply talked through the
+   * reveal lost the standings anyway. The reveal is untimed now (lib/game.ts): it leaves only on a
+   * press, so the press is the only thing that can move the beat, and a clock that could take the
+   * screen away mid-sentence is gone from both sides.
    */
   const [revealBeat, setRevealBeat] = useState<'verdict' | 'standings'>('verdict')
   const revealPhase = state?.phase === 'reveal'
   const revealQuestionId = state?.questionId ?? null
 
-  /* The latest `remainingMs`, read by the effect below WITHOUT being a dependency of it: this
-     number changes on every poll, and a dependency on it would restart the fallback timer once a
-     second and mean it never fired. Declared before that effect on purpose — effects run in
-     declaration order, so this is already current when it reads. */
-  const remainingRef = useRef(0)
-  useEffect(() => { remainingRef.current = state?.remainingMs ?? 0 })
-
   useEffect(() => {
-    if (!revealPhase) { setRevealBeat('verdict'); return }
-    /*
-     * SEEDED FROM HOW FAR INTO THE REVEAL THE ROOM ALREADY IS, not from when this tab mounted.
-     * A `/tv` refresh at second ten of a twelve-second reveal would otherwise re-arm the fallback
-     * from the refresh — firing at second eighteen, four seconds after the server has already
-     * advanced — so the room would see the verdict twice and that case's standings never. Past the
-     * fallback point on arrival means the beat has already happened: open on the standings.
-     */
-    const elapsed = Math.max(0, REVEAL_MS - remainingRef.current)
-    if (elapsed >= REVEAL_FALLBACK_MS) { setRevealBeat('standings'); return }
-    setRevealBeat('verdict')
-    const id = setTimeout(() => setRevealBeat('standings'), REVEAL_FALLBACK_MS - elapsed)
-    return () => clearTimeout(id)
+    if (!revealPhase) setRevealBeat('verdict')
   }, [revealPhase, revealQuestionId])
 
   /*
@@ -574,10 +562,8 @@ export default function TvPage() {
               token={token}
               tokenError={tokenError}
               phase={state.phase}
-              holding={state.holding}
               nextPending={nextPending}
               onNext={() => void onNext()}
-              onHold={() => void control('hold')}
               onReset={(ok) => { setTokenError(!ok); if (ok) lastSeqRef.current = -1 }}
             />
           ) : null}
@@ -602,19 +588,16 @@ const HOST_BTN: React.CSSProperties = {
 }
 
 function HostControls({
-  token, tokenError, phase, holding, nextPending, onNext, onHold, onReset,
+  token, tokenError, phase, nextPending, onNext, onReset,
 }: {
   token: string
   tokenError: boolean
   phase: PublicGameState['phase']
-  holding: boolean
   nextPending: boolean
   onNext: () => void
-  onHold: () => void
   onReset: (ok: boolean) => void
 }) {
   const canNext = phase !== 'lobby' && phase !== 'podium' && !nextPending
-  const canHold = phase === 'reveal'
 
   /*
    * NO TOKEN FIELD. v3 kept an always-visible text input holding the live facilitator token in
@@ -651,19 +634,10 @@ function HostControls({
       <button type="button" className="det-btn det-btn-gold det-btn-thai" style={HOST_BTN} disabled={!canNext} onClick={onNext}>
         {nextPending ? '✓ ส่งแล้ว' : t('hostNext', 'th')}
       </button>
-      {/* Hold renders pressed while state.holding is true — the only host control with a
-          two-way toggle, so it needs its own visible on/off state, not just enabled/disabled. */}
-      <button
-        type="button"
-        className="det-btn det-btn-thai"
-        style={HOST_BTN}
-        disabled={!canHold}
-        aria-pressed={holding}
-        data-pressed={holding ? 'true' : 'false'}
-        onClick={onHold}
-      >
-        {holding ? '▶ ปล่อย' : '⏸ พัก'}
-      </button>
+      {/* NO HOLD BUTTON. It froze the reveal's auto-advance, and the reveal is untimed now —
+          every screen that is not reading or question waits for a press, so there is no clock
+          left to pause. A control that cannot do anything is worse than an absent one: the host
+          reaches for it under pressure and nothing happens. */}
       <ResetButton
         endpoint="/api/reset"
         token={token}
@@ -1527,17 +1501,6 @@ function CaseBoard({ question }: { question: Question }) {
 }
 
 
-/**
- * THE SAFETY NET under the host's own press, not a beat in its own right — see `revealBeat` in
- * `TvPage`. The server auto-advances a reveal after REVEAL_MS (12s) whether or not anyone pressed
- * anything, so a host who talks through one would lose the standings without this. Late enough
- * that the host's press is what normally shows them, early enough to leave the board up for a few
- * seconds before the server moves on.
- *
- * Measured from the moment the reveal is entered, deliberately NOT from `remainingMs`, which
- * `hold` freezes: a host who holds the reveal two seconds in would otherwise never reach it.
- */
-const REVEAL_FALLBACK_MS = 8_000
 
 /**
  * THE REVEAL, IN TWO BEATS — and the geometry is what forces it, not a preference.

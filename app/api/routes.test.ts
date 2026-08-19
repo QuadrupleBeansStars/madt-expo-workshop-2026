@@ -333,15 +333,18 @@ describe('POST /api/control', () => {
     else process.env.FACILITATOR_TOKEN = originalToken
   })
 
-  it('accepts start, next, hold and ping', async () => {
-    for (const action of ['start', 'next', 'hold', 'ping']) {
-      const res = await controlPOST(new Request('http://localhost/api/control', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-facilitator-token': TOKEN },
-        body: JSON.stringify({ action }),
-      }))
-      expect(res.status, action).toBe(200)
+  it('accepts start, next and ping — and rejects the removed hold', async () => {
+    const send = (action: string) => controlPOST(new Request('http://localhost/api/control', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-facilitator-token': TOKEN },
+      body: JSON.stringify({ action }),
+    }))
+    for (const action of ['start', 'next', 'ping']) {
+      expect((await send(action)).status, action).toBe(200)
     }
+    // `hold` froze the reveal's auto-advance. The reveal is untimed now, so the action had nothing
+    // left to do and was removed rather than left as a live endpoint that silently does nothing.
+    expect((await send('hold')).status, 'hold').toBe(400)
   })
 
   // `ping` is the token gate's own validation action (app/tv/page.tsx's TokenGate) — it must be

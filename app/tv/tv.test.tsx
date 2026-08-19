@@ -104,13 +104,17 @@ describe('the projector', () => {
 
   // …and then the standings take the screen. The timeout is past VERDICT_BEAT_MS deliberately: at
   // findByText's 1s default this would go red for the feature working.
-  it('hands the reveal over to the standings on the second beat', async () => {
+  /* The reveal opens on the verdict and STAYS there. It used to hand itself over to the standings
+     after 8s, because the server auto-advanced the whole phase at 12s and a host who talked over
+     it would otherwise lose the board. The reveal is untimed now, so nothing moves without a
+     press — asserted by waiting well past the old fallback and finding the verdict still up. */
+  it('holds the verdict beat indefinitely — no clock hands it over', async () => {
     mockFetch({ ...base, phase: 'reveal' })
     render(<TV />)
-    expect(await screen.findByText('หมูกรอบ', {}, { timeout: 9000 })).toBeInTheDocument()
-    // The verdict beat is gone, not merely covered — both on one screen is the thing this split
-    // exists to stop.
-    expect(screen.queryByText(q0.truth)).toBeNull()
+    expect(await screen.findByText(q0.truth)).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 9000))
+    expect(screen.getByText(q0.truth)).toBeInTheDocument()
+    expect(screen.queryByText('หมูกรอบ')).toBeNull()
   }, 12000)
 
   it('names the trick on an act card and carries the at-work line', async () => {
@@ -166,12 +170,6 @@ describe('the projector', () => {
 
   // The brief: "Hold renders pressed while state.holding is true." Its own toggle state, not just
   // enabled/disabled — the host needs to see at a glance whether the reveal clock is frozen.
-  it('renders Hold pressed while state.holding is true', async () => {
-    mockFetch({ ...base, phase: 'reveal', holding: true })
-    render(<TV />)
-    await screen.findByText(q0.truth)
-    expect(screen.getByRole('button', { pressed: true })).toBeInTheDocument()
-  })
 })
 
 // The v3 stage hazard: `next` is NOT idempotent (lib/store.ts#next just calls nextState — no
@@ -325,11 +323,15 @@ describe('the reveal is advanced by the host', () => {
    * second eighteen, four seconds after the server has advanced, and the room would see the
    * verdict twice and that case's standings never.
    */
-  it('opens on the standings when a refresh lands late in the reveal', async () => {
-    spy({ ...base, phase: 'reveal', remainingMs: 1500 })
+  /* A refresh mid-reveal now opens on the VERDICT, whatever `remainingMs` says — the reveal has
+     no clock to be late against, so there is no "already past the beat" to seed from. The cost is
+     one extra press after a projector refresh; the thing it buys is that the beat is only ever
+     moved by the host, which is what makes it impossible to miss. */
+  it('opens on the verdict after a refresh, however long the reveal has been up', async () => {
+    spy({ ...base, phase: 'reveal', remainingMs: 0 })
     render(<TV />)
-    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
-    expect(screen.queryByText(q0.truth)).toBeNull()
+    expect(await screen.findByText(q0.truth)).toBeInTheDocument()
+    expect(screen.queryByText('หมูกรอบ')).toBeNull()
   })
 
   it('advances the room on the second press', async () => {
@@ -444,8 +446,10 @@ describe('the lobby', () => {
     mockFetch({ ...base, phase: 'reading' })
     render(<TV />)
     expect(await screen.findByRole('button', { name: /ถัดไป/ })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /พัก/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /รีเซ็ต/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /เริ่มเกม/ })).toBeNull()
+    // Hold went with the reveal's clock. A control that cannot do anything is worse than none.
+    expect(screen.queryByRole('button', { name: /พัก/ })).toBeNull()
   })
 
   // The cards come from `/api/stats`'s `recent` (join order), never from `leaderboard` — in a

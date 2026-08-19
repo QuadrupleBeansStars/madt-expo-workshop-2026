@@ -5,7 +5,7 @@ import { avatarFor } from './avatars'
 import { scorePlayer } from './scoring'
 import {
   LOBBY_STATE, NEXT_GUARD_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState,
-  shouldExpire, toggleHold, currentActIndex,
+  shouldExpire, currentActIndex,
 } from './game'
 
 export interface RoomStore {
@@ -20,8 +20,6 @@ export interface RoomStore {
   startGame(now: number): void
   /** Advance one phase. The host's only forward control. */
   next(now: number): void
-  /** Toggle the reveal freeze. No-op off a reveal. */
-  hold(now: number): void
   getLeaderboard(): LeaderboardEntry[]
   getRoomWrongPass(): number
   getSplit(questionId: string): { pass: number; reject: number }
@@ -266,15 +264,6 @@ export class MemoryRoomStore implements RoomStore {
     if (this.lastNextAt !== null && now - this.lastNextAt < NEXT_GUARD_MS) return
     this.game = nextState(this.game, now)
     this.lastNextAt = now
-    this.seq++
-    this.persist()
-  }
-
-  hold(now: number): void {
-    const held = toggleHold(this.game)
-    if (held === this.game) return
-    // Restart the reveal clock on unhold so the room still gets a full beat after the host talks.
-    this.game = held.holding ? held : { ...held, phaseStartedAt: now }
     this.seq++
     this.persist()
   }

@@ -20,15 +20,16 @@ export async function POST(req: Request) {
   const now = Date.now()
   const store = getStore()
   if (action === 'start') store.startGame(now)
-  // One forward control for every phase. `hold` freezes a reveal and can never skip anything —
+  // One forward control for every phase. `hold` is GONE: it existed only to freeze the reveal's
+  // auto-advance, and the reveal is untimed now — every screen that is not reading or question
+  // waits for a press, so there is no clock left to fight.
   // cutting a beat short and skipping the teaching are different acts, and the host must not be
   // able to do the second by accident on a laggy projector.
   else if (action === 'next') store.next(now)
-  else if (action === 'hold') store.hold(now)
   // Token validation only — the projector's login gate calls this to find out whether a typed
   // token is the right one. It must never touch room state: a host authenticating mid-reveal
   // would otherwise freeze the room's clock as a side effect of logging in.
   else if (action === 'ping') { /* the token check above is the whole point */ }
-  else return NextResponse.json({ error: 'action must be "start", "next", "hold" or "ping"' }, { status: 400 })
+  else return NextResponse.json({ error: 'action must be "start", "next" or "ping"' }, { status: 400 })
   return NextResponse.json({ ok: true })
 }

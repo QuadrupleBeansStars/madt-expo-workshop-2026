@@ -224,16 +224,18 @@ describe('store game state', () => {
   // Unlike v2 — where only the host's `nextRound` moved a room past `reveal` — v3's reveal
   // AUTO-ADVANCES after REVEAL_MS. `tick` is the only thing that runs on every `/api/state` poll,
   // so it has to drive that clock too, not just the question timeout.
-  it('tick also auto-advances a reveal once REVEAL_MS has elapsed, and not before', () => {
+  /* The reveal used to auto-advance after REVEAL_MS. It does not any more — it is a host press,
+     like the rules screen, so a host explaining a case cannot be cut off mid-sentence by a clock.
+     Asserted with a tick an hour later, which is the shape that catches a clock being restored. */
+  it('never ticks a reveal forward — only a host press leaves it', () => {
     const s = new MemoryRoomStore()
-    s.join('Alice', 0)
-    startToQuestion(s, 1000) // past rules and reading: the question is open at 1000
-    s.tick(1000 + QUESTION_MS + 1) // -> reveal
-    const revealStartedAt = s.getGameState().phaseStartedAt
-    expect(s.tick(revealStartedAt + 1)).toBe(false)    // reveal just started
+    s.join('A', 0)
+    startToQuestion(s, 1000)
+    s.next(1000 + QUESTION_MS + NEXT_GUARD_MS)
     expect(s.getGameState().phase).toBe('reveal')
-    expect(s.tick(revealStartedAt + REVEAL_MS + 1)).toBe(true)
-    expect(s.getGameState().phase).toBe('reading')   // reading beat for the next question — 3 per act, not actcard yet
+
+    expect(s.tick(1000 + 60 * 60 * 1000)).toBe(false)
+    expect(s.getGameState().phase).toBe('reveal')
   })
 
   it('next is a no-op in the lobby — startGame is the only way out', () => {
@@ -650,49 +652,6 @@ describe('the leaderboard', () => {
   })
 })
 
-describe('hold', () => {
-  it('is a no-op outside reveal, so it can never itself change the phase', () => {
-    const { store } = roomAt(0) // phase is 'question'
-    const before = store.getSeq()
-    store.hold(T0)
-    expect(store.getGameState().phase).toBe('question')
-    expect(store.getGameState().holding).toBe(false)
-    expect(store.getSeq()).toBe(before) // a true no-op does not persist either
-  })
-
-  it('freezes the reveal and does not change the phase', () => {
-    const { store } = roomAt(0)
-    store.next(T0)
-    expect(store.getGameState().phase).toBe('reveal')
-    store.hold(T0)
-    expect(store.getGameState().holding).toBe(true)
-    store.tick(T0 + 60_000)
-    expect(store.getGameState().phase).toBe('reveal')
-    store.hold(T0)
-    store.tick(T0 + 60_000)
-    expect(store.getGameState().phase).not.toBe('reveal')
-  })
-
-  // Unholding at T0 (the reveal's own phaseStartedAt) makes the clock-restart a no-op at that
-  // instant — `tick(T0 + 60_000)` would expire the reveal whether or not `phaseStartedAt` was
-  // actually reset. Unholding at a LATER instant, and checking both sides of the new boundary
-  // (REVEAL_MS before/after that later instant, not T0), is what actually distinguishes "restarts
-  // the clock" from "leaves it running from the original phaseStartedAt".
-  it('restarts the reveal clock from the moment of unhold, not from the original phaseStartedAt', () => {
-    const { store } = roomAt(0)
-    store.next(T0)
-    expect(store.getGameState().phase).toBe('reveal')
-    store.hold(T0)
-    expect(store.getGameState().holding).toBe(true)
-
-    store.hold(T0 + 30_000) // unhold, clock restarts here
-    expect(store.getGameState().holding).toBe(false)
-    expect(store.tick(T0 + 30_000 + REVEAL_MS - 1)).toBe(false) // not yet
-    expect(store.getGameState().phase).toBe('reveal')
-    expect(store.tick(T0 + 30_000 + REVEAL_MS + 1)).toBe(true)  // now
-    expect(store.getGameState().phase).not.toBe('reveal')
-  })
-})
 
 /*
  * The rules screen is untimed and host-advanced, which makes it the LONGEST window in the game
