@@ -133,14 +133,19 @@ describe('the projector', () => {
     expect(screen.getByText(/จากทั้งหมด 40 คำตอบ/)).toBeInTheDocument()
   })
 
-  // CRITICAL 1 (spec §5a/§2): the tally is the screen the host delivers the workshop's whole
-  // closing sentence over — the number alone is not enough. `wrongPass` (12) is substituted into
-  // the framed line as one text node, so this regex (not an exact match on '12') is what proves
-  // the sentence itself renders without colliding with the bare-number assertion above.
-  it('carries the framed closing-sentence line, with the room wrongPass count substituted in', async () => {
+  /* The closing sentence now RESTATES THE BAR instead of carrying a second statistic. It used to
+     count `wrongPass` across the room — so the last screen of the day held a rate above and an
+     unrelated count below, and at a hundred players that count ran into the hundreds and meant
+     nothing to anyone. 6 wrong of 40 is 15%, which is one in seven.
+
+     Asserted through the ratio rather than the literal string, so the sentence stays tied to the
+     number the bar is drawing: change the fixture and this fails until they agree again. */
+  it('closes on the bar’s own number, said at the scale of one desk', async () => {
     mockFetch({ ...base, phase: 'tally', questionId: null })
     render(<TV />)
-    expect(await screen.findByText(/ถ้านี่เป็นงานจริง.*ข้อมูลผิด 12 ชิ้น/)).toBeInTheDocument()
+    const oneIn = Math.round(100 / 15)
+    expect(await screen.findByText(new RegExp(`ถ้านี่เป็นงานจริง.*ทุก ${oneIn} ชิ้น`))).toBeInTheDocument()
+    expect(screen.queryByText(/ชิ้นที่ถูกส่งออกไปในชื่อของเรา/)).toBeNull()
   })
 
   it('shows the podium at the end', async () => {

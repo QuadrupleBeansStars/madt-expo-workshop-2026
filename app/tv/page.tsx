@@ -855,7 +855,6 @@ function Stage({
       children: (
         <Tally
           accuracy={stats?.roomAccuracy ?? { correct: 0, wrong: 0 }}
-          wrongPass={stats?.roomWrongPass ?? 0}
           closing={CLOSING_LINES}
         />
       ),

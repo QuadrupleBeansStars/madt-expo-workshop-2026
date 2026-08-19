@@ -17,16 +17,9 @@ const TALLY_COUNT_MS = 2000
  * `prefers-reduced-motion` — that check has to be in JS, because no CSS rule can reach a value
  * React is re-rendering.
  *
- * `wrongPass` renders alone in its own element — no unit, no label sharing the node — so it can be
- * asserted on its own (`screen.findByText('12')`); the context line naming the total number of
- * decisions the room made is a separate paragraph underneath it.
  *
  * Spec §2/§5a: this is the screen the host delivers the workshop's closing sentence over, and that
  * sentence has to be ON screen, not just in the host's head — the framed line is it, with
- * `wrongPass` substituted for N. It is ONE text node (a template string, not a separate
- * `{wrongPass}` child) so it never collides with the bare-number assertion above: a second element
- * whose own exact text is `12` would make `findByText('12')` ambiguous. The framed line carries the
- * FINAL value, never the climbing one, for exactly that reason.
  *
  * THE TEAM'S CLOSING REMARK (`CLOSING_LINES`, content/questions.ts) SHARES THAT FRAME. It is the
  * last thing said in the workshop and it was exported with nothing rendering it. It goes inside
@@ -35,18 +28,29 @@ const TALLY_COUNT_MS = 2000
  * actually the conclusion of. A rule separates the room's own number from what to do about it.
  */
 export function Tally({
-  accuracy, wrongPass, closing,
+  accuracy, closing,
 }: {
   /** Every answer the room actually gave, split by whether it was right. */
   accuracy: { correct: number; wrong: number }
-  /** Approvals of something false — the narrower, sharper number the closing line names. */
-  wrongPass: number
   /** content/questions.ts's `CLOSING_LINES`. Rendered in order, each on its own line. */
   closing?: readonly string[]
 }) {
   const answered = accuracy.correct + accuracy.wrong
   const wrongPct = answered > 0 ? Math.round((accuracy.wrong / answered) * 100) : 0
   const shown = useCountUp(wrongPct, TALLY_COUNT_MS)
+
+  /* Said at the scale of one desk, not one room. A rate is a fact about a hundred people; "one in
+     five that passed your desk" is the same fact about you, and this is the screen where it has to
+     land on a person rather than on a crowd.
+     The bands exist because "ทุก 1 ชิ้น" and "ทุก 100 ชิ้น" are both true sentences and neither is
+     a useful one — at the extremes the ratio stops being the honest way to say it. */
+  const oneIn = wrongPct > 0 ? Math.round(100 / wrongPct) : 0
+  const atWorkLine =
+    wrongPct === 0
+      ? 'ถ้านี่เป็นงานจริง — ห้องนี้ไม่ปล่อยข้อมูลผิดออกไปสักชิ้น'
+      : wrongPct >= 50
+        ? 'ถ้านี่เป็นงานจริง — มากกว่าครึ่งของสิ่งที่ผ่านมือเรา มีข้อมูลผิดอยู่ข้างใน'
+        : `ถ้านี่เป็นงานจริง — ทุก ${oneIn} ชิ้นที่ผ่านมือเรา จะมี 1 ชิ้นที่ผิดหลุดออกไป`
   return (
     /* Centred in the full stage and scaled up into it (spec §8). v3 sized this for the top ~45% of
        the screen and left the bottom half black, which held the type smaller than it needed to be
@@ -112,9 +116,14 @@ export function Tally({
           background: 'rgba(255, 215, 0, 0.08)',
         }}
       >
-        <p style={{ color: '#ffe9a8', fontSize: '3.4vh', lineHeight: 1.35 }}>
-          {`ถ้านี่เป็นงานจริง — คือข้อมูลผิด ${wrongPass} ชิ้นที่ถูกส่งออกไปในชื่อของเรา`}
-        </p>
+        {/* THE SAME NUMBER AS THE BAR, said as a person experiences it.
+            This used to read "คือข้อมูลผิด N ชิ้นที่ถูกส่งออกไปในชื่อของเรา", counting `wrongPass`
+            across the whole room — so the closing screen carried TWO numbers measuring different
+            things: a rate above and a count below, and at a hundred players the count ran into the
+            hundreds and meant nothing to anyone. "One in five of the things that passed your desk"
+            is the same fact at the scale a person actually works at, and it is the bar's own
+            number restated rather than a second statistic to reconcile. */}
+        <p style={{ color: '#ffe9a8', fontSize: '3.4vh', lineHeight: 1.35 }}>{atWorkLine}</p>
         {closing && closing.length > 0 && (
           <>
             <hr style={{ border: 0, borderTop: '0.25vh solid rgba(255,215,0,0.4)', margin: '1.4vh 0' }} />
