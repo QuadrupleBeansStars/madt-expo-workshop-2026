@@ -671,7 +671,7 @@ function HostControls({
  * the document-height metric cannot see a clipped element at all.
  */
 function StageFrame({
-  plate, tokenError, hostControls, status, statusCentre, statusRight, foot, children,
+  plate, tokenError, hostControls, hudCentre, status, statusCentre, statusRight, foot, children,
 }: {
   /** The HUD's left slot: `CASE 04 / 09`, in gold pixel type. Latin and numerals ONLY — Press
    *  Start 2P carries no Thai glyphs at all. This IS the plate now: the approved artifact's HUD
@@ -683,6 +683,8 @@ function StageFrame({
   hostControls: React.ReactNode
   status?: React.ReactNode
   /** The bottom band's centre — `reading`'s ten dots. */
+  /** Top-centre of the HUD. Yields to the bad-token message, which needs the same slot. */
+  hudCentre?: React.ReactNode
   statusCentre?: React.ReactNode
   /** The bottom band's right — `question`'s answered counter. */
   statusRight?: React.ReactNode
@@ -710,7 +712,7 @@ function StageFrame({
             ❌ รหัสผู้ดำเนินรายการไม่ถูกต้อง
           </p>
         ) : (
-          <span aria-hidden="true" />
+          <div className="flex items-center justify-center">{hudCentre}</div>
         )}
         <div className="flex items-center gap-3">{hostControls}</div>
       </div>
@@ -800,6 +802,7 @@ function Stage({
          which was true of the 1vh dot it was rejected against and is not true of the 2.6vh dot the
          approved artifact draws. At ten they also stop lying about the length of the beat: four
          dots over ten seconds sit fully lit for the first six of them. */
+      hudCentre: <HudClock remainingMs={state.remainingMs} />,
       statusCentre: reading ? <DotCountdown remainingMs={state.remainingMs} /> : null,
       /* THE CLOCK IS A CYAN BAR ALONG THE VERY BOTTOM EDGE (the artifact's `.tbar`), the full width
          of the screen — not a framed badge in the top-left corner. It is the one affordance that
@@ -1405,6 +1408,32 @@ function Lobby({
  * rejected once as "a row of specks", which was true of the dot it was rejected against and is not
  * true of the 2.6vh dot the approved artifact draws.
  */
+/**
+ * THE CLOCK, top centre — the one number the whole room is acting on, in the one place every eye
+ * already returns to between the question and the answer.
+ *
+ * Seconds, not a bar: a bar says "some time left" and a numeral says "seven", and a room of a
+ * hundred deciding together needs the second one. The bar stays along the bottom as the ambient
+ * read; this is the one you look up at.
+ *
+ * Turns pink under four seconds. That threshold is the point where the advice changes from "think"
+ * to "commit", and it should be legible as a colour before it is legible as a number.
+ */
+function HudClock({ remainingMs }: { remainingMs: number }) {
+  const secs = Math.max(0, Math.ceil(remainingMs / 1000))
+  const urgent = secs <= 3
+  return (
+    <span
+      className="det-term flex items-baseline gap-[1vh] tabular-nums"
+      style={{ fontSize: '6.4vh', color: urgent ? 'var(--det-pink)' : 'var(--det-gold)', lineHeight: 1 }}
+      aria-label={`เหลือเวลา ${secs} วินาที`}
+    >
+      <span aria-hidden="true" style={{ fontSize: '4vh' }}>⏱</span>
+      {secs}
+    </span>
+  )
+}
+
 function DotCountdown({ remainingMs }: { remainingMs: number }) {
   const DOTS = 10
   const lit = Math.max(0, Math.min(DOTS, Math.ceil(remainingMs / 1000)))
