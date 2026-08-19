@@ -15,7 +15,7 @@ import { t } from '@/lib/i18n'
 // on a 1366x768 projector is checked by `npm run check:projector` (a real browser) and nowhere else.
 
 const q0 = QUESTIONS_IN_ORDER[0]
-const stats = { leaderboard: [{ playerId: 'a', codename: 'หมูกรอบ', avatar: '🕵️', score: 300, wrongPass: 0, rank: 1 }], recent: [{ codename: 'หมูกรอบ', avatar: '🕵️' }], split: { pass: 7, reject: 3 }, roomWrongPass: 12, playerCount: 10 }
+const stats = { leaderboard: [{ playerId: 'a', codename: 'หมูกรอบ', avatar: '🕵️', score: 300, wrongPass: 0, rank: 1 }], recent: [{ codename: 'หมูกรอบ', avatar: '🕵️' }], split: { pass: 7, reject: 3 }, roomWrongPass: 12, roomAccuracy: { correct: 34, wrong: 6 }, playerCount: 10 }
 
 function mockFetch(state: Record<string, unknown>) {
   vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
@@ -121,10 +121,16 @@ describe('the projector', () => {
   // toward, and a number already sitting there when the screen appears has been read and dismissed
   // before the host has drawn breath. The timeout is raised past that climb deliberately: at
   // findByText's 1s default this would go red for the feature working.
-  it('shows the room tally as one number', async () => {
+  /* The tally is the room's MISS RATE now, not a raw count — the same green/pink bar the reveal
+     has shown nine times, over the whole game. 6 wrong of 40 answered is 15%.
+     The proportion comes from answers actually given (`roomAccuracy`), never from
+     playerCount x QUESTION_COUNT: someone who ran out of time is not someone who was wrong, and
+     the fixture's 40 deliberately differs from 10 x 9 so that substitution cannot pass. */
+  it('shows the room miss rate as a percentage, over answers actually given', async () => {
     mockFetch({ ...base, phase: 'tally', questionId: null })
     render(<TV />)
-    expect(await screen.findByText('12', {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(await screen.findByText('15%', {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(screen.getByText(/จากทั้งหมด 40 คำตอบ/)).toBeInTheDocument()
   })
 
   // CRITICAL 1 (spec §5a/§2): the tally is the screen the host delivers the workshop's whole

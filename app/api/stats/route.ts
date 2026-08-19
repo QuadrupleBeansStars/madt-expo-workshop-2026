@@ -39,6 +39,7 @@ export async function GET() {
       .map(({ codename, avatar }) => ({ codename, avatar })),
     split: q ? store.getSplit(q.id) : null,
     roomWrongPass: store.getRoomWrongPass(),
+    roomAccuracy: store.getRoomAccuracy(),
     playerCount: store.getPlayers().filter((p) => !p.spectator).length,
   })
 }

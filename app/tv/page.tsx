@@ -30,6 +30,7 @@ type RoomStats = {
   recent: { codename: string; avatar: string }[]
   split: { pass: number; reject: number } | null
   roomWrongPass: number
+  roomAccuracy: { correct: number; wrong: number }
   playerCount: number
 }
 
@@ -861,8 +862,8 @@ function Stage({
       status: `จบครบทั้ง ${QUESTION_COUNT} คดี`,
       children: (
         <Tally
+          accuracy={stats?.roomAccuracy ?? { correct: 0, wrong: 0 }}
           wrongPass={stats?.roomWrongPass ?? 0}
-          decisions={(stats?.playerCount ?? 0) * QUESTION_COUNT}
           closing={CLOSING_LINES}
         />
       ),

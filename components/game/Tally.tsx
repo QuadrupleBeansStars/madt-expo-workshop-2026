@@ -35,14 +35,18 @@ const TALLY_COUNT_MS = 2000
  * actually the conclusion of. A rule separates the room's own number from what to do about it.
  */
 export function Tally({
-  wrongPass, decisions, closing,
+  accuracy, wrongPass, closing,
 }: {
+  /** Every answer the room actually gave, split by whether it was right. */
+  accuracy: { correct: number; wrong: number }
+  /** Approvals of something false — the narrower, sharper number the closing line names. */
   wrongPass: number
-  decisions: number
   /** content/questions.ts's `CLOSING_LINES`. Rendered in order, each on its own line. */
   closing?: readonly string[]
 }) {
-  const shown = useCountUp(wrongPass, TALLY_COUNT_MS)
+  const answered = accuracy.correct + accuracy.wrong
+  const wrongPct = answered > 0 ? Math.round((accuracy.wrong / answered) * 100) : 0
+  const shown = useCountUp(wrongPct, TALLY_COUNT_MS)
   return (
     /* Centred in the full stage and scaled up into it (spec §8). v3 sized this for the top ~45% of
        the screen and left the bottom half black, which held the type smaller than it needed to be
@@ -60,14 +64,43 @@ export function Tally({
 
       <div
         className="det-term tabular-nums"
-        style={{ fontSize: '24vh', lineHeight: 0.95, color: 'var(--det-pink)' }}
+        style={{ fontSize: '22vh', lineHeight: 0.95, color: 'var(--det-pink)' }}
       >
-        {shown}
+        {shown}%
       </div>
 
-      <p style={{ fontSize: '3.6vh', color: '#8b95b5' }}>ครั้งที่ทั้งห้องกด &quot;ผ่าน&quot; ให้ข้อมูลผิด</p>
+      <p style={{ fontSize: '3.6vh', color: '#8b95b5' }}>ของคำตอบทั้งห้อง คือคำตอบที่ผิด</p>
+
+      {/* THE SAME BAR THE REVEAL USES, over the whole game rather than one case. Nine reveals have
+          taught the room to read this shape — green is what it got right, pink is what it did not —
+          so the closing figure lands as the sum of nine bars it has already seen, rather than as a
+          new kind of chart on the last screen of the day.
+
+          Proportions come from answers actually given, never from playerCount x QUESTION_COUNT: a
+          player who ran out of time is not a player who was wrong, and at an eight-second window
+          that difference is large enough to change the number the whole workshop walks toward. */}
+      <div
+        className="flex w-full max-w-5xl overflow-hidden"
+        style={{ height: '7vh', borderRadius: '0.6vh', border: '0.4vh solid rgba(255,255,255,0.3)' }}
+        role="img"
+        aria-label={`ตอบผิด ${wrongPct}% จาก ${answered} คำตอบ`}
+      >
+        <div
+          className="flex items-center justify-center"
+          style={{ width: `${100 - wrongPct}%`, background: 'var(--det-green)', color: '#04120a', fontSize: '3.4vh' }}
+        >
+          {100 - wrongPct >= 12 ? `ถูก ${100 - wrongPct}%` : null}
+        </div>
+        <div
+          className="flex items-center justify-center"
+          style={{ width: `${wrongPct}%`, background: 'var(--det-pink)', color: '#fff', fontSize: '3.4vh' }}
+        >
+          {wrongPct >= 12 ? `ผิด ${wrongPct}%` : null}
+        </div>
+      </div>
+
       <p style={{ color: 'var(--det-cyan)', fontSize: '3.1vh' }}>
-        จากทั้งหมด {decisions} การตัดสินใจทั่วห้อง
+        จากทั้งหมด {answered} คำตอบทั่วห้อง
       </p>
 
       <div

@@ -22,6 +22,8 @@ export interface RoomStore {
   next(now: number): void
   getLeaderboard(): LeaderboardEntry[]
   getRoomWrongPass(): number
+  /** Every answer the room recorded, split by whether it was right. Not per question. */
+  getRoomAccuracy(): { correct: number; wrong: number }
   getSplit(questionId: string): { pass: number; reject: number }
   getPublicState(now: number, playerId?: string): PublicGameState
 }
@@ -310,6 +312,26 @@ export class MemoryRoomStore implements RoomStore {
      * than 0 — see `getPublicState` below.
      */
     return rows.map((r, i) => ({ ...r, rank: i + 1 }))
+  }
+
+  /**
+   * The room's overall miss rate, over every answer actually recorded.
+   *
+   * NOT `wrongPass`, which counts only one KIND of mistake — approving something false — and not
+   * `playerCount * QUESTION_COUNT`, which counts answers nobody gave. A player who never tapped is
+   * not a player who got it wrong, and at an eight-second window the difference is large enough to
+   * change the closing number the whole workshop walks toward.
+   */
+  getRoomAccuracy(): { correct: number; wrong: number } {
+    let correct = 0
+    let wrong = 0
+    for (const a of this.answers.values()) {
+      const q = QUESTIONS_IN_ORDER.find((x) => x.id === a.questionId)
+      if (!q) continue
+      if (a.verdict === q.verdict) correct++
+      else wrong++
+    }
+    return { correct, wrong }
   }
 
   getRoomWrongPass(): number {

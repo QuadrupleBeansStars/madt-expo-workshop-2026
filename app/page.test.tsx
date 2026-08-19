@@ -472,3 +472,40 @@ describe('the case folder the phone is', () => {
     expect((await screen.findByRole('button', { name: /ผ่าน/ })).className).not.toContain('is-locked')
   })
 })
+
+/*
+ * THE STREAK, which the game scored from v3 and never showed. A player could build a run worth
+ * +100 a question with no way to know the run existed — the rules screen promised a mechanic the
+ * phone never mentioned again. Both halves are asserted: the run standing, and the run broken.
+ */
+describe('the streak on the reveal', () => {
+  const onReveal = (you: Record<string, unknown>) => vi.stubGlobal('fetch', vi.fn(async () => new Response(
+    JSON.stringify(state({
+      phase: 'reveal', questionId: QUESTIONS_IN_ORDER[0].id, youAnswered: true,
+      you: {
+        codename: 'เป็ดทอง', avatar: '🕵️', spectator: false, rank: 2, wrongPass: 0,
+        score: 150, ...you,
+      },
+    })),
+    { headers: { 'content-type': 'application/json' } },
+  )))
+
+  it('names a run once the bonus is actually being paid, and not before', async () => {
+    onReveal({ lastCorrect: true, lastPoints: 150, streak: 2 })
+    render(<Page />)
+    expect(await screen.findByText(/ถูกติดกัน 2 ข้อ/)).toBeInTheDocument()
+  })
+
+  it('says nothing at a streak of one — streakBonus pays nothing there', async () => {
+    onReveal({ lastCorrect: true, lastPoints: 100, streak: 1 })
+    render(<Page />)
+    expect(await screen.findByText('+100')).toBeInTheDocument()
+    expect(screen.queryByText(/ถูกติดกัน/)).toBeNull()
+  })
+
+  it('tells a player their run just ended, which is the half that teaches the rule', async () => {
+    onReveal({ lastCorrect: false, lastPoints: 0, streak: 0 })
+    render(<Page />)
+    expect(await screen.findByText(/สตรีคขาด/)).toBeInTheDocument()
+  })
+})

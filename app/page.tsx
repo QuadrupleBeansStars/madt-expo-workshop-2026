@@ -444,6 +444,11 @@ function RevealSheet({ you }: { you?: PublicGameState['you'] }) {
   const gap = you?.gapToNext
   const roomWrongPct = you?.roomWrongPct
   const total = you?.score ?? 0
+  const streak = you?.streak ?? 0
+  /* `streak` is the run STANDING AFTER this question, so a wrong answer has already zeroed it.
+     "You had one" is not on the wire — but a player on the reveal of a question they got wrong,
+     whose streak now reads 0, is exactly the player who needs telling. */
+  const brokeStreak = streak === 0 && correct !== null
 
   const mark = correct === null ? '–' : correct ? '✓' : '✗'
   const ink = correct === null ? '#7a6a52' : correct ? '#1c7a2e' : '#b3253f'
@@ -460,6 +465,28 @@ function RevealSheet({ you }: { you?: PublicGameState['you'] }) {
       {correct === null
         ? <p className="det-fq">{t('timesUp', 'th')}</p>
         : <p className="det-fpts">+{you?.lastPoints ?? 0}</p>}
+
+      {/*
+        * THE STREAK, which the game has been scoring since v3 and had never once shown. A player
+        * could build a run worth +100 a question and had no way to know the run existed, let
+        * alone that a miss had just ended it — the rules screen promised a mechanic the phone
+        * never mentioned again.
+        *
+        * Shown only from two, because that is where the bonus starts (`streakBonus` returns 0 for
+        * a lone correct answer): announcing "ถูกติดกัน 1 ข้อ" would promise a bonus that is not
+        * being paid. And shown BROKEN too — a run that just ended is the half a player needs to
+        * see, and it is the half that teaches what the rules screen means by ผิดหรือไม่ทัน.
+        */}
+      {correct === true && streak >= 2 && (
+        <p className="det-fstreak" style={{ color: '#8a6a00' }}>
+          🔥 ถูกติดกัน {streak} ข้อ
+        </p>
+      )}
+      {correct !== true && brokeStreak && (
+        <p className="det-fstreak" style={{ color: '#b3253f' }}>
+          สตรีคขาด — เริ่มนับใหม่
+        </p>
+      )}
 
       {rank > 0 && (
         <div className="det-frank">
