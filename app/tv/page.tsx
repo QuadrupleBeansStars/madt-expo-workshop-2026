@@ -960,7 +960,14 @@ const chips = [
                 answer exactly as it does on a wrong one (lib/scoring.ts: `if (!a) { streak = 0 }`),
                 and with an eight-second window not answering is going to happen to somebody every
                 round. The rules screen has to state the rule the code actually applies. */}
-            <span>ถูกติดกันยิ่งได้เยอะ <strong style={{ color: '#b32d2d' }}>ผิดหรือไม่ทัน เริ่มนับใหม่</strong></span>
+            {/* CONCRETE, and tied to the chips below it. This read "ถูกติดกันยิ่งได้เยอะ ผิดหรือไม่ทัน
+                เริ่มนับใหม่", which left three things unsaid: how many in a row starts it, what
+                "ได้เยอะ" is worth, and what "นับ" is counting. The chips already answer the second;
+                this line now answers the first and the third and points at them. */}
+            <span>
+              ถูกติดกัน <strong>2 ข้อขึ้นไป</strong> ได้โบนัสเพิ่ม —{' '}
+              <strong style={{ color: '#b32d2d' }}>ตอบผิดหรือไม่ทัน โบนัสหายหมด</strong>
+            </span>
           </li>
           {/* THE SPEED BONUS IS NOW ANNOUNCED. It used to be kept off this screen deliberately, on
               the argument that telling a room faster scores more makes it rush — the opposite of

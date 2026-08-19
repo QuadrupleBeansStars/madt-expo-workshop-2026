@@ -553,7 +553,7 @@ describe('the rules screen', () => {
     render(<TV />)
     expect(await screen.findByText(/จอจะขึ้น/)).toBeInTheDocument()
     expect(screen.getByText(`อ่าน ${READING_MS / 1000} วิ แล้วตัดสินใน ${QUESTION_MS / 1000} วิ`)).toBeInTheDocument()
-    expect(screen.getByText(/ผิดหรือไม่ทัน เริ่มนับใหม่/)).toBeInTheDocument()
+    expect(screen.getByText(/ตอบผิดหรือไม่ทัน โบนัสหายหมด/)).toBeInTheDocument()
 
     // `QUESTION_MS` elapsed = the slowest correct answer, so speedBonus is 0 and each figure is
     // the base times the multiplier alone — which is exactly what a chip promises.
