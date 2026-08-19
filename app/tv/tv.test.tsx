@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 // No global setupFiles registers jest-dom matchers (see vitest.config.ts) — every *.test.tsx in
 // the repo imports this explicitly (app/page.test.tsx, app/layout.test.tsx). The brief's snippet
@@ -297,6 +297,41 @@ describe('the reveal is advanced by the host', () => {
     expect(nextPosts(fetchSpy)).toHaveLength(0)
   })
 
+  /*
+   * A DOUBLE TAP MUST NOT SKIP THEM, which is the same failure in a different disguise: the beat
+   * press used to return before arming the guard, so the button stayed live and no window opened —
+   * and the server's own NEXT_GUARD_MS could not cover it either, because this press posts `ping`,
+   * not `next`. Two taps 200ms apart showed the standings for one frame and then advanced past
+   * them. `fireEvent` twice with nothing awaited between is what a lagging projector produces;
+   * `userEvent` awaits internally and would not reproduce it.
+   */
+  it('swallows a double tap instead of advancing straight past the standings', async () => {
+    const fetchSpy = spy({ ...base, phase: 'reveal' })
+    render(<TV />)
+    await screen.findByText(q0.truth)
+
+    const next = screen.getByRole('button', { name: /ถัดไป/ })
+    fireEvent.click(next)
+    fireEvent.click(next)
+
+    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+    expect(nextPosts(fetchSpy)).toHaveLength(0)
+  })
+
+  /*
+   * A `/tv` REFRESH LATE IN A REVEAL opens on the standings, not back on the verdict. The fallback
+   * is armed from how far into the reveal the room already is (`remainingMs`), not from when this
+   * tab mounted — otherwise a refresh at second ten of a twelve-second reveal would re-arm it for
+   * second eighteen, four seconds after the server has advanced, and the room would see the
+   * verdict twice and that case's standings never.
+   */
+  it('opens on the standings when a refresh lands late in the reveal', async () => {
+    spy({ ...base, phase: 'reveal', remainingMs: 1500 })
+    render(<TV />)
+    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+    expect(screen.queryByText(q0.truth)).toBeNull()
+  })
+
   it('advances the room on the second press', async () => {
     const fetchSpy = spy({ ...base, phase: 'reveal' })
     const user = userEvent.setup()
@@ -306,7 +341,10 @@ describe('the reveal is advanced by the host', () => {
     const next = screen.getByRole('button', { name: /ถัดไป/ })
     await user.click(next)
     await screen.findByText('หมูกรอบ')
-    await user.click(screen.getByRole('button', { name: /ถัดไป|ส่งแล้ว/ }))
+    // The beat press takes the same NEXT_GUARD_MS window a real advance takes — see the double-tap
+    // test above — so the host's second press lands after it, not inside it.
+    await waitFor(() => expect(next).toBeEnabled(), { timeout: 2000 })
+    await user.click(next)
 
     expect(nextPosts(fetchSpy)).toHaveLength(1)
   })

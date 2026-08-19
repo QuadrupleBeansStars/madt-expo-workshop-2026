@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
  * early-return on a null ref anyway. */
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 import type { PublicGameState, Question } from '@/lib/types'
-import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS } from '@/lib/game'
+import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, REVEAL_MS } from '@/lib/game'
 import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
 import { Dossier } from '@/components/game/Dossier'
@@ -351,10 +351,27 @@ export default function TvPage() {
   const [revealBeat, setRevealBeat] = useState<'verdict' | 'standings'>('verdict')
   const revealPhase = state?.phase === 'reveal'
   const revealQuestionId = state?.questionId ?? null
+
+  /* The latest `remainingMs`, read by the effect below WITHOUT being a dependency of it: this
+     number changes on every poll, and a dependency on it would restart the fallback timer once a
+     second and mean it never fired. Declared before that effect on purpose — effects run in
+     declaration order, so this is already current when it reads. */
+  const remainingRef = useRef(0)
+  useEffect(() => { remainingRef.current = state?.remainingMs ?? 0 })
+
   useEffect(() => {
     if (!revealPhase) { setRevealBeat('verdict'); return }
+    /*
+     * SEEDED FROM HOW FAR INTO THE REVEAL THE ROOM ALREADY IS, not from when this tab mounted.
+     * A `/tv` refresh at second ten of a twelve-second reveal would otherwise re-arm the fallback
+     * from the refresh — firing at second eighteen, four seconds after the server has already
+     * advanced — so the room would see the verdict twice and that case's standings never. Past the
+     * fallback point on arrival means the beat has already happened: open on the standings.
+     */
+    const elapsed = Math.max(0, REVEAL_MS - remainingRef.current)
+    if (elapsed >= REVEAL_FALLBACK_MS) { setRevealBeat('standings'); return }
     setRevealBeat('verdict')
-    const id = setTimeout(() => setRevealBeat('standings'), REVEAL_FALLBACK_MS)
+    const id = setTimeout(() => setRevealBeat('standings'), REVEAL_FALLBACK_MS - elapsed)
     return () => clearTimeout(id)
   }, [revealPhase, revealQuestionId])
 
@@ -394,6 +411,16 @@ export default function TvPage() {
      */
     if (revealPhase && revealBeat === 'verdict') {
       setRevealBeat('standings')
+      /*
+       * IT TAKES THE SAME GUARD A REAL ADVANCE TAKES, and that is not tidiness. Returning here
+       * without arming `nextPending` left the button live with no guard window open — and the
+       * server's own `NEXT_GUARD_MS` cannot cover it either, because this press posts `ping`, not
+       * `next`. A host who taps twice in 200ms (this file's own note: "Projectors lag; hosts tap
+       * twice") would flip to the standings and immediately advance past them, which is the exact
+       * symptom this whole change exists to remove.
+       */
+      setNextPending(true)
+      nextTimerRef.current = setTimeout(() => setNextPending(false), NEXT_GUARD_MS)
       void control('ping')
       return
     }
