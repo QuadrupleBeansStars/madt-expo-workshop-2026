@@ -1,77 +1,190 @@
-import type { Difficulty, DetectiveCase, GameState } from './types'
-import { CASES } from '@/content/cases'
+import type { GameState, Question } from './types'
+import { ACTS, QUESTIONS } from '@/content/questions'
 
-/** The rounds in play order (cases sorted by `order`). Round index is an index into this. */
-export const ROUNDS: DetectiveCase[] = [...CASES].sort((a, b) => a.order - b.order)
-export const ROUND_COUNT = ROUNDS.length
-
-/**
- * The thinking window per case.
- *
- * Was 75s/90s, built on "generous, never a race" (spec §4). The 3 Aug run-through overturned
- * that: the room finished the easy cases well inside a minute and then sat watching a clock, so
- * the generous window bought dead air, not thought. The team's number is 45-60s and these are it.
- *
- * Two things make the shorter window safe, and both must stay true:
- *   - `shouldExpire` already flips early once every active player has answered, so a fast room
- *     never waits out the clock anyway. This ceiling only binds on a slow one.
- *   - The host can now end a question by hand (`revealNow`), so a room that visibly needs longer
- *     is a judgement call rather than a constant.
- *
- * `hard`/`expert`/`final` keep the top of the band: those cases carry more evidence to read.
- */
-const DURATION_BY_DIFFICULTY: Record<Difficulty, number> = {
-  easy: 45_000,
-  medium: 50_000,
-  hard: 60_000,
-  expert: 60_000,
-  final: 60_000,
-}
-export function roundDurationMs(difficulty: Difficulty): number {
-  return DURATION_BY_DIFFICULTY[difficulty]
-}
+/** Play order. Everything downstream indexes into THIS, never into QUESTIONS' source order. */
+export const QUESTIONS_IN_ORDER: Question[] = [...QUESTIONS].sort((a, b) => a.order - b.order)
+export const QUESTION_COUNT = QUESTIONS_IN_ORDER.length
+export const QUESTIONS_PER_ACT = QUESTION_COUNT / ACTS.length
+export const ACT_COUNT = ACTS.length
 
 /**
- * The longest any single question can run. Exported because `lib/scoring.ts` scales the speed
- * bonus over it: a target longer than the round would mean the bonus never decays to zero before
- * the question closes, so every answer collects some of it and the tiebreaker stops discriminating.
- * Derived, not written down twice — retuning the durations above must move this with them.
+ * 15s. v2 ran 45-60s windows built for four long option labels and a Case File to read; v3 has one
+ * question line and one duck sentence, and the room finishes in single digits. A window longer
+ * than the reading buys dead air, not thought.
  */
-export const MAX_ROUND_DURATION_MS = Math.max(...Object.values(DURATION_BY_DIFFICULTY))
+export const QUESTION_MS = 15_000
 
-export const LOBBY_STATE: GameState = { phase: 'lobby', roundIndex: 0, phaseStartedAt: 0, phaseDurationMs: 0 }
+/**
+ * The beat before the answer window opens, 10s of it. The room reads the question and the duck's
+ * answer with no button to press.
+ *
+ * This is a PHASE, not a sub-state of `question`, and the reason is that two guarantees fall out of
+ * that for free. `recordAnswer` already refuses anything arriving outside `phase === 'question'`, so
+ * the server rejects an early answer without a line of new code — and to a crafted POST, not just to
+ * a hidden button. And `elapsedMs` is measured from `phaseStartedAt`, so the speed-bonus clock
+ * starts when answering opens. As a sub-state, every player would collect the full bonus because
+ * the clock would have started ten seconds before anyone could act.
+ *
+ * 10s, up from v3.1's 5s. Five seconds is enough to READ a question line and a duck sentence and
+ * not enough to think about either, which is the only thing this beat exists to buy. The cost is
+ * 9 x 5s = 45s on a ~9 minute run.
+ */
+/**
+ * How many ranked places the standings screen carries. Five was a v3 constraint written when the
+ * rows were small enough that ten would not fit; v3.2's row pitch (8.0vh under a full-size title)
+ * makes ten fit with a 2.4vh gap between every pair, and ten is what the team asked for.
+ *
+ * Lives here, not in the component, because `app/api/stats/route.ts` slices the wire payload to
+ * this number. When the two disagree the screen silently renders whichever is smaller — which is
+ * exactly how v3.2 first shipped a ten-place component fed a five-row payload.
+ */
+export const STANDINGS_PLACES = 10
 
-/** Server-authoritative time left; 0 outside investigate. Never derived on a client. */
+/**
+ * How many lobby name cards go over the wire.
+ *
+ * The board is shelf-packed and holds roughly a hundred at 3.0vh, so this is deliberately a little
+ * above that: the packer stops when it runs out of real gaps, and sending it slightly more than it
+ * can place is what lets it fill the board rather than leaving the last shelf half empty. Sending
+ * FEWER than the board can hold is the failure that matters — v3.2 first shipped a twelve-card
+ * cap against a board built for a hundred, and the room saw twelve names under a counter reading
+ * 100.
+ *
+ * The authoritative room size is `playerCount`, which is never capped.
+ */
+export const LOBBY_CARDS = 120
+
+export const READING_MS = 10_000
+
+/**
+ * 12s, and it AUTO-ADVANCES. This is the beat that makes nine rounds feel rapid instead of nine
+ * separate host presses. The host's escape hatch is `toggleHold`, not a per-reveal button.
+ */
+export const REVEAL_MS = 12_000
+
+/**
+ * Shared between the server's double-tap guard (`lib/store.ts#next`) and the client's
+ * disabled-button feedback (`app/tv/page.tsx`). §3 says `Next` only does something on the three
+ * untimed phases — but v3 shipped a UNIVERSAL `next` (see `nextState` above), because
+ * `scripts/check-projector-fit.mjs` depends on `next` closing a QUESTION early to walk the whole
+ * game without waiting out real 15s/12s clocks, and the phase machine already knows what comes
+ * after any phase. Matching §3 literally was not free, so the spec was amended to describe this
+ * instead (see the spec's §3 changelog note).
+ *
+ * That makes the double-tap hazard real on `question`/`reveal` too, not just the three untimed
+ * phases — two quick presses during a reveal would skip the NEXT question's own answer window
+ * entirely. The SERVER value here is the actual guarantee: a `next` inside this window of the
+ * previous successful advance is a true no-op (see `MemoryRoomStore#next`). The client's disabled
+ * button (same constant, imported rather than duplicated) is only feedback layered on top — it is
+ * per-tab state that a refresh, a second `/tv` tab, or a slow POST silently defeats, and a laptop
+ * screen plus a projector, both open, is a real configuration on the day.
+ */
+export const NEXT_GUARD_MS = 700
+
+export const LOBBY_STATE: GameState = {
+  phase: 'lobby', qIndex: 0, phaseStartedAt: 0, phaseDurationMs: 0, holding: false,
+}
+
+const readingState = (qIndex: number, now: number): GameState =>
+  ({ phase: 'reading', qIndex, phaseStartedAt: now, phaseDurationMs: READING_MS, holding: false })
+
+const questionState = (qIndex: number, now: number): GameState =>
+  ({ phase: 'question', qIndex, phaseStartedAt: now, phaseDurationMs: QUESTION_MS, holding: false })
+
+const untimed = (phase: GameState['phase'], qIndex: number, now: number): GameState =>
+  ({ phase, qIndex, phaseStartedAt: now, phaseDurationMs: 0, holding: false })
+
+/**
+ * The rules screen, entered ONCE — `lobby` is the only phase that leads here, and `next()` cannot
+ * re-enter `lobby` (see `MemoryRoomStore#next`), so "once per game" is a property of the graph
+ * rather than a flag anyone has to remember to clear.
+ *
+ * UNTIMED (`phaseDurationMs: 0`), so `remainingMs` returns 0 and `shouldExpire` returns false for
+ * it without either needing a case: the host presses Next when the room looks done reading.
+ *
+ * `qIndex: 0` because the game has not started; nothing renders a question here (`currentQuestion`
+ * returns null off reading/question/reveal) and `isValidGameState` requires an in-range index.
+ */
+export function rulesState(now: number): GameState {
+  return untimed('rules', 0, now)
+}
+
+/**
+ * The state question 0 opens in — which is now exactly what `rules` advances to, not what leaving
+ * the lobby produces. `startGame` puts the room on `rules` first.
+ */
+export function startedState(now: number): GameState {
+  return readingState(0, now)
+}
+
+/**
+ * The successor of any phase. ONE function, used by both the host's Next and the lazy expiry tick,
+ * so a timed advance and a host advance can never disagree about what comes next.
+ */
+export function nextState(s: GameState, now: number): GameState {
+  switch (s.phase) {
+    case 'lobby':
+      return rulesState(now)
+    // The ONLY edge out of `rules`, and nothing leads back into it: every later question reaches
+    // `reading` from `reveal` or `actcard` below, so the room sees this screen once.
+    case 'rules':
+      return startedState(now)
+    case 'reading':
+      return questionState(s.qIndex, now)
+    case 'question':
+      return { phase: 'reveal', qIndex: s.qIndex, phaseStartedAt: now, phaseDurationMs: REVEAL_MS, holding: false }
+    case 'reveal': {
+      const finished = s.qIndex + 1
+      // An act card closes every third question, including the last one.
+      if (finished % QUESTIONS_PER_ACT === 0) return untimed('actcard', s.qIndex, now)
+      return readingState(finished, now)
+    }
+    case 'actcard': {
+      const next = s.qIndex + 1
+      if (next >= QUESTION_COUNT) return untimed('tally', s.qIndex, now)
+      return readingState(next, now)
+    }
+    case 'tally':
+      return untimed('podium', s.qIndex, now)
+    case 'podium':
+      return s
+  }
+}
+
+/** Host freeze for the reveal auto-advance. A no-op anywhere else — it must never skip a phase. */
+export function toggleHold(s: GameState): GameState {
+  if (s.phase !== 'reveal') return s
+  return { ...s, holding: !s.holding }
+}
+
 export function remainingMs(s: GameState, now: number): number {
-  if (s.phase !== 'investigate') return 0
+  if (s.phase !== 'reading' && s.phase !== 'question' && s.phase !== 'reveal') return 0
+  if (s.holding) return 0
   return Math.max(0, s.phaseStartedAt + s.phaseDurationMs - now)
 }
 
-export function startedState(now: number): GameState {
-  return { phase: 'investigate', roundIndex: 0, phaseStartedAt: now, phaseDurationMs: roundDurationMs(ROUNDS[0].difficulty) }
-}
-
-export function revealState(s: GameState, now: number): GameState {
-  return { phase: 'reveal', roundIndex: s.roundIndex, phaseStartedAt: now, phaseDurationMs: 0 }
-}
-
-export function nextState(s: GameState, now: number): GameState {
-  const next = s.roundIndex + 1
-  if (next >= ROUND_COUNT) {
-    return { phase: 'final', roundIndex: s.roundIndex, phaseStartedAt: now, phaseDurationMs: 0 }
-  }
-  return { phase: 'investigate', roundIndex: next, phaseStartedAt: now, phaseDurationMs: roundDurationMs(ROUNDS[next].difficulty) }
-}
-
-/** Whether the current investigate phase should flip to reveal now. */
 export function shouldExpire(s: GameState, now: number, activeCount: number, answeredCount: number): boolean {
-  if (s.phase !== 'investigate') return false
-  if (now >= s.phaseStartedAt + s.phaseDurationMs) return true
-  if (activeCount > 0 && answeredCount >= activeCount) return true
+  // Reading ends on its clock and only on its clock. There is nothing to answer, so an
+  // "everyone has answered" early exit would fire immediately on a room that answered the
+  // PREVIOUS question — `answeredCount` is not reset between phases.
+  if (s.phase === 'reading') return now >= s.phaseStartedAt + s.phaseDurationMs
+  if (s.phase === 'question') {
+    if (now >= s.phaseStartedAt + s.phaseDurationMs) return true
+    return activeCount > 0 && answeredCount >= activeCount
+  }
+  if (s.phase === 'reveal') {
+    if (s.holding) return false
+    return now >= s.phaseStartedAt + s.phaseDurationMs
+  }
   return false
 }
 
-export function currentCaseId(s: GameState): string | null {
-  if (s.phase === 'investigate' || s.phase === 'reveal') return ROUNDS[s.roundIndex]?.id ?? null
-  return null
+export function currentQuestion(s: GameState): Question | null {
+  if (s.phase !== 'reading' && s.phase !== 'question' && s.phase !== 'reveal') return null
+  return QUESTIONS_IN_ORDER[s.qIndex] ?? null
+}
+
+export function currentActIndex(s: GameState): number | null {
+  if (s.phase !== 'actcard') return null
+  return Math.floor(s.qIndex / QUESTIONS_PER_ACT)
 }

@@ -1,7 +1,14 @@
-export function Duck({ bubble, size = 64 }: { bubble?: string; size?: number }) {
+/**
+ * `size` is any CSS length, not a pixel count — `/tv` sizes the duck in `vh` so it scales with the
+ * projector like everything else on that screen (spec §1). A bare number still works and is still
+ * read as pixels, which is what the phone wants.
+ */
+export function Duck({ bubble, size = 64 }: { bubble?: string; size?: number | string }) {
   return (
     <div className="flex items-start gap-3">
-      <svg viewBox="0 0 64 64" width={size} height={size} className="flex-shrink-0" aria-label="AI duck">
+      {/* Sized through `style`, not the width/height ATTRIBUTES: an SVG presentation attribute
+          takes a plain number of user units, so a `vh` string there is ignored outright. */}
+      <svg viewBox="0 0 64 64" style={{ width: size, height: size }} className="flex-shrink-0" aria-label="AI duck">
         <rect x="24" y="6" width="16" height="8" fill="#5c4a3c" />
         <rect x="20" y="14" width="24" height="3" fill="#5c4a3c" />
         <rect x="22" y="17" width="20" height="18" fill="#ffd23f" />

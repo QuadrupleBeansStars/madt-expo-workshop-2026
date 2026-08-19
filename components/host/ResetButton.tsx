@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 
 /**
  * The host's reset control, armed in two steps.
@@ -21,7 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 export const ARM_WINDOW_MS = 4000
 
 export function ResetButton({
-  endpoint, token, label, armedLabel, ariaLabel, className, onDone,
+  endpoint, token, label, armedLabel, ariaLabel, className, style, onDone,
 }: {
   endpoint: string
   token: string
@@ -31,6 +32,10 @@ export function ResetButton({
   /** Required when `label` is a bare glyph: the accessible name must still be words. */
   ariaLabel?: string
   className?: string
+  /** `.host-reset` (app/globals.css) pins this control at 12px. `/tv` projects to a hundred people
+   *  and needs it on the same `vh` scale as every other host control (spec §1), and that
+   *  stylesheet is out of bounds for this pass — so the caller passes the size in. */
+  style?: CSSProperties
   onDone?: (ok: boolean) => void
 }) {
   const [armed, setArmed] = useState(false)
@@ -72,6 +77,7 @@ export function ResetButton({
       aria-label={ariaLabel ?? undefined}
       title={ariaLabel ?? undefined}
       className={className}
+      style={style}
       onClick={() => void click()}
       onBlur={() => setArmed(false)}
     >

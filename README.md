@@ -4,7 +4,7 @@
 
 | | Workshop | Projector | Phones | Length |
 |---|---|---|---|---|
-| 1 | [**AI Detective**](#ai-detective) — think with AI, not just trust AI | `/tv` | `/` | 5 cases |
+| 1 | [**AI Detective**](#ai-detective) — think with AI, not just trust AI | `/tv` | `/` | 9 questions, 8:03 |
 | 2 | [**The Decision Room**](#the-decision-room) — you are the dataset | `/biz` | `/play` | 15 min |
 
 Shared, and worth reading whichever workshop you are running: [Run it](#run-it) ·
@@ -17,26 +17,53 @@ Shared, and worth reading whichever workshop you are running: [Run it](#run-it) 
 
 > Think with AI, not just trust AI.
 
-A synchronized, **Kahoot-style** quiz about AI hallucination. One **TV** drives the room through 5
-rounds; players follow on their **phones**. Each round opens on a short **storyboard**, then the
-question and the AI "duck's" confident answer beside the **Case File** — the retrieval manifest and
-the documents the AI did (and did not) find. All of that is on the projector; the phone shows the
-question and four answer cards, nothing else. Tap A/B/C/D before the timer runs out. The reveal
-shows the punchline (*"73% of you believed the AI"*) **and the running
-standings**, so there is something to play for in the middle of the game rather than only at the
-end.
+A synchronized, **Kahoot-style** quiz about AI hallucination. One **TV** drives the room through
+**9 questions in 3 acts**; players follow on their **phones**. The duck sends one confident answer
+per question — one line, no storyboard, no evidence panel — and the player's only job is to tap
+**✓ ผ่าน** (let it through) or **✕ ตีกลับ** (send it back) before the 15-second window closes.
 
-Answer windows are **45-60 seconds** (45s easy → 60s for the harder cases), and the host can close
-a question early when the room has visibly finished.
+Every question opens with a **five-second reading beat** first: the question and the duck's answer
+are on the projector in full, and both buttons are on the phone but **locked**. Nobody can answer
+yet — the server refuses an answer outside the answer window, so the beat holds against a crafted
+request and not merely a disabled button — and the speed bonus's clock does not start until it
+ends. It exists so the fastest thumb in the room is not also the person who read the least. The
+projector marks it with a dot countdown, never the timer bar: the bar means *you may answer now*
+and nothing else. The
+reveal shows the room's split (X% ผ่าน / Y% ตีกลับ) **and the running top-5 standings**, so there is
+something to play for in the middle of the game rather than only at the end. Every third question
+closes with an **act card** — the lesson, named once the room has already felt it three times — and
+the ninth question's act card leads into a **room-wide tally**, where the host delivers the
+workshop's closing line: *"เราเชื่อ AI ได้ไม่ถึง 100% — ยังต้องมีคนคอยตรวจ"* (Human-in-the-loop),
+before the podium.
+
+Each question's answer window is a fixed **15 seconds**, after its 5-second reading beat; the
+reveal that follows is **12 seconds and auto-advances on its own** (the host can `Hold` it). Total
+time budget across all nine readings, nine questions, nine reveals, three ~30s act cards, the
+tally, and the podium is **8:03** — see [`docs/questions.md`](docs/questions.md) for how that
+number is built.
+
+**Seven phases**, and the projector wears the same frame for all of them — a HUD band across the
+top (the clock, the phase, the host's controls), the stage, and a case-number status line along the
+bottom:
+
+| Phase | Length | The room |
+|---|---|---|
+| `lobby` | until **Start** | QR code, join URL, names pinning themselves to the board |
+| `reading` | **5s**, on its own clock | Question + the duck's answer on the case file. Buttons locked. |
+| `question` | 15s, or early once everyone has answered | Same scene, timer bar running, answers open |
+| `reveal` | 12s, auto-advancing (`Hold` freezes it) | The verdict stamped on the file, the truth, the room's split, top 5 |
+| `actcard` | untimed, host advances | The lesson, after every third question |
+| `tally` | untimed, host advances | One number: how many times the room let a bad answer through |
+| `podium` | end | Top three |
 
 🧠 **[What each question is doing to the player](docs/question-design.md)** — the design intent
 behind every question in **both** workshops: what we are trying to make a player think, why they
 fall for it, which knob to turn to change it, and what not to break. **Start here if you want to
 argue with a question.**
 
-📖 **[The five cases — what each one teaches](docs/cases.md)** — per-case sources, the point of each
-failure mode, why every wrong answer is wrong, and which evidence is real vs. deliberately invented.
-Read this before facilitating.
+📖 **[The nine questions — what each one teaches](docs/questions.md)** — per-question sources, the
+point of each failure mode, why the answer key is what it is, and the three facilitator-only
+`needsCheck` notes. Read this before facilitating.
 
 ## Run it
 
@@ -54,28 +81,49 @@ ipconfig getifaddr en0               # your IP — players go to http://<that-ip
 
 | URL | Who | What |
 | --- | --- | --- |
-| `http://<ip>:3000` | Players (phones) | Codename → follow the rounds → tap answers |
-| `http://<ip>:3000/tv` | TV / projector | The stage + host controls (**Start**, **Close it**, **Next**) |
-| `http://<ip>:3000/dashboard` | Optional 2nd screen | Stats Wall / Leaderboard — press **L** to switch |
+| `http://<ip>:3000` | Players (phones) | Codename → nine questions → **✓ ผ่าน** / **✕ ตีกลับ** |
+| `http://<ip>:3000/tv` | TV / projector | The stage + host controls (**Start**, **Next**, **Hold**) |
 
 ### Running a session
 
-1. **TV:** open `/tv`, type the `FACILITATOR_TOKEN` into the **Host token** box (top-right).
+1. **TV:** open `/tv`. It opens on a **login screen** — 🔒 EVIDENCE ROOM — with one password
+   field. Type the `FACILITATOR_TOKEN` there and press **เปิดห้อง**; the browser remembers it for
+   that tab, so this is once per laptop, not once per session. Until it is entered the projector
+   shows nothing else, which is the point: the token is no longer a text box sitting on the
+   projector in front of a hundred people for the whole game. It is a **login screen, not a
+   security boundary** — every control route still checks the token server-side on every call, and
+   an unset `FACILITATOR_TOKEN` still means `403`.
 2. **Players:** open `http://<ip>:3000` on their phones and pick a codename — they appear in the
    TV lobby.
-3. Press **Start** on the TV. Each round's answer window is timed (**45s** easy / **50s** medium /
-   **60s** for the three hardest cases); it auto-advances to the reveal when the timer ends **or**
-   everyone has answered.
-4. If the room has clearly finished before the clock does, press **⏭ Close it — reveal now**. It
-   sits under the answered count, which is the number you read to decide. It stops on the reveal
-   and never skips a case — cutting a question short and skipping its explanation are different
-   acts, and the button deliberately cannot do the second.
-5. Press **Next** on the TV to leave each reveal and begin the next round. After round 5, Next
-   shows the final leaderboard.
-6. Latecomers who open the app mid-game **spectate** until you reset for the next session.
+3. Press **Start** on the TV to begin question 1. Each question opens with a **5-second reading
+   beat** — question and answer up, phones locked, a dot countdown on the projector — and then a
+   fixed **15-second** answer window, which advances to the reveal early once every active player
+   has answered. `Next` ends the beat early if the room is clearly ready.
+4. The reveal is **12 seconds and advances on its own** — that auto-advance is what makes nine
+   questions feel rapid instead of nine separate host presses. If the room needs a moment on one
+   reveal (a surprising result, a question from the floor), press **Hold** to freeze it; press it
+   again to release, and the reveal gets a fresh 12 seconds.
+5. **`Next` ends whichever phase is current, immediately** — including mid-question or mid-reveal,
+   not only the three untimed phases (act card, tally, podium). Pressed during a question, it
+   closes the answer window early and moves to that same question's reveal; pressed during a
+   reveal, it skips the rest of the 12-second timer but the room still gets the reveal itself —
+   **`Next` can end a phase early, it can never skip one.** A double-tap (a laggy projector, two
+   quick presses) is guarded on the server, not just by the button's own disabled state, so a
+   second press within the guard window is a true no-op even from a second `/tv` tab or after a
+   refresh. See `docs/superpowers/specs/2026-08-18-ai-detective-v3-design.md` §3 for why the two
+   v2 controls (`revealNow`, `nextRound`) were merged into this one `Next` and what that cost.
+6. Every third question closes on an **act card** instead of a question — the teaching beat,
+   untimed, for the host to talk over (~30s planned per act). Press **Next** to move on.
+7. After question 9's act card comes the **room tally** — one number, untimed: how many times,
+   across the whole room, someone pressed ผ่าน on an answer that should have been rejected.
+   **Deliver the closing Human-in-the-loop line here** —
+   *"เราเชื่อ AI ได้ไม่ถึง 100% — ยังต้องมีคนคอยตรวจ"* — then press **Next** for the podium.
+8. Latecomers who open the app mid-game **spectate** until you reset for the next session.
 
-Total answering time across all five cases is **4m35s**, so budget the session around how long you
-talk over the reveals, not around the clocks.
+Total time across all nine readings, questions and reveals is 9×5s + 9×15s + 9×12s = **4:48**;
+with the three ~30s act cards, the tally, and the podium budgeted in, the whole session runs
+**8:03** end to end — so budget the session around how long you talk over the act cards and the
+tally, not around the 5s/15s/12s clocks.
 
 > The host controls need `FACILITATOR_TOKEN` set in the server environment (`.env.local` is loaded
 > automatically, in production too). Inline alternative:
@@ -156,59 +204,38 @@ day**.
 2. If it fails → run a **phone hotspot** and have the laptop + all phones join that instead. Test
    this too, in advance.
 
-## Editing the cases
+## Editing the questions
 
-All content is in `content/cases.ts` — bilingual (th/en), no code changes needed.
-`npx vitest run content/` validates every case (one correct option, one "AI is correct" option,
-both languages present, real sources cited).
+All content is in `content/questions.ts` — **Thai only** (a deliberate v3 decision; see
+[`docs/questions.md`](docs/questions.md) and `docs/question-design.md` for why), no code changes
+needed. `npx vitest run content/` validates the whole file: exactly 9 questions with `order` 1..9
+unique, exactly 3 acts of 3 questions each, exactly 3 `pass` verdicts at orders 2/5/8, no run of
+three or more consecutive `reject` questions (the anti-guess invariant — see `docs/questions.md`),
+every `highlight` is a real substring of its `duckSays`, and every question carries non-empty
+`truth`/`tell`.
 
-**Content rules:** never fabricate evidence imitating a real outlet. Real cases cite real URLs;
-fictional evidence (NovaBrew) is flagged `fictional: true` and renders a FICTIONAL badge.
+**Content rule:** never fabricate a source that imitates a real outlet, journal, or case number.
+Act 3 satisfies this by construction — a quote pinned on Einstein, a Great Wall length, and a WHO
+step count are all **real misattributions that actually happen in the world**, which teaches harder
+than an invented citation and forges nothing.
 
-**Storyboards.** Each case has an optional `storyboard` of 2-4 frames — an emoji character and one
-short bilingual caption each — shown above the question **on the projector only**. Two rules, both
-deliberate:
+**`needsCheck`** is a facilitator-only note on three questions — declared in the content file, never
+rendered anywhere in the UI. It flags a claim worth having a citation ready for if someone in the
+room pushes back. See [`docs/questions.md`](docs/questions.md) for the three of them and why.
 
-- A board sets up the SITUATION and the DOUBT. It must never name the failure mode; giving away
-  "watch for a fabricated citation" in frame two answers the question the room is there to answer.
-- The phone does **not** render them. The story is what the room reads together off the big screen;
-  the phone is for tapping, and the strip cost ~150px above the answer cards.
+**No storyboards, no Case File, no bilingual text.** v3 removed all three along with v2's five-case
+flow: the duck's one sentence is the whole case, the phone renders nothing during a question but the
+line and two buttons, and there is no evidence panel to fact-check on screen — the checking happens
+in the room's head, not on the projector. If you are looking for `components/game/CaseFile.tsx`,
+`AnswerCards`, or a `storyboard` field, they went with v2; `docs/questions.md` explains what
+replaced them and why.
 
-To swap emoji for real artwork later, drop a file in `public/` and set `art: '/story/x.png'` on the
-panel. No code change — the renderer prefers `art` when present.
-
-**The Case File is on the projector, not the phone.** `components/game/CaseFile.tsx` renders the
-retrieval manifest (every filename with ✓ / ✗) and the found documents, in the right-hand column
-beside the question. Three things about it are load-bearing:
-
-- **The `✗ NOT FOUND` row is the lesson** in cases 1-3 — it is the gap the AI filled by inventing.
-  It sits at the top of the manifest and never shrinks; the documents below give up pixels first.
-- **The source renders as a domain** (`nasa.gov`), not the full `sourceUrl`. A wrapped URL costs
-  ~40px of a budget measured in tens, and nobody reads a path segment off a projector. The full URL
-  is untouched in `content/cases.ts`.
-- **The type scale steps down at three or more documents.** `citation` has four manifest rows and
-  three documents; at one size for all five cases it pushed the host's own button off the screen.
-  `artemis` and `novabrew` stay at the roomy scale.
-
-Editing a case body? Re-run the projector check. The right column is the tightest part of the
-screen and there is no scrollbar on a projector.
-
-**The teaching beat.** Every reveal carries a panel with two lines — `failureMode` (the name of the
-trick, so the room has a handle for it) and `checkNextTime` (**the only thing on the screen meant to
-be useful outside it**). `checkNextTime` is **required** by the schema: a case without one is a quiz
-question with no lesson attached. Two rules:
-
-- Write it as an **instruction**, not a summary. `reveal` says what happened in this case; this says
-  what to do in front of a different question next Tuesday. A test fails if it turns out to be a
-  substring of `reveal`.
-- **Case 5 is the shape test.** The AI is right there, so anything phrased "here is the trick" is
-  nonsense — its lesson is that reflexive suspicion is not a substitute for checking, and a player
-  who learned "distrust the AI" fails it as badly as one who believed everything. That is why the
-  panel heading is the neutral "ข้อนี้ทดสอบอะไร" and not "what fooled you".
-
-The reveal is a **two-column** screen for a measured reason: before the panel existed it had 31px of
-clearance under the host's Next button on `citation` and `novabrew` at 1366×768. Reading sits left,
-the room's payoff (the % fooled and the standings) sits right. It now has 137px.
+Editing a question or an act card? Re-run the projector check
+(`npm run build && FACILITATOR_TOKEN=<token> npm run start:lan &` then
+`FACILITATOR_TOKEN=<token> npm run check:projector`). Longer copy grows the case file, and the case
+file is what the status line along the bottom of the stage is standing on — the check measures that
+line's own bottom edge against the fold on every one of the seven phases, because `/tv` clips
+rather than scrolls and a status line that has fallen off the screen fails silently otherwise.
 
 ---
 
@@ -358,11 +385,12 @@ at a real decision, both languages present, the time budget fits fifteen minutes
 recurring option still beats the flashy one, round 2's ordering matches the survey, and every
 figure quoted in the round 1 copy still matches what the simulator produces.
 
-## Superseded / dead code (safe to delete later)
+## Superseded / dead code
 
-`app/reveal/`, `components/CaseScreen.tsx`, `components/ResultScreen.tsx` are from the v1 free-roam
-flow and are no longer routed to by the Kahoot phone/TV. `/dashboard` remains as an optional
-second-screen stats view.
+AI Detective's v1 free-roam flow (`app/reveal/`, `components/CaseScreen.tsx`,
+`components/ResultScreen.tsx`, `components/Retrieval.tsx`) and v2's five-case content
+(`content/cases.ts`) are gone as of the v3 rebuild — nothing in `app/` or `content/` imports or
+routes to them any more.
 
 `lib/sim.ts` (the staffing simulator) is **not dead** and should not be deleted — see "A note on
 the survey that shipped" above. It is out of the deck because the sample is too small, not because
@@ -375,7 +403,7 @@ npm run dev        # localhost only, for local development
 npm run dev:lan    # binds 0.0.0.0 — for editing code with phones connected
 npm run build      # production build (also bundles fonts)
 npm run start:lan  # production server on 0.0.0.0 — USE THIS ON THE DAY
-npm test           # vitest run — full suite (36 files, 393 tests)
+npm test           # vitest run — full suite (26 files, 360 tests)
 ```
 
 Type-check with `npx tsc --noEmit`. Styling is Tailwind v4 (CSS-first): the theme lives in
@@ -397,17 +425,25 @@ catch it: jsdom performs no layout, so no assertion written against it can measu
 of ten stages once overflowed — putting the lesson and the leaderboard off-screen — with the full
 suite passing and `next build` reporting success.
 
-It also walks **390×844** and reports how far a player must scroll to reach the last vote button.
-That one is a **warning, not a failure** — phones scroll — but an option someone has to hunt for
-inside a 45-second window collects fewer votes than it deserves. Both phones currently reach every
-option without scrolling; AI Detective needed ~420px until the Case File moved to the projector.
+It also walks **390×844** and reports how far a player must scroll to reach the last option. That
+one is a **warning, not a failure** — phones scroll — but an option someone has to hunt for inside a
+game's answer window collects fewer votes than it deserves (Decision Room's window is ~40-45s;
+AI Detective's is a fixed 15s, so it has even less slack). Both phones currently reach every option
+without scrolling.
 
 **It checks the host's controls separately, and that check is not redundant.** `/tv`'s `<main>` is
 `min-h-screen overflow-hidden`, so a stage that grows past the screen is **clipped, not scrolled** —
 `scrollHeight` stays pinned to `clientHeight` and the overflow metric reports a tidy ✓ while the
-bottom of the screen is cut off. Moving the Case File onto the projector cut the host's "close it
-now" button by 36px on `citation` and all 24 combinations still passed. If you add a control below
-the fold-critical content, it is `checkHostControl` that will catch it, not the height comparison.
+bottom of the screen is cut off. The v3 rebuild's projector run found exactly that on AI Detective's
+reveal: the host control bar grows a third row when the facilitator token is mistyped, and at
+1366×768 the grown panel overlapped the reveal's own right-hand column (the split bar + top-5
+standings) — `scrollHeight`
+never changed, because nothing scrolled; two elements just occupied the same rectangle. Fixed by
+scaling down the bar's buttons (`.host-ctrl` in `app/globals.css`), which had also left only ~4px of
+clearance in the normal, no-error state. If you add a control near fold-critical content, it is
+`checkHostControl` — or a rectangle-intersection check like the one that caught this
+(`checkBadTokenState` in `scripts/check-projector-fit.mjs`) — that will catch it, not the height
+comparison.
 
 Known traps, each paid for:
 

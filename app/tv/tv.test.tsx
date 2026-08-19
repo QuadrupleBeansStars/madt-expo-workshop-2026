@@ -1,41 +1,554 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+// No global setupFiles registers jest-dom matchers (see vitest.config.ts) — every *.test.tsx in
+// the repo imports this explicitly (app/page.test.tsx, app/layout.test.tsx). The brief's snippet
+// omits it only because it was written as a standalone illustration.
 import '@testing-library/jest-dom/vitest'
-import TvPage from './page'
-import { ROUNDS } from '@/lib/game'
-import type { PublicGameState } from '@/lib/types'
+import TV from './page'
+import { QUESTIONS_IN_ORDER } from '@/lib/game'
+import { ACTS } from '@/content/questions'
+import { SplitBar } from '@/components/game/SplitBar'
+import { t } from '@/lib/i18n'
 
-function mockFetch(state: Partial<PublicGameState>, stats: unknown = { detectives: 2, finished: 0, caseStats: [], leaderboard: [] }) {
-  const body: PublicGameState = { seq: 1, phase: 'lobby', roundIndex: 0, caseId: null, remainingMs: 0, answeredCount: 0, playerCount: 2, ...state }
-  vi.spyOn(global, 'fetch').mockImplementation(async (url) => {
-    const u = String(url)
-    if (u.includes('/api/state')) return { ok: true, status: 200, json: async () => body } as Response
-    if (u.includes('/api/stats')) return { ok: true, status: 200, json: async () => stats } as Response
-    return { ok: true, status: 200, json: async () => ({ ok: true }) } as Response
-  })
+// jsdom does not lay out. These tests prove the right CONTENT renders per phase; whether it FITS
+// on a 1366x768 projector is checked by `npm run check:projector` (a real browser) and nowhere else.
+
+const q0 = QUESTIONS_IN_ORDER[0]
+const stats = { leaderboard: [{ playerId: 'a', codename: 'หมูกรอบ', avatar: '🕵️', score: 300, wrongPass: 0, rank: 1 }], recent: [{ codename: 'หมูกรอบ', avatar: '🕵️' }], split: { pass: 7, reject: 3 }, roomWrongPass: 12, playerCount: 10 }
+
+function mockFetch(state: Record<string, unknown>) {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
+    JSON.stringify(String(url).includes('/api/stats') ? stats : state),
+    { headers: { 'content-type': 'application/json' } },
+  )))
 }
+const base = { seq: 1, qIndex: 0, questionId: q0.id, actIndex: null, remainingMs: 9000, answeredCount: 7, playerCount: 10, holding: false }
 
-beforeEach(() => { localStorage.clear(); vi.restoreAllMocks() })
+// Task 3 fronts every phase with a login gate (`describe('the token gate', ...)` below). None of
+// the phase suites below are testing the gate — they're testing what renders once a host is past
+// it — so each needs 'aidet.hostToken' already resolvable at mount. A real host unlocks once per
+// tab; reseeding it here keeps that unlock out of every phase assertion's way. This is the one
+// change outside the appended block: it's a `beforeEach`, not a rewrite, and every existing test
+// name below is untouched.
+beforeEach(() => localStorage.setItem('aidet.hostToken', 'dev-local-9f2c'))
 
-describe('TV stage', () => {
-  it('lobby shows the join prompt and a Start control', async () => {
-    mockFetch({ phase: 'lobby' })
-    render(<TvPage />)
-    await waitFor(() => expect(screen.getByText(/join on your phone|เข้าร่วมด้วยมือถือ/i)).toBeInTheDocument())
-    expect(screen.getByRole('button', { name: /start|เริ่มเกม/i })).toBeInTheDocument()
+// The lobby renders <Patrol>, a canvas. jsdom ships no canvas implementation, so every call to
+// `getContext` writes a "Not implemented" block to stderr — a dozen of them per lobby render, which
+// is enough noise to bury a real error message in a full run. Returning null explicitly is exactly
+// what jsdom does anyway (Patrol then draws nothing and starts no loop, which is correct here);
+// this only stops it announcing that. Patrol's own behaviour is tested in components/game with a
+// real stubbed context — see Patrol.test.tsx.
+beforeEach(() => { vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null) })
+afterEach(() => vi.restoreAllMocks())
+
+describe('the projector', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  // SYSTEMATIC AUDIT (final whole-branch review): the wholesale rewrite that replaced this file
+  // (a7f5d8d) dropped BOTH of v2's lobby tests. "lobby prompts for the host token when none is
+  // entered" tested copy v3 deleted on purpose — a permanent labeled host-token field replaced the
+  // empty-state "enter the host token" prompt, so that string no longer exists anywhere to assert.
+  // This one — the join prompt and a Start control — names real, still-shipped v3 behaviour
+  // (`Lobby`'s join-URL text; `HostControls`' Start button, gated on `canStart`) that had nothing
+  // covering it anywhere in the suite. Restored.
+  it('lobby carries an enabled Start and NO printed join address', async () => {
+    mockFetch({ ...base, phase: 'lobby' })
+    render(<TV />)
+    // The address line was cut on purpose: the middle of this screen is the QR and Start, and
+    // dropping it is what let the QR grow to 41% of the screen height. Asserted as an absence so
+    // it cannot creep back in the next time someone "helpfully" adds a fallback.
+    expect(screen.queryByText(/เข้าร่วมด้วยมือถือ/)).toBeNull()
+    // Enabled, not merely present. The assertion is unchanged from v3; what moved is where Start
+    // lives — v3 rendered it in the corner panel on every phase, disabled outside the lobby, and
+    // v3.1 renders it in the middle of the lobby and nowhere else (spec §4).
+    expect(await screen.findByRole('button', { name: /เริ่มเกม/ })).toBeEnabled()
   })
 
-  it('lobby prompts for the host token when none is entered', async () => {
-    mockFetch({ phase: 'lobby' })
-    render(<TvPage />)
-    await waitFor(() => expect(screen.getByText(/enter the host token|ใส่รหัสผู้ดำเนินรายการ/i)).toBeInTheDocument())
+  it('shows the question and the duck line during a question', async () => {
+    mockFetch({ ...base, phase: 'question' })
+    render(<TV />)
+    expect(await screen.findByText(q0.ask)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(q0.highlight.slice(0, 10)))).toBeInTheDocument()
+    expect(screen.getByText(/7/)).toBeInTheDocument() // answered count
   })
 
-  it('investigate shows the question and the answered count', async () => {
-    const r0 = ROUNDS[0]
-    mockFetch({ phase: 'investigate', roundIndex: 0, caseId: r0.id, remainingMs: 40_000, answeredCount: 3, playerCount: 5 })
-    render(<TvPage />)
-    await waitFor(() => expect(screen.getByText(r0.question.th)).toBeInTheDocument())
-    expect(screen.getByText(/3/)).toBeInTheDocument()
+  it('shows the verdict, the truth, the room split and the top five on a reveal', async () => {
+    mockFetch({ ...base, phase: 'reveal' })
+    const { container } = render(<TV />)
+    // The exact bare-word match on the verdict stamp stays unique even though SplitBar's own
+    // labels also contain ผ่าน/ตีกลับ: SplitBar's text is `✓ ผ่าน 7` / `✕ ตีกลับ 3`, never the bare
+    // two-word string alone (see SplitBar's own doc comment on why).
+    expect(await screen.findByText(q0.verdict === 'reject' ? 'ตีกลับ' : 'ผ่าน')).toBeInTheDocument()
+    expect(screen.getByText(q0.truth)).toBeInTheDocument()
+    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+
+    // IMPORTANT 3 (final whole-branch review): this test's own title has always claimed "the room
+    // split", but SplitBar's percentage arithmetic (:16-17) was asserted nowhere in the repo.
+    // Fixture is pass:7, reject:3 of 10 -> 70%/30%. Labels first, then the actual fill widths.
+    expect(screen.getByText('✓ ผ่าน 7')).toBeInTheDocument()
+    expect(screen.getByText('✕ ตีกลับ 3')).toBeInTheDocument()
+    const [passFill, rejectFill] = container.getElementsByClassName('bar-grow')
+    expect(passFill).toHaveStyle({ width: '70%' })
+    expect(rejectFill).toHaveStyle({ width: '30%' })
+  })
+
+  it('names the trick on an act card and carries the at-work line', async () => {
+    mockFetch({ ...base, phase: 'actcard', actIndex: 0, questionId: null })
+    render(<TV />)
+    expect(await screen.findByText(ACTS[0].nameTh)).toBeInTheDocument()
+    expect(screen.getByText(ACTS[0].nameEn)).toBeInTheDocument()
+    expect(screen.getByText(ACTS[0].atWork)).toBeInTheDocument()
+  })
+
+  // The number COUNTS UP over ~2s now (spec §9) — it is the one number the whole workshop walks
+  // toward, and a number already sitting there when the screen appears has been read and dismissed
+  // before the host has drawn breath. The timeout is raised past that climb deliberately: at
+  // findByText's 1s default this would go red for the feature working.
+  it('shows the room tally as one number', async () => {
+    mockFetch({ ...base, phase: 'tally', questionId: null })
+    render(<TV />)
+    expect(await screen.findByText('12', {}, { timeout: 4000 })).toBeInTheDocument()
+  })
+
+  // CRITICAL 1 (spec §5a/§2): the tally is the screen the host delivers the workshop's whole
+  // closing sentence over — the number alone is not enough. `wrongPass` (12) is substituted into
+  // the framed line as one text node, so this regex (not an exact match on '12') is what proves
+  // the sentence itself renders without colliding with the bare-number assertion above.
+  it('carries the framed closing-sentence line, with the room wrongPass count substituted in', async () => {
+    mockFetch({ ...base, phase: 'tally', questionId: null })
+    render(<TV />)
+    expect(await screen.findByText(/ถ้านี่เป็นงานจริง.*ข้อมูลผิด 12 ชิ้น/)).toBeInTheDocument()
+  })
+
+  it('shows the podium at the end', async () => {
+    mockFetch({ ...base, phase: 'podium', questionId: null })
+    render(<TV />)
+    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+  })
+
+  // `needsCheck` is a facilitator note (lib/types.ts QuestionSchema) — "NEVER rendered". A reveal
+  // is the phase most likely to accidentally grow a "notes for the host" panel that leaks one.
+  //
+  // The fixture is DERIVED, not pinned. This used to lean on `q0` happening to carry a note, and
+  // Task 9's opener swap (coffee-cups, which has one, traded places with most-populous, which does
+  // not) turned that into a red test with the feature working perfectly — the guard below is what
+  // caught it. Deriving the question from the content means the next reordering cannot break it
+  // either, and pinning a NEW id would only have moved the same trap one commit forward.
+  const withNote = QUESTIONS_IN_ORDER.find((q) => q.needsCheck)!
+  it('never renders the facilitator-only needsCheck note', async () => {
+    mockFetch({ ...base, phase: 'reveal', questionId: withNote.id, qIndex: QUESTIONS_IN_ORDER.indexOf(withNote) })
+    render(<TV />)
+    await screen.findByText(withNote.truth)
+    expect(withNote.needsCheck, 'fixture question must carry a needsCheck for this test to mean anything').toBeTruthy()
+    expect(screen.queryByText(new RegExp(withNote.needsCheck!.slice(0, 10)))).toBeNull()
+  })
+
+  // The brief: "Hold renders pressed while state.holding is true." Its own toggle state, not just
+  // enabled/disabled — the host needs to see at a glance whether the reveal clock is frozen.
+  it('renders Hold pressed while state.holding is true', async () => {
+    mockFetch({ ...base, phase: 'reveal', holding: true })
+    render(<TV />)
+    await screen.findByText(q0.truth)
+    expect(screen.getByRole('button', { pressed: true })).toBeInTheDocument()
+  })
+})
+
+// The v3 stage hazard: `next` is NOT idempotent (lib/store.ts#next just calls nextState — no
+// no-op guard except on lobby/podium). Two quick presses during a reveal skip straight past the
+// NEXT question's own reveal window, and nothing on screen says so until the leaderboard looks
+// wrong later. The host control must absorb a double-tap.
+describe('the host Next control', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  function mockFetchWithSpy(state: Record<string, unknown>) {
+    const fn = vi.fn(async (url: string) => new Response(
+      JSON.stringify(String(url).includes('/api/stats') ? stats : state),
+      { headers: { 'content-type': 'application/json' } },
+    ))
+    vi.stubGlobal('fetch', fn)
+    return fn
+  }
+
+  const controlPosts = (fn: ReturnType<typeof vi.fn>) =>
+    fn.mock.calls.filter(([url, init]) => {
+      if (!String(url).includes('/api/control')) return false
+      const body = init && typeof init === 'object' ? (init as RequestInit).body : undefined
+      return body !== undefined && JSON.parse(String(body)).action === 'next'
+    })
+
+  it('ignores a second Next press until the first registers, then accepts the next one', async () => {
+    const fetchSpy = mockFetchWithSpy({ ...base, phase: 'reveal' })
+    const user = userEvent.setup()
+    render(<TV />)
+
+    const nextBtn = await screen.findByRole('button', { name: /ถัดไป/ })
+    await user.click(nextBtn)
+
+    // Visible feedback the press registered, and the guard itself.
+    expect(nextBtn).toBeDisabled()
+    expect(controlPosts(fetchSpy)).toHaveLength(1)
+
+    // A second tap while still guarded must not fire a second POST.
+    await user.click(nextBtn)
+    expect(controlPosts(fetchSpy)).toHaveLength(1)
+
+    // Once the guard window lapses the host can advance again.
+    await waitFor(() => expect(nextBtn).toBeEnabled(), { timeout: 2000 })
+    await user.click(nextBtn)
+    expect(controlPosts(fetchSpy)).toHaveLength(2)
+  })
+
+  // IMPORTANT 1: NEXT_GUARD_MS (700ms) is shorter than STATE_POLL_MS (1000ms) — a fixed re-enable
+  // timer keyed only to when the CLICK's own POST resolves cannot reflect "the projector actually
+  // repainted", because the repaint waits on the next poll. Simulated here as a `/api/control`
+  // response that is slow to come BACK to this request specifically, while the server-visible
+  // `seq` (read by an independent `/api/state` poll) has already moved — the poll must clear the
+  // button the moment it observes that, without waiting for the click's own request to resolve.
+  it('re-enables as soon as a poll observes the seq change, even before the Next POST itself resolves', async () => {
+    let seq = 1
+    const fn = vi.fn(async (url: string) => {
+      const u = String(url)
+      if (u.includes('/api/stats')) {
+        return new Response(JSON.stringify(stats), { headers: { 'content-type': 'application/json' } })
+      }
+      if (u.includes('/api/control')) {
+        setTimeout(() => { seq = 2 }, 50) // the server-visible advance lands almost immediately...
+        await new Promise((resolve) => setTimeout(resolve, 1500)) // ...but THIS response is slow
+        return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } })
+      }
+      return new Response(JSON.stringify({ ...base, phase: 'reveal', seq }), { headers: { 'content-type': 'application/json' } })
+    })
+    vi.stubGlobal('fetch', fn)
+    const user = userEvent.setup()
+    render(<TV />)
+
+    const nextBtn = await screen.findByRole('button', { name: /ถัดไป/ })
+    await user.click(nextBtn)
+    expect(nextBtn).toBeDisabled()
+
+    // The next /api/state poll (STATE_POLL_MS ≈ 1s) sees seq:2 and clears the button well before
+    // the control POST's own 1500ms delay — and far short of a NEXT_GUARD_MS-after-resolution
+    // re-enable, which would land closer to 1500 + 700 = 2200ms.
+    await waitFor(() => expect(nextBtn).toBeEnabled(), { timeout: 1300 })
+  })
+})
+
+describe('the reading branch and the split bar', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  it('shows the question and the duck line during reading, but no timer bar', async () => {
+    mockFetch({ ...base, phase: 'reading' })
+    const { container } = render(<TV />)
+    expect(await screen.findByText(q0.ask)).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(q0.highlight.slice(0, 10)))).toBeInTheDocument()
+    // The bar means "you may answer now", and during the beat nobody can. Dots stand in for it.
+    expect(container.querySelector('.timer-fill')).toBeNull()
+  })
+
+  // Nobody can have answered yet, and a row of zeroes on the projector reads as a fault rather
+  // than a beat.
+  it('shows no answered counter during reading', async () => {
+    mockFetch({ ...base, phase: 'reading', answeredCount: 0 })
+    render(<TV />)
+    await screen.findByText(q0.ask)
+    expect(screen.queryByText(new RegExp(t('answered', 'th')))).toBeNull()
+  })
+
+  /*
+   * SPEC §7, and the reason this prop exists. v3 coloured this bar by ACTION, so a reveal where
+   * most of the room approved a fabricated answer rendered as a wall of green — the colour of
+   * "well done" — under a sentence saying they had just been fooled.
+   *
+   * Asserted through `data-share`/`data-correct` rather than class names, so it survives a
+   * re-skin. The colour itself is checked as the inline VARIABLE the fill was given, never as a
+   * computed value: jsdom resolves no custom properties, so `getComputedStyle(...).backgroundColor`
+   * reports `rgba(0, 0, 0, 0)` for both fills and an assertion on it can only ever rot. Whether
+   * that green is the right green is a real-browser question.
+   *
+   * q0's correct verdict is `reject`.
+   */
+  const shares = (verdict: 'pass' | 'reject') => {
+    const { container } = render(<SplitBar split={{ pass: 7, reject: 3 }} verdict={verdict} />)
+    return [...container.querySelectorAll('[data-share]')].map((el) => ({
+      share: el.getAttribute('data-share'),
+      correct: el.getAttribute('data-correct'),
+      style: el.getAttribute('style') ?? '',
+    }))
+  }
+
+  it('colours the split by which verdict was CORRECT, not by which button was pressed', () => {
+    const [pass, reject] = shares('reject')
+    // Order matters and is asserted: the reveal test above reads these two fills positionally.
+    expect(pass.share).toBe('pass')
+    expect(reject.share).toBe('reject')
+    // The minority share — the 3 who pressed ตีกลับ — is the one marked correct and coloured green.
+    expect(pass.correct).toBe('false')
+    expect(reject.correct).toBe('true')
+    expect(reject.style).toContain('rt-green')
+    expect(pass.style).toContain('rt-pink')
+  })
+
+  // The other half of the same statement: identical split, identical shares, opposite verdict.
+  // Colouring by action would render these two bars identically; colouring by correctness cannot.
+  it('flips which share is green when the correct verdict is pass', () => {
+    const [pass] = shares('pass')
+    expect(pass.correct).toBe('true')
+    expect(pass.style).toContain('rt-green')
+  })
+})
+
+describe('the lobby', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  // Spec §4: Start is the only pressable thing in the lobby. `Next` and `Hold` have nothing to act
+  // on until a game is running, and a corner panel of dead buttons is three chances to mis-tap
+  // during the one minute the room is looking at the QR code.
+  it('offers Start and nothing else — Next and Hold appear only once the game runs', async () => {
+    mockFetch({ ...base, phase: 'lobby' })
+    render(<TV />)
+    expect(await screen.findByRole('button', { name: /เริ่มเกม/ })).toBeEnabled()
+    expect(screen.queryByText(/ถัดไป/)).toBeNull()
+    expect(screen.queryByText(/พัก/)).toBeNull()
+    // The always-visible facilitator-token field is gone with them — it is the exact thing the
+    // login gate exists to stop (spec §3), and leaving it here would make the gate decorative.
+    expect(screen.queryByLabelText('รหัสผู้ดำเนินรายการ')).toBeNull()
+  })
+
+  it('brings the controls back the moment the game starts, and keeps Start out of them', async () => {
+    mockFetch({ ...base, phase: 'reading' })
+    render(<TV />)
+    expect(await screen.findByRole('button', { name: /ถัดไป/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /พัก/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /เริ่มเกม/ })).toBeNull()
+  })
+
+  // The cards come from `/api/stats`'s `recent` (join order), never from `leaderboard` — in a
+  // lobby nobody has scored, so the leaderboard is sorted alphabetically and a late joiner low in
+  // the alphabet would never see their own name. The authoritative size of the room is the number.
+  it('pins the recent arrivals as cards and prints the true count as a number', async () => {
+    // `playerCount: 17` is deliberately NOT `stats.playerCount` (10) and not the card count (1).
+    // The room's size comes from the game state, and picking a number no other fixture field
+    // carries is what makes this assertion able to fail: with 10 here it would pass just as well
+    // if the lobby read the count off /api/stats, or off the length of the card list.
+    mockFetch({ ...base, phase: 'lobby', playerCount: 17 })
+    render(<TV />)
+    expect(await screen.findByText(/หมูกรอบ/)).toBeInTheDocument()
+    expect(screen.getByText('17')).toBeInTheDocument()
+  })
+
+  /*
+   * THE BOARD NO LONGER CAPS, and the inversion is the point (spec §2). v3.1 showed the last
+   * twelve arrivals and the projector threw the rest away; the board is now shelf-packed and
+   * renders every name it is handed. This test used to assert `นักสืบ0` was ABSENT — the exact
+   * assertion the new behaviour has to break.
+   *
+   * jsdom lays nothing out, so this cannot check where the cards landed; that is
+   * `components/game/lobby-packer.test.ts`'s job, against the pure packer. What it CAN check is
+   * that every card exists and that none of them is faded.
+   */
+  it('renders every arrival it is handed, at full opacity', async () => {
+    const many = Array.from({ length: 40 }, (_, i) => ({ codename: `นักสืบ${i}`, avatar: '🕵️' }))
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
+      JSON.stringify(String(url).includes('/api/stats')
+        ? { ...stats, recent: many, playerCount: 40 }
+        // `playerCount` is read from the game state, not from stats — it is the room's own size.
+        : { ...base, phase: 'lobby', playerCount: 40 }),
+      { headers: { 'content-type': 'application/json' } },
+    )))
+    const { container } = render(<TV />)
+    await screen.findByText('40')
+    const cards = [...container.querySelectorAll('.det-pin')]
+    expect(cards).toHaveLength(40)
+    // The FIRST arrival is on the board too — under the old twelve-card cap it was not.
+    expect(screen.getByText(/นักสืบ0$/)).toBeInTheDocument()
+    expect(screen.getByText(/นักสืบ39/)).toBeInTheDocument()
+    // Spec §2: the age- and coverage-based fading of earlier drafts is deleted outright. Nothing
+    // is covered any more, so there is nothing for a fade to apologise for.
+    for (const card of cards) {
+      expect(card.getAttribute('style') ?? '').not.toMatch(/opacity/)
+      expect((card.firstElementChild?.getAttribute('style') ?? '')).not.toMatch(/opacity/)
+    }
+  })
+
+  // Storing 40 characters is fine; rendering 40 on the board lets one name eat a shelf (spec §2).
+  it('truncates a long codename on the card, with an ellipsis', async () => {
+    const long = 'นักสืบผู้ยิ่งใหญ่แห่งกรุงเทพมหานคร'
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
+      JSON.stringify(String(url).includes('/api/stats')
+        ? { ...stats, recent: [{ codename: long, avatar: '🕵️' }], playerCount: 1 }
+        : { ...base, phase: 'lobby', playerCount: 1 }),
+      { headers: { 'content-type': 'application/json' } },
+    )))
+    render(<TV />)
+    expect(await screen.findByText(new RegExp(`${long.slice(0, 14)}…$`))).toBeInTheDocument()
+    expect(screen.queryByText(new RegExp(long))).toBeNull()
+  })
+
+  /*
+   * THE CORNER RESET. `ResetButton` used to render only on non-lobby phases, so a host wanting to
+   * clear a rehearsal room had to START the game in order to reach the control that clears it.
+   *
+   * Start stays the only OTHER control here — asserted above — and the two-step arming that makes
+   * a destructive control safe in a visible corner is `ResetButton`'s own; this only pins that the
+   * lobby actually mounts it, armed-state intact.
+   */
+  it('offers a reset in the corner, still armed in two steps', async () => {
+    mockFetch({ ...base, phase: 'lobby' })
+    const user = userEvent.setup()
+    render(<TV />)
+    const reset = await screen.findByTestId('reset-button')
+    expect(reset).toHaveAttribute('data-armed', 'false')
+    await user.click(reset)
+    expect(reset).toHaveAttribute('data-armed', 'true')
+  })
+})
+
+/*
+ * THE RULES SCREEN (spec §3). A real phase, not an overlay — the host advances it with the control
+ * that already exists, every phone follows the projector automatically, and a refresh mid-screen
+ * does not lose it.
+ */
+describe('the rules screen', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  it('renders the three rules and the scoring chips on phase "rules"', async () => {
+    mockFetch({ ...base, phase: 'rules', questionId: null })
+    render(<TV />)
+    expect(await screen.findByText(/จอจะขึ้น/)).toBeInTheDocument()
+    expect(screen.getByText(/อ่าน 10 วิ แล้วตัดสินใน 15 วิ/)).toBeInTheDocument()
+    expect(screen.getByText(/ผิดเมื่อไหร่เริ่มนับใหม่/)).toBeInTheDocument()
+    for (const chip of ['ถูก +100', 'ติดกัน2 +200', 'ติดกัน3+ +300', 'ผิด 0']) {
+      expect(screen.getByText(chip), chip).toBeInTheDocument()
+    }
+  })
+
+  // The same content must NOT leak onto the screen the room is judging a question on. A rules
+  // panel that renders on every phase is the failure mode an overlay would have had.
+  it('renders on no other phase', async () => {
+    for (const phase of ['lobby', 'reading', 'question', 'reveal', 'tally', 'podium']) {
+      vi.unstubAllGlobals()
+      mockFetch({ ...base, phase, questionId: phase === 'tally' || phase === 'podium' ? null : q0.id })
+      const { unmount } = render(<TV />)
+      await waitFor(() => expect(screen.queryByText(/จอจะขึ้น/), phase).toBeNull())
+      unmount()
+    }
+  })
+
+  /*
+   * IT MUST NOT MENTION THE SPEED BONUS (spec §3), and the omission is a design decision rather
+   * than an oversight: telling a room of a hundred people that faster answers score more makes
+   * them rush, which is the opposite of what this workshop teaches. The bonus stays a silent
+   * tiebreaker, so nothing on this screen may name speed or time-based points.
+   */
+  it('never mentions the speed bonus', async () => {
+    mockFetch({ ...base, phase: 'rules', questionId: null })
+    const { container } = render(<TV />)
+    await screen.findByText(/จอจะขึ้น/)
+    const text = container.textContent ?? ''
+    expect(text, 'the rules screen must not teach the room to rush').not.toMatch(/เร็ว|โบนัส|bonus|speed/i)
+  })
+
+  /*
+   * HOST-ADVANCED, WITH NO COUNTDOWN. `Next` is the only way off this screen, so the control panel
+   * has to be here — the lobby's rule that host controls are absent stops at `lobby`. Without this
+   * the room would sit on the rules screen with no way forward.
+   */
+  it('carries the host Next control, because nothing else advances it', async () => {
+    mockFetch({ ...base, phase: 'rules', questionId: null })
+    render(<TV />)
+    expect(await screen.findByRole('button', { name: /ถัดไป/ })).toBeEnabled()
+  })
+})
+
+describe('the token gate', () => {
+  it('shows the gate and nothing player-facing when no token is held', async () => {
+    localStorage.removeItem('aidet.hostToken')
+    mockFetch({ ...base, phase: 'lobby' })
+    render(<TV />)
+    // The brief's own snippet queried `getByRole('textbox')`, but a `type="password"` input has NO
+    // accessible role at all per HTML-AAM (verified against this component: the query times out
+    // even with an aria-label attached) — testing-library follows that mapping. Masking the field
+    // is the point of a password input on a projector; downgrading it to `type="text"` to satisfy
+    // a role query would be fixing the test by breaking the feature. Query by its label instead.
+    expect(await screen.findByLabelText('รหัสผู้ดำเนินรายการ')).toBeInTheDocument()
+    expect(screen.queryByText(/เริ่มเกม/)).toBeNull()
+    expect(document.querySelector('canvas')).toBeNull()
+  })
+
+  it('goes through to the lobby once a token is held', async () => {
+    localStorage.setItem('aidet.hostToken', 'dev-local-9f2c')
+    mockFetch({ ...base, phase: 'lobby' })
+    render(<TV />)
+    expect(await screen.findByText(/เริ่มเกม/)).toBeInTheDocument()
+  })
+
+  /*
+   * The SUBMIT path, which neither test above touches: both of those assert what renders for a
+   * token that is already resolved one way or the other, never what happens when a host actually
+   * types one. Both outcomes are covered, because a gate that waves a wrong token through is worse
+   * than no gate at all — it teaches the host the room is protected when it is not.
+   *
+   * `/api/control` is answered separately from `/api/state` here so the gate's validation call can
+   * be given a status independent of the polling loop's, which is the only way to drive the 403
+   * branch at all.
+   */
+  function mockGateFetch(controlStatus: number) {
+    // `init` is declared but unused by the handler itself — it is here so `fn.mock.calls` types as
+    // a two-element tuple and the assertion on the POST body below type-checks.
+    const fn = vi.fn(async (url: string, init?: RequestInit) => {
+      void init
+      const u = String(url)
+      if (u.includes('/api/control')) {
+        return new Response(
+          JSON.stringify(controlStatus === 200 ? { ok: true } : { error: 'forbidden' }),
+          { status: controlStatus, headers: { 'content-type': 'application/json' } },
+        )
+      }
+      return new Response(
+        JSON.stringify(u.includes('/api/stats') ? stats : { ...base, phase: 'lobby' }),
+        { headers: { 'content-type': 'application/json' } },
+      )
+    })
+    vi.stubGlobal('fetch', fn)
+    return fn
+  }
+
+  it('a correct token typed at the gate opens the lobby and is persisted for the next reload', async () => {
+    localStorage.removeItem('aidet.hostToken')
+    const fetchSpy = mockGateFetch(200)
+    const user = userEvent.setup()
+    render(<TV />)
+
+    await user.type(await screen.findByLabelText('รหัสผู้ดำเนินรายการ'), 'dev-local-9f2c')
+    await user.click(screen.getByRole('button', { name: /เปิดห้อง/ }))
+
+    expect(await screen.findByText(/เริ่มเกม/)).toBeInTheDocument()
+    // Persisted, not merely held in state: a refresh mid-session must not throw the host back to
+    // the gate — spec §3 calls that a stage failure, not a security improvement.
+    expect(localStorage.getItem('aidet.hostToken')).toBe('dev-local-9f2c')
+
+    // The validation call is `ping`, and asserting WHICH action is the whole point of this line.
+    // `hold` would satisfy every other assertion in this test while silently freezing the room's
+    // clock for a host who authenticates during a live reveal (see app/api/control/route.ts).
+    const validation = fetchSpy.mock.calls.find(([u]) => String(u).includes('/api/control'))
+    expect(validation, 'the gate never called /api/control').toBeTruthy()
+    expect(JSON.parse(String(validation![1]!.body)).action).toBe('ping')
+  })
+
+  it('a wrong token leaves the gate up, says so, and persists nothing', async () => {
+    localStorage.removeItem('aidet.hostToken')
+    mockGateFetch(403)
+    const user = userEvent.setup()
+    render(<TV />)
+
+    await user.type(await screen.findByLabelText('รหัสผู้ดำเนินรายการ'), 'not-the-token')
+    await user.click(screen.getByRole('button', { name: /เปิดห้อง/ }))
+
+    expect(await screen.findByText('รหัสไม่ถูกต้อง')).toBeInTheDocument()
+    // Still the gate, and still nothing player-facing behind it.
+    expect(screen.getByLabelText('รหัสผู้ดำเนินรายการ')).toBeInTheDocument()
+    expect(screen.queryByText(/เริ่มเกม/)).toBeNull()
+    expect(localStorage.getItem('aidet.hostToken')).toBeNull()
   })
 })

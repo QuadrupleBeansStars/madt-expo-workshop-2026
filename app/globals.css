@@ -126,6 +126,35 @@ body {
 .pixel-btn.gold { background: #b08200; border-color: #ffeb80; }
 .pixel-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+/*
+ * The phone's two verdict buttons (Task 7 — "the phone is two buttons"). Nothing else competes
+ * for space here on purpose: no header, no question text, no third option. Large min-height and
+ * padding keep both comfortably tappable on a 390x844 phone without scrolling — the real-browser
+ * measurement is `npm run check:projector` (Task 9); this only has to not sabotage it by shipping
+ * two default-sized, undecorated <button>s.
+ */
+.verdict-btn {
+  min-height: 104px;
+  padding: 20px 24px;
+  font-family: var(--font-thai), sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  border: 4px solid #fff;
+  border-radius: 14px;
+  box-shadow: -4px 4px 0 #000;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.15s ease;
+}
+.verdict-btn:hover:not(:disabled) { transform: translate(2px, -2px); box-shadow: -6px 6px 0 #000; }
+.verdict-btn:active:not(:disabled) { transform: translate(-2px, 2px); box-shadow: -2px 2px 0 #000; }
+.verdict-btn:disabled { cursor: not-allowed; }
+.verdict-pass { background: #146c43; border-color: var(--rt-green); }
+.verdict-reject { background: #7a1530; border-color: var(--rt-pink); }
+/* Which one I tapped, once the answer is locked. */
+.verdict-btn.picked { outline: 4px solid var(--rt-gold); outline-offset: 2px; }
+.verdict-btn.dimmed { opacity: 0.35; }
+
 .dossier {
   background: var(--rt-paper);
   color: var(--rt-paper-text);
@@ -185,4 +214,479 @@ body {
 @keyframes host-reset-pulse { 50% { opacity: 0.55; } }
 @media (prefers-reduced-motion: reduce) {
   .host-reset[data-armed='true'] { animation: none; }
+}
+
+/*
+ * Start/Next/Hold (app/tv/page.tsx's `HostControls`) — sized down from bare `.pixel-btn`'s
+ * 14px/24px padding and 4px border, which is tuned for a big splashy CTA elsewhere (the phone's
+ * "🔄 เล่นอีกครั้ง"), not a compact corner bar. At the un-scaled size, three of those buttons plus
+ * `.host-reset` left only ~4px of clearance above the reveal's standings column (SplitBar +
+ * TopFive) at 1366×768 — and `npm run check:projector` caught the case that blows straight
+ * through it: a mistyped facilitator token renders a third row (the error line below), and the
+ * grown panel overlapped the standings outright. `data-pressed` (Hold's on/off cue) is unaffected
+ * — that rule targets `.pixel-btn[data-pressed]` and still applies.
+ */
+.pixel-btn.host-ctrl {
+  padding: 5px 10px;
+  border-width: 2px;
+  box-shadow: -2px 2px 0 #000;
+}
+.pixel-btn.host-ctrl:hover { box-shadow: -3px 3px 0 #000; }
+.pixel-btn.host-ctrl:active { box-shadow: -1px 1px 0 #000; }
+
+/* Which phase's control is live right now (Hold, during a reveal). Pinned top-right, same spot
+   in every phase — see app/tv/page.tsx's HostControls — so this is the only visual cue the host
+   gets that the press "took". */
+.pixel-btn[data-pressed='true'] {
+  background: var(--rt-gold);
+  color: #1e1713;
+  box-shadow: inset -3px 3px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* The reveal's marked lie/claim inside the duck's own sentence — QuestionSchema's `highlight`,
+   "marked on the reveal" per lib/types.ts. Never rendered during the question itself. */
+.reveal-highlight {
+  background: var(--rt-gold);
+  color: #1e1713;
+  padding: 0 3px;
+  border-radius: 3px;
+  font-weight: 700;
+}
+
+/* The question clock's fill (components/game/TimerBar.tsx) — was an inline `style.transition`,
+   moved to a class so the reduced-motion block below can actually override it. An inline `style`
+   attribute always wins over a stylesheet selector on specificity alone, so a plain-selector
+   override added against an inline transition is a no-op; this class is what makes the override
+   below real. Width/colour still snap to the correct value on every poll either way — only the
+   tween BETWEEN polls is what reduced motion removes. */
+.timer-fill {
+  transition: width 1s linear, background 0.3s ease;
+}
+
+/*
+ * The projector's phase-change beats (Task 8). Five classes, keyed by name, each collapsing under
+ * `prefers-reduced-motion: reduce` the same way `.host-reset[data-armed]` above already does — a
+ * room of 100 people is exactly the audience `prefers-reduced-motion` exists for.
+ *
+ * `.block-rise` is shared by two different beats on purpose: the act card panel rising into place
+ * and each podium block growing are the same motion (scale up from the bottom) at two different
+ * sizes, not two different animations.
+ */
+@layer components {
+  .stamp-slam {
+    animation: stamp-slam-kf 0.5s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+  }
+  .bar-grow {
+    transform-origin: left;
+    animation: bar-grow-kf 0.6s ease-out both;
+  }
+  .row-slide {
+    animation: row-slide-kf 0.4s ease-out both;
+  }
+  .block-rise {
+    transform-origin: bottom;
+    animation: block-rise-kf 0.5s ease-out both;
+  }
+  .hop-in {
+    animation: hop-in-kf 0.4s ease-out both;
+  }
+}
+
+@keyframes stamp-slam-kf {
+  0% { transform: scale(3) rotate(-10deg); opacity: 0; }
+  60% { transform: scale(0.92) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-4deg); opacity: 1; }
+}
+@keyframes bar-grow-kf {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes row-slide-kf {
+  from { transform: translateX(-24px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes block-rise-kf {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes hop-in-kf {
+  0% { transform: translateY(-18px) scale(0.5); opacity: 0; }
+  70% { transform: translateY(4px) scale(1.08); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/*
+ * A LIVE TRAP, found in the final whole-branch review — read this before "tidying" this block.
+ *
+ * The animations above live INSIDE `@layer components` (line 275). This override block is
+ * DELIBERATELY left OUTSIDE any `@layer` — unlayered. That is the only reason it wins: in the CSS
+ * cascade, an unlayered rule outranks EVERY layered rule regardless of selector specificity or
+ * source order. If this block is later moved inside `@layer components` "for consistency" with
+ * the rules it overrides, its declarations stop winning the moment two rules of equal specificity
+ * are compared — `prefers-reduced-motion: reduce` would silently stop collapsing anything, and
+ * nothing in `npm test` would fail, because jsdom cannot evaluate `@media` queries against a
+ * simulated `prefers-reduced-motion` at all. Only `npm run check:projector`'s reduced-motion probe
+ * (`scripts/check-projector-fit.mjs`) would catch it, and only if someone thinks to run it after
+ * an edit that looks like pure formatting. Leave this block unlayered.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .stamp-slam, .bar-grow, .row-slide, .block-rise, .hop-in {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+  .timer-fill {
+    transition: none;
+  }
+}
+
+/* ── AI Detective v3.1 · premium edition ──────────────────────────────
+   EVERY value below is lifted verbatim from the team's reference,
+   ai_detective_premium_edition-3.html. Do not "improve" any of them — the whole point of
+   this task is that the result looks like that file. If a value seems odd (the button's
+   shadow is offset LEFT, the title carries two shadows), it is odd in the reference too.
+
+   Namespaced `det-` and scoped under `.det`, which only `/` and `/tv` carry:
+   app/globals.css is imported by the root layout, so an unscoped re-theme would reach
+   The Decision Room, which is finished and out of bounds. */
+.det {
+  --det-bg: #04050e;
+  --det-panel: #0d1127;
+  --det-border: #2b325c;
+  --det-cyan: #00e5ff;
+  --det-gold: #ffd700;
+  --det-green: #39ff14;
+  --det-pink: #ff3366;
+  --det-paper: #fffbf2;
+  --det-paper-ink: #1e1713;
+  background: var(--det-bg);
+  color: #f1f5f9;
+  position: relative;
+}
+
+/* The CRT overlay. Two layers: a 4px horizontal scanline and a 6px vertical RGB stripe.
+   This is most of why the reference reads as a screen rather than a web page. */
+.det::after {
+  content: " ";
+  position: absolute;
+  inset: 0;
+  z-index: 99;
+  pointer-events: none;
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.12) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 255, 0, 0.02));
+  background-size: 100% 4px, 6px 100%;
+}
+
+/* Mirrors line ~108's .crt::after override — this repo already made the call that this exact
+   scanline gradient (byte-identical here) should stop moving nobody's eye under reduced motion.
+   The reference has no accessibility posture to inherit; this repo's existing one does. */
+@media (prefers-reduced-motion: reduce) {
+  .det::after { background: none; }
+}
+
+/* Press Start 2P has NO Thai glyphs — Thai in it loses its vowel marks. English only. */
+.det-pixel { font-family: var(--font-pixel), monospace; letter-spacing: 4px; }
+
+/* The signature treatment: a hard offset shadow in dark gold PLUS a soft glow.
+   Without both, gold pixel type on a near-black ground reads flat. */
+.det-title {
+  font-family: var(--font-pixel), monospace;
+  color: var(--det-gold);
+  text-shadow: 6px 6px 0px #705400, 0 0 25px rgba(255, 215, 0, 0.55);
+  letter-spacing: 4px;
+}
+
+.det-thai { font-family: var(--font-thai), system-ui, sans-serif; font-weight: 700; }
+/* VT323 is the reference's terminal face — numerals AND short machine-ish lines, not numerals only. */
+.det-term { font-family: var(--font-retro), monospace; font-variant-numeric: tabular-nums; }
+
+/* The reference's button is purple with a white border and a hard shadow offset LEFT-down.
+   It is not a gold button; the gold one is the primary variant below. */
+/* Size and padding come from custom properties so the projector can scale the control with the
+   screen while the phone keeps a thumb-sized default. The literal 13px that used to sit here is
+   the exact value the legibility audit measured on the lobby's Start button — the most important
+   control on the pre-game screen, unreadable from the back of a hall. `/tv` sets `--det-btn-size`
+   in vh; anything that does not set it gets the phone default. */
+.det-btn {
+  font-family: var(--font-pixel), monospace;
+  font-size: var(--det-btn-size, 16px);
+  padding: var(--det-btn-pad, 14px 28px);
+  background-color: #290852;
+  color: #fff;
+  border: 4px solid #fff;
+  box-shadow: -4px 4px 0px #000;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  text-transform: uppercase;
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+}
+.det-btn:hover { background-color: #3f107c; transform: translate(2px, -2px); box-shadow: -6px 6px 0px #000; }
+.det-btn:active { transform: translate(-2px, 2px); box-shadow: -2px 2px 0px #000; }
+.det-btn:disabled { opacity: .45; cursor: default; transform: none; }
+/* DELIBERATE BREAK FROM THE REFERENCE. The reference sets no `color` on its gold button, so the
+   label fell through to `.det-btn`'s white — measured at 3.5:1 against #b08200, on the control the
+   room has to find. Dark ink measures 8.9:1. The reference is a single-viewer desktop deck; this
+   is projected to a hundred people in a lit hall, and where fidelity and legibility collide on a
+   control that must be findable, legibility wins. The purple variant keeps its white. */
+.det-btn.det-btn-gold { background-color: #b08200; border-color: #ffeb80; color: #241c00; }
+.det-btn.det-btn-gold:hover { background-color: #cca400; }
+
+/* The screen title shared by the lobby, the standings and the podium. `inline-block` matters on
+   the lobby: a full-width title would cost the name board a whole band, so the title takes only
+   the width of its own text and cards pack around it. */
+.det-screen-title {
+  display: inline-block;
+  font-family: var(--font-thai), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 9vh;
+  line-height: 1.06;
+  color: var(--det-gold);
+  text-shadow: 0.7vh 0.7vh 0px #705400, 0 0 4vh rgba(255, 215, 0, 0.45);
+  text-align: center;
+  white-space: nowrap;
+}
+/* English only — Press Start 2P has no Thai glyphs. */
+.det-screen-title small {
+  display: block;
+  font-family: var(--font-pixel), monospace;
+  /* 3.1vh, not the 2.6 this first shipped with: 2.6 sits BELOW the projector floor that the rest
+     of v3.2 enforces, so the subtitle was the one piece of the new type scale that failed its own
+     rule. Caught downstream, where three call sites had each patched it inline. */
+  font-size: 3.1vh;
+  color: var(--det-cyan);
+  text-shadow: none;
+  letter-spacing: 0.1em;
+  margin-top: 0.9vh;
+}
+
+/* Every button label in THIS workshop is Thai, and `.det-btn` above sets Press Start 2P, which
+   has no Thai glyphs at all — `next/font/google` loads it with a latin-only unicode-range, so a
+   Thai label silently falls through to the generic `monospace` at 13px with no weight and no
+   letter-spacing budget for vowel marks. The reference's buttons are English; ours are not. This
+   modifier keeps the reference's button SHAPE (the purple fill, the white border, the hard shadow
+   offset left-down) and puts the label back on the Thai face where it belongs. Two classes, so it
+   outranks `.det-btn` on specificity and does not depend on source order. */
+.det-btn.det-btn-thai {
+  font-family: var(--font-thai), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+/* The framed screen: a thick dark border, generous radius, and an inset vignette. */
+.det-frame {
+  border: 6px solid #141724;
+  border-radius: 20px;
+  box-shadow: 0 0 80px rgba(0, 0, 0, 0.95), inset 0 0 50px rgba(0, 0, 0, 0.85);
+  overflow: hidden;
+}
+
+.det-goldbox { border: 3px solid var(--det-gold); border-radius: 10px; background: var(--det-panel);
+               box-shadow: 0 0 26px rgba(255, 215, 0, .18); }
+.det-paper { background: var(--det-paper); color: var(--det-paper-ink); }
+
+/* ── The lobby (spec §4) ───────────────────────────────────────────────
+   Two motions, both idle rather than transitional, and both `.det`-scoped so they cannot reach
+   The Decision Room. */
+
+/* Start is the biggest control on the screen and the only thing the host may press in the lobby,
+   so it breathes rather than sitting inert. Deliberately animates `filter`, NOT `transform` or
+   `box-shadow`: `.det-btn` already uses both of those for its hover and active states, and an
+   animation wins over a normal declaration — a pulse on either one would freeze the button's
+   press feedback for as long as it ran. */
+@keyframes det-pulse-kf {
+  0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.25)); }
+  50%      { filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.7)); }
+}
+.det-pulse { animation: det-pulse-kf 2.4s ease-in-out infinite; }
+
+/* A name card dropping onto the board as its player joins. The drop lives on the positioned
+   WRAPPER and the card's own tilt lives on the child, because they are both `transform` — one
+   element carrying both would have this animation override the tilt for as long as it ran, and
+   then snap. No fill-mode: once it has landed the card is governed by its own static tilt again. */
+@keyframes det-pin-kf {
+  from { transform: translateY(-18px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+.det-pin { animation: det-pin-kf 0.45s cubic-bezier(0.2, 1.4, 0.4, 1); }
+
+/*
+ * The reduced-motion collapse for the two above.
+ *
+ * A SECOND block rather than an addition to the one at line ~330: that one is unlayered and wins
+ * by being unlayered, but these rules are unlayered TOO, so between equals the later source
+ * position decides. Adding `.det-pulse`/`.det-pin` to the earlier block would put the override
+ * BEFORE the rules it is meant to override and quietly do nothing. Read that block's own comment
+ * before moving either of them — and like it, keep this outside every `@layer`.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .det-pulse, .det-pin {
+    animation: none;
+    filter: none;
+    opacity: 1;
+  }
+}
+
+/* ── The case board (v3.1 · scene composition) ─────────────────────────
+   The team's note on v3.1: *"ให้เป็นฉากเป็นเหมือนกระดานคดีกับเคส"* — make it a SCENE, a case
+   board with a case file on it. What shipped before this block was correctly-coloured text
+   floating on a black field; the reference (ai_detective_premium_edition-3.html) is a
+   WORKSPACE: a HUD band across the top, a physical-looking dossier lying on the desk, a
+   status line along the bottom.
+
+   Every value below is lifted verbatim from that file's <style> block — `.game-hud`,
+   `.hud-timer`, `.presentation-nav`, `.folder-tab.active`, `.case-file-document-horizontal`
+   and its `::before`. Do not re-derive or "improve" them; matching that file IS the task.
+   Fonts are referenced only through the CSS variables (never a family name) so the offline
+   font bundle still resolves on the day. */
+
+/* The band across the top of every in-game phase. Reference `.game-hud`. */
+.det-hud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  border-bottom: 3px solid var(--det-border);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+/* The clock, framed, in the HUD's left slot. Reference `.hud-timer`. */
+.det-hud-timer {
+  font-family: var(--font-pixel), monospace;
+  font-size: 20px;
+  color: var(--det-pink);
+  background: #19030a;
+  border: 3px solid var(--det-pink);
+  padding: 4px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/*
+ * `reading` puts its dot countdown in that same slot. It deliberately does NOT wear the clock's
+ * pink frame — spec §2 is explicit that a timer affordance means "you may answer now", and during
+ * the beat nobody can, so the two must not look alike from the back of a hall. Identical box
+ * metrics with a transparent border, so the HUD is exactly as tall in both phases and the stage
+ * underneath does not jump at the five-second mark.
+ */
+.det-hud-dots {
+  padding: 4px 12px;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* The line along the bottom, which is where the reference carries its `CASE 1 OF 10`.
+   Reference `.presentation-nav`. */
+.det-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-top: 6px;
+  border-top: 3px solid var(--det-border);
+  padding-top: 8px;
+}
+
+/* The folder tab the dossier sits under — the whole reason the paper's top-left corner is
+   square. Reference `.folder-tab.active`: paper-coloured, no bottom border, so it and the sheet
+   below read as one folder. ONE static tab, not the reference's ten-case switcher: nothing on
+   the projector is navigable, the host advances the room.
+   VT323 and Latin only — that face carries no Thai glyphs. */
+.det-dossier-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--det-paper);
+  color: var(--det-paper-ink);
+  border: 3px solid #382c1f;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 12px 10px;
+  font-family: var(--font-retro), monospace;
+  font-size: 18px;
+  font-weight: bold;
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
+
+/* A sheet of paper lying on a desk. Reference `.case-file-document-horizontal`.
+   The offset shadow is HARD, not blurred — that is the single thing that stops this reading as
+   a web card and starts it reading as a physical document. */
+.det-dossier {
+  background-color: var(--det-paper);
+  color: var(--det-paper-ink);
+  border: 4px solid #382c1f;
+  border-radius: 0 10px 10px 10px;
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.5);
+  padding: 16px 20px;
+  position: relative;
+}
+
+/* The rubber stamp, top-right, rotated. Reference `.case-file-document-horizontal::before`.
+   Its text lives in `content:`, which is invisible to every DOM query — deliberately: the
+   ผ่าน/ตีกลับ verdict stamp is the one the reveal asserts on, and a second stamp carrying real
+   text would make "the verdict" ambiguous on that screen. English, because this is the pixel
+   face and Press Start 2P has no Thai glyphs. */
+.det-dossier::before {
+  content: "CLASSIFIED DOSSIER";
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  border: 3px solid #b32d2d;
+  color: #b32d2d;
+  font-family: var(--font-pixel), monospace;
+  font-size: 9px;
+  padding: 3px 8px;
+  transform: rotate(5deg);
+  opacity: 0.85;
+  font-weight: bold;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* The three ink tones the reference uses INSIDE its dossier: the file header (`#544132`), a
+   field label (`#8c593b`) and the tinted block a field sits in (`#ebd9cc` at 60% over
+   `#d4c1ad`). Nothing on the paper may use the screen palette — cyan and neon green are
+   invisible on cream. */
+.det-dossier-head { color: #544132; font-weight: 700; letter-spacing: 0.08em; }
+.det-dossier-label { color: #8c593b; font-weight: 800; }
+.det-dossier-block {
+  background: rgba(235, 217, 204, 0.6);
+  border: 1px solid #d4c1ad;
+  border-radius: 12px;
+}
+/* The rule between two fields on the same sheet. */
+.det-dossier-rule { border: none; border-top: 2px dashed #d4c1ad; }
+
+/* The AI's statement, quoted into the file as a screen pasted onto paper. Reference: the
+   `bg-[#101735] border-2 border-[#00e5ff]/40 rounded-xl shadow-inner` panel inside
+   `#active-document`. This is the ONE element on cream allowed the screen palette, because it is
+   a screen — everything else on the sheet uses the paper inks above. */
+.det-dossier-screen {
+  background: #101735;
+  border: 2px solid rgba(0, 229, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+}
+
+/* The duck's portrait beside it. Reference: `bg-[#ffd23f]/20 border-2 border-[#ffd23f]
+   rounded-lg`. */
+.det-dossier-avatar {
+  background: rgba(255, 210, 63, 0.2);
+  border: 2px solid #ffd23f;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
