@@ -690,3 +690,269 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* ── The phone: one case folder lying on the desk (spec §7, v3.2 fidelity pass) ─────────
+ *
+ * WHY THESE UNITS. The approved artifact draws the phone as a `container-type: size` box at
+ * 390/844 and sizes everything inside it in `cqw`/`cqh`, so the composition is a set of RATIOS to
+ * the screen rather than a stack of pixel values. `.det-ph` is that container at the real
+ * viewport's size, which makes every number below the artifact's own number, and makes a 390x844
+ * phone and a 412x915 one the same picture rather than the same picture plus a band of slack.
+ *
+ * EXACTLY ONE `container-type: size` — this element. Putting a second one on `.det-fbody` would
+ * silently re-resolve every inner `cqh` against the PAPER instead of the phone, which is the same
+ * class of failure components/game/Podium.tsx documents for `9cqh` collapsing to zero: nothing
+ * errors, every size is simply wrong.
+ *
+ * The desk gradient lives HERE rather than inline on <main>, because <main> is the element
+ * carrying `det` and an inline `background` there outranks the whole premium palette on
+ * specificity alone (app/globals.det.test.ts guards exactly that).
+ */
+/*
+ * NO CRT ON THE PHONE. `.det::after` paints a 4px scanline and a 6px RGB stripe over everything
+ * inside `.det` at z-index 99 — which is right for the projector, and wrong here: the approved
+ * artifact gives `.tv` that overlay and gives `.ph` none at all. On a sheet of cream paper the
+ * scanline beats against the paper's own 2.5cqh rules and the sheet reads as dirty rather than as
+ * ruled. A phone is not a CRT; it is the desk the folder is lying on.
+ *
+ * A class on <main> rather than `:has(.det-ph)`, so nothing depends on selector support on a
+ * device nobody has tested on the morning of the workshop.
+ */
+.det.det-phone::after { background: none; }
+
+.det .det-ph {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  container-type: size;
+  background: linear-gradient(180deg, #1a1206, #241809);
+}
+
+/* The folder tab, top-left, carrying the player's own codename. Tan card stock, not paper: the
+   tab and the sheet under it are two different weights of the same folder. Thai face — the pixel
+   and terminal faces carry no Thai glyphs and would drop every vowel mark in a codename. */
+.det .det-ftab {
+  position: absolute;
+  top: 2.4cqh;
+  left: 5cqw;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 1.4cqw;
+  max-width: 70cqw;
+  padding: 1.1cqh 3.4cqw;
+  background: #e8d5a8;
+  color: #3a2c14;
+  border: 0.45cqh solid #3a2c14;
+  border-bottom: 0;
+  border-radius: 0.9cqh 0.9cqh 0 0;
+  font-family: var(--font-thai), system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 2.6cqh;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * The sheet. Square TOP-LEFT corner, so the tab above and this read as one folder, and a HARD
+ * offset shadow rather than a blurred one — that single property is what stops it reading as a
+ * web card and starts it reading as a physical document.
+ *
+ * `display: flex; flex-direction: column` is the whole answer to the measured complaint that the
+ * phone column was 58-64% empty with ~180px above the first element: the header and the question
+ * sit at the top, `.det-stamps` / `.det-fgo` carry `margin-top: auto`, and the slack is absorbed
+ * BETWEEN them. A one-line question and a three-line question both look deliberate.
+ */
+.det .det-fbody {
+  position: absolute;
+  top: 7cqh;
+  left: 4cqw;
+  right: 4cqw;
+  bottom: 2.6cqh;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  padding: 3cqh 5cqw;
+  background-color: var(--det-paper);
+  color: var(--det-paper-ink);
+  border: 0.55cqh solid #382c1f;
+  border-radius: 0 1.2cqh 1.2cqh 1.2cqh;
+  box-shadow: 0.6cqh 0.6cqh 0 rgba(0, 0, 0, 0.5);
+  font-family: var(--font-thai), system-ui, sans-serif;
+  /* The faint blue-book rules. Cosmetic, and it is what makes the panel read as paper. */
+  background-image: repeating-linear-gradient(
+    180deg, transparent 0 2.5cqh, rgba(30, 23, 19, 0.06) 2.5cqh 2.65cqh);
+}
+/* The beats with one idea on them — waiting, the reveal, the last screen — centre their contents
+   instead of distributing them. Nothing on those screens is a control under a thumb. */
+.det .det-fbody-mid { align-items: center; justify-content: center; text-align: center; }
+
+/* The file header. Latin ONLY — this is Press Start 2P and it has no Thai glyphs at all.
+   `max()` rather than the artifact's bare 1.7cqh: spec §7 puts a 16px floor on the phone, and
+   1.7cqh is 14.3px on a 390x844 screen. The ratio is kept everywhere it clears the floor. */
+.det .det-fhd {
+  font-family: var(--font-pixel), monospace;
+  font-size: max(16px, 1.7cqh);
+  line-height: 1.5;
+  color: #7a6a52;
+  letter-spacing: 0.05em;
+}
+.det .det-fq { margin-top: 1.2cqh; font-weight: 800; font-size: 3.6cqh; line-height: 1.3; }
+.det .det-fnote { font-size: 2.8cqh; color: #7a6a52; line-height: 1.4; }
+
+/* The join form: field, then the dice under it, then all the slack, then gold. */
+.det .det-fin {
+  width: 100%;
+  margin-top: 1.6cqh;
+  padding: 1.8cqh 3cqw;
+  background: #fff;
+  color: var(--det-paper-ink);
+  border: 0.45cqh solid #3a2c14;
+  border-radius: 0.7cqh;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 3.6cqh;
+  outline: none;
+}
+.det .det-fin:focus-visible { border-color: #8a6a00; box-shadow: 0 0 0 0.4cqh rgba(138, 106, 0, 0.35); }
+.det .det-fdice {
+  align-self: flex-start;
+  margin-top: 1.3cqh;
+  padding: 1.2cqh 3cqw;
+  background: #e8d5a8;
+  color: #3a2c14;
+  border: 0.35cqh solid #3a2c14;
+  border-radius: 0.6cqh;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 2.6cqh;
+  cursor: pointer;
+}
+/* The gold control, with the dark ink the palette already carries (spec §2) — white on #b08200
+   measures 3.5:1, dark ink 8.9:1. Bottom of the sheet, where a thumb already is. */
+.det .det-fgo {
+  width: 100%;
+  margin-top: auto;
+  padding: 2.6cqh 0;
+  background: #b08200;
+  color: #241c00;
+  border: 0.45cqh solid #ffeb80;
+  box-shadow: -0.45cqh 0.45cqh 0 #000;
+  border-radius: 0.8cqh;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 3.8cqh;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.1s ease, transform 0.1s ease, box-shadow 0.1s ease;
+}
+.det .det-fgo:hover:not(:disabled) { background: #cca400; transform: translate(2px, -2px); box-shadow: -0.6cqh 0.6cqh 0 #000; }
+.det .det-fgo:active:not(:disabled) { transform: translate(-2px, 2px); box-shadow: -0.25cqh 0.25cqh 0 #000; }
+.det .det-fgo:disabled { opacity: 0.45; cursor: default; }
+/* The join failure and the host-reset notice. Red ink on paper, never the screen palette's pink. */
+.det .det-fmsg {
+  margin-top: 1.6cqh;
+  padding: 1.2cqh 3cqw;
+  font-weight: 700;
+  font-size: 2.8cqh;
+  color: #b3253f;
+  background: rgba(179, 37, 63, 0.08);
+  border-left: 0.5cqh solid #b3253f;
+  border-radius: 0 0.6cqh 0.6cqh 0;
+}
+
+/*
+ * THE TWO RUBBER STAMPS. OUTLINED, never filled: a stamp is ink on paper, and the 10% wash of the
+ * verdict's own ink under the outline is what keeps the two telling apart as COLOUR FIELDS at a
+ * glance in a dark hall — a player under a fifteen-second clock finds green-vs-red before they
+ * read either word.
+ *
+ * `margin-top: auto` is what pushes the pair to the bottom of the sheet and absorbs the slack
+ * above them. It is the layout fix, not a nicety.
+ */
+.det .det-stamps { margin-top: auto; display: flex; flex-direction: column; gap: 1.6cqh; }
+.det .det-st {
+  padding: 2.6cqh 0;
+  background: transparent;
+  border: 0.6cqh solid;
+  border-radius: 1cqh;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 4.6cqh;
+  letter-spacing: 0.04em;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 0.18s ease;
+}
+.det .det-st-pass { color: #1c7a2e; border-color: #1c7a2e; background: rgba(57, 255, 20, 0.1); }
+.det .det-st-reject { color: #b3253f; border-color: #b3253f; background: rgba(255, 51, 102, 0.09); }
+/* Locked: present, visibly not yours to press yet. `rules` and `reading` both wear this, so
+   nothing appears from nowhere under a thumb when the window finally opens. */
+.det .det-st.is-locked { opacity: 0.4; filter: grayscale(0.4); cursor: default; }
+.det .det-st.is-dimmed { opacity: 0.26; cursor: default; }
+/*
+ * The slam. The chosen stamp scales in from 2.6x, overshoots and settles at -11deg, where it
+ * STAYS — the rotation is a plain declaration as well as the keyframes' end state, so the mark
+ * still sits at -11deg with the animation suppressed. The reduced-motion block below removes the
+ * SLAM, not the stamp: a player who asked their phone to stop moving things must still be able to
+ * see which one they chose.
+ */
+.det .det-st.is-picked {
+  position: relative;
+  z-index: 2;
+  opacity: 1;
+  cursor: default;
+  transform: rotate(-11deg) scale(1.02);
+  box-shadow: 0 0 0 0.5cqh currentColor inset;
+  animation: det-stamp-slam-kf 0.5s cubic-bezier(0.2, 1.6, 0.35, 1) both;
+}
+@keyframes det-stamp-slam-kf {
+  0%   { transform: rotate(-11deg) scale(2.6); opacity: 0; }
+  55%  { transform: rotate(-11deg) scale(0.92); opacity: 1; }
+  78%  { transform: rotate(-11deg) scale(1.08); opacity: 1; }
+  100% { transform: rotate(-11deg) scale(1.02); opacity: 1; }
+}
+
+/* The line under the stamps: what the phone is waiting for. The WORDS are Thai and the NUMERAL is
+   VT323 — the artifact sets the whole line in VT323, which carries no Thai glyphs at all, so the
+   two faces are split rather than the vowel marks dropped. */
+.det .det-fcount {
+  margin-top: 1.4cqh;
+  text-align: center;
+  font-family: var(--font-thai), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 4.4cqh;
+  line-height: 1.2;
+  color: #7a6a52;
+}
+.det .det-fcount .det-num { font-family: var(--font-retro), monospace; font-variant-numeric: tabular-nums; }
+
+/* The reveal and the last screen: one big mark, the points under it, then the rank block. */
+.det .det-fmark { font-family: var(--font-retro), monospace; font-size: 12cqh; line-height: 1; }
+.det .det-fscore { font-family: var(--font-retro), monospace; font-size: 9cqh; line-height: 1; color: #8a6a00; }
+.det .det-fpts { font-weight: 800; font-size: 5cqh; color: #8a6a00; }
+.det .det-frank {
+  width: 100%;
+  margin-top: 2.2cqh;
+  padding-top: 1.8cqh;
+  border-top: 0.4cqh dashed #c9b48a;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqh;
+}
+.det .det-frank-big { font-weight: 800; font-size: 5.8cqh; line-height: 1.1; }
+.det .det-frank-big em { font-family: var(--font-retro), monospace; font-style: normal; font-size: 8.4cqh; color: #8a6a00; }
+.det .det-frank-gap { font-size: 3.2cqh; font-weight: 700; color: #3a2c14; }
+.det .det-frank-gap b { color: #b3253f; }
+.det .det-frank-room { margin-top: 0.4cqh; font-size: 2.8cqh; color: #7a6a52; }
+
+/*
+ * Unlayered and LAST, like the two override blocks further up this file: between rules of equal
+ * specificity source order is the only lever, so an override written above the rule it overrides
+ * would quietly do nothing. Read those blocks' own comments before moving this one.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .det .det-st.is-picked { animation: none; }
+}

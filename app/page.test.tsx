@@ -6,8 +6,8 @@ import userEvent from '@testing-library/user-event'
 // decorative. Every other *.test.tsx in the repo has it; the brief's snippet omits it only
 // because it was written as a standalone illustration.
 import '@testing-library/jest-dom/vitest'
-import Page from './page'
-import { QUESTIONS_IN_ORDER } from '@/lib/game'
+import Page, { PHONE_CASE_COUNT } from './page'
+import { QUESTIONS_IN_ORDER, QUESTION_COUNT } from '@/lib/game'
 import { t } from '@/lib/i18n'
 
 const state = (over: Record<string, unknown> = {}) => ({
@@ -126,11 +126,16 @@ describe('the phone on a reveal, reloaded mid-phase (picks is empty)', () => {
       })),
       { headers: { 'content-type': 'application/json' } },
     )))
-    render(<Page />)
-    expect(await screen.findByText('✅ ถูกต้อง!')).toBeInTheDocument()
+    const { container } = render(<Page />)
+    // `data-result` is the server's verdict on this player, not a glyph: '✓' and '✗' are one
+    // character apart and a test on the character would pass on a screen showing the wrong ink.
+    await waitFor(() => expect(container.querySelector('[data-result]')).not.toBeNull())
+    expect(container.querySelector('[data-result]')).toHaveAttribute('data-result', 'correct')
     expect(screen.queryByText('หมดเวลา!')).toBeNull()
-    expect(screen.getByText(/150 คะแนน/)).toBeInTheDocument()
-    expect(screen.getByText(/อันดับ 2/)).toBeInTheDocument()
+    expect(screen.getByText('+150')).toBeInTheDocument()
+    // `textContent`, not `getByText`: the rank line is `อันดับ <em>2</em>`, and testing-library's
+    // default matcher only joins a node's DIRECT text children, so it never sees the numeral.
+    expect(container.textContent).toContain('อันดับ 2')
   })
 
   it('a wrong answer is distinguishable from a timeout — both come back as "not right", but only one is a loss', async () => {
@@ -144,10 +149,11 @@ describe('the phone on a reveal, reloaded mid-phase (picks is empty)', () => {
       })),
       { headers: { 'content-type': 'application/json' } },
     )))
-    render(<Page />)
-    expect(await screen.findByText('❌ ยังไม่ใช่')).toBeInTheDocument()
+    const { container } = render(<Page />)
+    await waitFor(() => expect(container.querySelector('[data-result]')).not.toBeNull())
+    expect(container.querySelector('[data-result]')).toHaveAttribute('data-result', 'wrong')
     expect(screen.queryByText('หมดเวลา!')).toBeNull()
-    expect(screen.getByText(/0 คะแนน/)).toBeInTheDocument()
+    expect(screen.getByText('+0')).toBeInTheDocument()
   })
 })
 
@@ -320,33 +326,33 @@ describe('the reveal, on rank and the gap', () => {
 
   it('names the rank above and the points to it', async () => {
     reveal({ rank: 3, gapToNext: 85 })
-    render(<Page />)
-    expect(await screen.findByText(/อันดับ 3/)).toBeInTheDocument()
-    expect(screen.getByText(/ห่างอันดับ 2 อยู่ 85 แต้ม/)).toBeInTheDocument()
+    const { container } = render(<Page />)
+    await waitFor(() => expect(container.textContent).toContain('อันดับ 3'))
+    expect(container.textContent).toContain('ห่างอันดับ 2 อยู่ 85 แต้ม')
   })
 
   it('tells the leader they lead, and never that they are 0 behind', async () => {
     // `gapToNext: 0` is deliberately WRONG for rank 1 — the server never sends it (lib/types.ts).
     // It is here so the test fails if the leader is ever detected by the gap instead of the rank.
     reveal({ rank: 1, gapToNext: 0 })
-    render(<Page />)
+    const { container } = render(<Page />)
     expect(await screen.findByText(/คุณนำห้องอยู่/)).toBeInTheDocument()
-    expect(screen.queryByText(/ห่างอันดับ/)).toBeNull()
-    expect(screen.queryByText(/0 แต้ม/)).toBeNull()
+    expect(container.textContent).not.toContain('ห่างอันดับ')
+    expect(container.textContent).not.toContain('0 แต้ม')
   })
 
   it('a real tie one rank down is still a gap of 0, not a lead', async () => {
     reveal({ rank: 2, gapToNext: 0 })
-    render(<Page />)
-    expect(await screen.findByText(/ห่างอันดับ 1 อยู่ 0 แต้ม/)).toBeInTheDocument()
+    const { container } = render(<Page />)
+    await waitFor(() => expect(container.textContent).toContain('ห่างอันดับ 1 อยู่ 0 แต้ม'))
     expect(screen.queryByText(/คุณนำห้องอยู่/)).toBeNull()
   })
 
   it('says nothing about a gap when the server sent none', async () => {
     reveal({ rank: 4 })
-    render(<Page />)
-    expect(await screen.findByText(/อันดับ 4/)).toBeInTheDocument()
-    expect(screen.queryByText(/ห่างอันดับ/)).toBeNull()
+    const { container } = render(<Page />)
+    await waitFor(() => expect(container.textContent).toContain('อันดับ 4'))
+    expect(container.textContent).not.toContain('ห่างอันดับ')
   })
 })
 
@@ -371,22 +377,32 @@ describe('the final screen', () => {
   it('offers nothing to press', async () => {
     podium()
     render(<Page />)
-    await screen.findByText(/สรุปผลการไขคดี/)
+    await screen.findByText('CASE CLOSED')
     expect(screen.queryAllByRole('button')).toHaveLength(0)
   })
 
   it('leaves the identity alone — there is no path back to the join screen from here', async () => {
     podium()
     render(<Page />)
-    await screen.findByText(/สรุปผลการไขคดี/)
+    await screen.findByText('CASE CLOSED')
     expect(localStorage.getItem('aidet.run')).not.toBeNull()
+  })
+
+  // The score leads, the rank is the context under it — the artifact's own ordering, and the
+  // reason this asserts both rather than either.
+  it('leads with the score and names the rank in the room', async () => {
+    podium()
+    const { container } = render(<Page />)
+    expect(await screen.findByText('1,200')).toBeInTheDocument()
+    expect(container.textContent).toContain('อันดับ 3 จาก 4')
   })
 
   it("ends on the player's own wrong-pass count and what it would mean at work", async () => {
     podium()
-    render(<Page />)
-    expect(await screen.findByText(/ให้ข้อมูลผิด 2 ครั้ง/)).toBeInTheDocument()
-    expect(screen.getByText(/ถ้าเป็นงานจริง/)).toBeInTheDocument()
+    const { container } = render(<Page />)
+    await screen.findByText('CASE CLOSED')
+    expect(container.textContent).toContain('ให้ข้อมูลผิด 2 ครั้ง')
+    expect(container.textContent).toContain('ถ้าเป็นงานจริง')
   })
 
   it('says a clean game out loud rather than printing "0 ครั้ง"', async () => {
@@ -394,5 +410,64 @@ describe('the final screen', () => {
     render(<Page />)
     expect(await screen.findByText(/ไม่เคยกด/)).toBeInTheDocument()
     expect(screen.queryByText(/0 ครั้ง/)).toBeNull()
+  })
+})
+
+/*
+ * v3.2 fidelity pass. The phone is one case folder on every screen — a tan tab carrying the
+ * player's own codename and a sheet of paper under it — and the sheet DISTRIBUTES its contents so
+ * the two stamps sit under a thumb whatever the screen height. Everything below is behavioural:
+ * what is on the sheet and what the stamps do, never how big any of it is.
+ */
+describe('the case folder the phone is', () => {
+  // The count is duplicated into app/page.tsx on purpose — importing lib/game there would ship the
+  // ANSWER KEY into every player's bundle (see PHONE_CASE_COUNT's own comment). This is what stops
+  // the copy drifting: a tenth question turns it red.
+  it('numbers its cases out of the real question count', () => {
+    expect(PHONE_CASE_COUNT).toBe(QUESTION_COUNT)
+  })
+
+  it('labels the folder tab with the codename the player joined under', async () => {
+    render(<Page />)
+    await screen.findByRole('button', { name: /ผ่าน/ })
+    expect(screen.getByText('เป็ดทอง')).toBeInTheDocument()
+  })
+
+  it('heads the sheet with which case the room is on', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify(state({ phase: 'reading', qIndex: 3, remainingMs: 6000 })),
+      { headers: { 'content-type': 'application/json' } },
+    )))
+    render(<Page />)
+    expect(await screen.findByText(`CASE 04 / ${String(QUESTION_COUNT).padStart(2, '0')}`)).toBeInTheDocument()
+  })
+
+  /* The sheet says what the phone is doing, and it is the only thing on it that changes when the
+     answer lands. Both halves are asserted because either alone passes on a screen stuck on one
+     of them. */
+  it('says "decide" before the tap and "sent" after it', async () => {
+    render(<Page />)
+    expect(await screen.findByText('ตัดสินเลย')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /ตีกลับ/ }))
+    expect(await screen.findByText('ส่งแล้ว')).toBeInTheDocument()
+    expect(screen.queryByText('ตัดสินเลย')).toBeNull()
+  })
+
+  // `rules` and `reading` hand the player two stamps that are present but not theirs yet. `locked`
+  // has to be visible as well as `disabled`, or the beat teaches nothing.
+  it('marks both stamps locked during a holding beat, and neither during a question', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify(state({ phase: 'reading', remainingMs: 5000 })),
+      { headers: { 'content-type': 'application/json' } },
+    )))
+    const { unmount } = render(<Page />)
+    expect((await screen.findByRole('button', { name: /ผ่าน/ })).className).toContain('is-locked')
+    unmount()
+
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify(state()), { headers: { 'content-type': 'application/json' } },
+    )))
+    render(<Page />)
+    expect((await screen.findByRole('button', { name: /ผ่าน/ })).className).not.toContain('is-locked')
   })
 })
