@@ -14,7 +14,7 @@ import { useEffect, useRef } from 'react'
  *
  * LIFTED FROM THE REFERENCE — `drawSherlockSprite`, `drawDuckSprite` and `updateAndRenderPatrol`,
  * at the bottom of its <script>. The two sprite functions are its fill calls in its order with its
- * colours. The wall (`#040612`), the floor (`#101220`), the follow easing (0.055), the walk bounce
+ * colours. The follow easing (0.055), the walk bounce
  * (sin(frame * 0.22) * 3), the leg swing (sin(frame * 0.22) * 12) and the duck's idle bounce
  * (sin(frame * 0.28) * 3) are its constants.
  *
@@ -30,10 +30,11 @@ const REF_W = 1280
 const REF_H = 720
 /** `ctx.fillRect(0, 520, w, h - 520)` — the floor line, 72.2% down the reference's own slide. */
 const REF_FLOOR = 520
-const FLOOR_FRACTION = REF_FLOOR / REF_H
+/* 0.68, NOT the reference's own 520/720 = 0.722. The desk edge is drawn by CSS at 68% (the hard
+   cut in DESK_GROUND), and the characters have to stand ON that line — four percent of a 1080-tall
+   projector is 43px of the detective hovering above the floor he is supposed to be walking on. */
+const FLOOR_FRACTION = 0.68
 
-const WALL = '#040612'
-const FLOOR = '#101220'
 
 /*
  * Both characters are positioned RELATIVE TO THE FLOOR LINE, not to the bottom of the canvas. The
@@ -192,13 +193,13 @@ export function Patrol({ className = '', floor = FLOOR_FRACTION }: {
     const paint = () => {
       if (!ctx) return
       ctx.setTransform(scale, 0, 0, scale, 0, 0)
+      /* TRANSPARENT. The reference painted its own wall and floor here, and this canvas inherited
+         both — two dark rectangles laid over `/tv`'s brown desk, so `reading` and `question` were
+         the only phases in the game that were not standing in the room. The ground is CSS now
+         (DESK_GROUND in app/tv/page.tsx), which also carries the lamp cone and the corkboard tooth
+         a flat fill cannot reproduce. One ground, one place it is defined; this draws only the two
+         characters that walk on it. */
       ctx.clearRect(0, 0, vw, vh)
-      // The reference's two fills, in its order: the wall over everything, then the floor over the
-      // bottom of it. Nothing else — the room is those two rectangles and the two characters.
-      ctx.fillStyle = WALL
-      ctx.fillRect(0, 0, vw, vh)
-      ctx.fillStyle = FLOOR
-      ctx.fillRect(0, floorY, vw, vh - floorY)
       drawDuckSprite(ctx, duckX, floorY + DUCK.top, DUCK.w, DUCK.h, man.dir, frame)
       drawSherlockSprite(ctx, man.x, floorY + MAN.top, MAN.w, MAN.h, man.dir, frame)
     }
