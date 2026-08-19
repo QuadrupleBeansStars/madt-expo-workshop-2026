@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 // No global setupFiles registers jest-dom matchers (see vitest.config.ts) — every *.test.tsx in
 // the repo imports this explicitly (app/page.test.tsx, app/layout.test.tsx). The brief's snippet
@@ -112,10 +112,23 @@ describe('the projector', () => {
     mockFetch({ ...base, phase: 'reveal' })
     render(<TV />)
     expect(await screen.findByText(q0.truth)).toBeInTheDocument()
-    await new Promise((r) => setTimeout(r, 9000))
+
+    /* FAKE TIMERS, not a real nine-second wait. This slept for 9s inside a 12s budget, which is
+       fine alone and flaky in a full run: the suite's other files are running on the same box, and
+       under that load the wait plus render overhead crossed the limit about one run in three. It
+       failed for machine load, never for a defect — the worst kind of red, because it teaches
+       everyone to re-run instead of read.
+       Advancing a fake clock proves MORE than the sleep did, too: an hour is past any timer anyone
+       could reintroduce, where nine seconds only cleared the one that was removed. */
+    await act(async () => {
+      vi.useFakeTimers()
+      await vi.advanceTimersByTimeAsync(60 * 60 * 1000)
+      vi.useRealTimers()
+    })
+
     expect(screen.getByText(q0.truth)).toBeInTheDocument()
     expect(screen.queryByText('หมูกรอบ')).toBeNull()
-  }, 12000)
+  })
 
   // The number COUNTS UP over ~2s now (spec §9) — it is the one number the whole workshop walks
   // toward, and a number already sitting there when the screen appears has been read and dismissed
@@ -129,8 +142,14 @@ describe('the projector', () => {
   it('shows the room miss rate as a percentage, over answers actually given', async () => {
     mockFetch({ ...base, phase: 'tally', questionId: null })
     render(<TV />)
-    expect(await screen.findByText('15%', {}, { timeout: 4000 })).toBeInTheDocument()
-    expect(screen.getByText(/จากทั้งหมด 40 คำตอบ/)).toBeInTheDocument()
+    await screen.findByText(/จากทั้งหมด 40 คำตอบ/)
+
+    /* The number CLIMBS to its value, and `useCountUp` drives that with requestAnimationFrame —
+       which vitest's fake timers do NOT advance unless rAF is explicitly faked. A fixed 4s wait
+       raced machine load instead and lost about one full-suite run in five.
+       `waitFor` polls until the climb lands, so it costs nothing when the machine is idle and
+       still passes when it is busy — and it fails for real if the number never arrives. */
+    await waitFor(() => expect(screen.getByText('15%')).toBeInTheDocument(), { timeout: 15_000 })
   })
 
   /* The closing sentence now RESTATES THE BAR instead of carrying a second statistic. It used to
