@@ -8,12 +8,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 import type { PublicGameState, Question } from '@/lib/types'
 import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS } from '@/lib/game'
-import { ACTS } from '@/content/questions'
+import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
-import { Duck } from '@/components/game/Duck'
 import { Dossier } from '@/components/game/Dossier'
 import { TimerBar } from '@/components/game/TimerBar'
-import { VerdictStamp } from '@/components/game/VerdictStamp'
 import { SplitBar } from '@/components/game/SplitBar'
 import { Standings, type LeaderboardRow, type RankDeltas } from '@/components/game/Standings'
 import { ActCard } from '@/components/game/ActCard'
@@ -132,8 +130,14 @@ const LAMP_CONE =
   'conic-gradient(from 180deg at 50% 0%, transparent 158deg, rgba(255,231,178,.15) 172deg, ' +
   'rgba(255,231,178,.24) 180deg, rgba(255,231,178,.15) 188deg, transparent 202deg)'
 
-/** The phases that stand in the room proper and get the desk under them. */
-const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(['lobby', 'rules', 'reading', 'question'])
+/** The phases that stand in the room proper and get the desk under them.
+ *
+ *  `podium` IS ONE OF THEM, which the flat-ground list used to miss. The approved artifact draws
+ *  the podium on the cork wall over the desk with the lamp behind it — three pinned paper cards on
+ *  a board, which is the same object the lobby is made of, so the end of the game reads as the
+ *  same room as the start. On flat black the spotlight cone behind first place also had nothing to
+ *  fall on and rendered as a grey rectangle with visible edges. */
+const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(['lobby', 'rules', 'reading', 'question', 'podium'])
 
 /**
  * NO `crt` CLASS ANYWHERE. `.crt::after` is still in app/globals.css as dead code, and this repo
@@ -379,7 +383,12 @@ export default function TvPage() {
    * and a ref inside it would be empty every single time.
    */
   const [rankDeltas, setRankDeltas] = useState<RankDeltas>({})
+  /* What each row SCORED on the question just closed — the `+300` beside the name. Diffed the same
+     way and in the same pass as the arrows, off the same snapshot, so the two can never disagree
+     about which board they are describing. */
+  const [gains, setGains] = useState<RankDeltas>({})
   const prevRanksRef = useRef<Record<string, number> | null>(null)
+  const prevScoresRef = useRef<Record<string, number> | null>(null)
   const snapshotKeyRef = useRef<string | null>(null)
   const board = stats?.leaderboard
   useEffect(() => {
@@ -390,9 +399,12 @@ export default function TvPage() {
     snapshotKeyRef.current = key
 
     const previous = prevRanksRef.current
+    const previousScores = prevScoresRef.current
     const current: Record<string, number> = {}
-    for (const row of board) current[row.codename] = row.rank
+    const currentScores: Record<string, number> = {}
+    for (const row of board) { current[row.codename] = row.rank; currentScores[row.codename] = row.score }
     const deltas: RankDeltas = {}
+    const scored: RankDeltas = {}
     if (previous) {
       for (const row of board) {
         const was = previous[row.codename]
@@ -400,8 +412,16 @@ export default function TvPage() {
         if (was !== undefined) deltas[row.codename] = was - row.rank
       }
     }
+    for (const row of board) {
+      // A player new to the board scored their whole total on this question, which IS their gain.
+      const wasScore = previousScores?.[row.codename] ?? 0
+      const gain = row.score - wasScore
+      if (gain > 0) scored[row.codename] = gain
+    }
     prevRanksRef.current = current
+    prevScoresRef.current = currentScores
     setRankDeltas(deltas)
+    setGains(scored)
   }, [state, board])
 
   /*
@@ -465,6 +485,7 @@ export default function TvPage() {
           origin={origin}
           question={question}
           rankDeltas={rankDeltas}
+          gains={gains}
           tokenError={tokenError}
           hostToken={token}
           onReset={(ok) => { setTokenError(!ok); if (ok) lastSeqRef.current = -1 }}
@@ -576,24 +597,6 @@ function HostControls({
   )
 }
 
-/**
- * The HUD's centre plate, per phase. ENGLISH, because the plate is set in Press Start 2P and that
- * face carries no Thai glyphs at all — same rule as the lobby's subtitle and `nameEn` on the act
- * card. Everything the room actually has to READ is Thai and sits on the stage below.
- *
- * `reading` and `question` share one title deliberately: nothing in the top band may change at
- * the ten-second mark, or the room reads the change as "something happened" instead of "you may
- * answer now" (the same reasoning as the answered counter's, one phase down).
- */
-const PHASE_PLATE: Record<Exclude<PublicGameState['phase'], 'lobby'>, string> = {
-  rules: 'BRIEFING',
-  reading: 'INVESTIGATION',
-  question: 'INVESTIGATION',
-  reveal: 'CASE CLOSED',
-  actcard: 'CASE BRIEFING',
-  tally: 'ROOM REPORT',
-  podium: 'FINAL STANDINGS',
-}
 
 /**
  * THE SCENE, and the reason this component exists.
@@ -614,16 +617,23 @@ const PHASE_PLATE: Record<Exclude<PublicGameState['phase'], 'lobby'>, string> = 
  * the document-height metric cannot see a clipped element at all.
  */
 function StageFrame({
-  phase, clock, tokenError, hostControls, status, statusRight, children,
+  plate, tokenError, hostControls, status, statusCentre, statusRight, foot, children,
 }: {
-  phase: Exclude<PublicGameState['phase'], 'lobby'>
-  /** The HUD's left slot: the framed timer badge, or `reading`'s dot countdown. */
-  clock: React.ReactNode
+  /** The HUD's left slot: `CASE 04 / 09`, in gold pixel type. Latin and numerals ONLY — Press
+   *  Start 2P carries no Thai glyphs at all. This IS the plate now: the approved artifact's HUD
+   *  is the case number on the left and the host's controls on the right, and nothing else. The
+   *  centre slot it used to fill with a phase name (`INVESTIGATION`, `CASE CLOSED`) said the same
+   *  thing twice from two feet apart and is now empty unless the token is wrong. */
+  plate: string
   tokenError: boolean
   hostControls: React.ReactNode
-  /** The status line's left slot — the reference's `CASE 1 OF 10`, in Thai and over nine. */
-  status: React.ReactNode
+  status?: React.ReactNode
+  /** The bottom band's centre — `reading`'s ten dots. */
+  statusCentre?: React.ReactNode
+  /** The bottom band's right — `question`'s answered counter. */
   statusRight?: React.ReactNode
+  /** Pinned under the bottom band, full width: `question`'s cyan clock bar. */
+  foot?: React.ReactNode
   children: React.ReactNode
 }) {
   return (
@@ -636,40 +646,53 @@ function StageFrame({
      * `npm run check:projector` measures exactly that edge. */
     <div className="relative z-10 flex min-h-[95vh] flex-col">
       <div className="det-hud">
-        <div className="flex min-w-0 items-center gap-[2vw]">{clock}</div>
-        {/* The bad-token message REPLACES the plate rather than joining it — see HostControls. */}
+        <div className="det-title truncate text-[3.1vh]">{plate}</div>
+        {/* The bad-token message takes the centre slot the phase plate used to hold — one line in,
+            one line out, no height change, and it lands in the middle of the screen where a host
+            who just mistyped is far more likely to see it. `scripts/check-projector-fit.mjs`
+            probes exactly this state, on `reveal`, and asserts the band's height is unchanged. */}
         {tokenError ? (
           <p className="det-thai truncate text-[3.1vh]" style={{ color: 'var(--det-pink)' }}>
             ❌ รหัสผู้ดำเนินรายการไม่ถูกต้อง
           </p>
         ) : (
-          <div className="det-title truncate text-[3.1vh]">{PHASE_PLATE[phase]}</div>
+          <span aria-hidden="true" />
         )}
         <div className="flex items-center gap-3">{hostControls}</div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
+      {/* THE BOTTOM BAND. `.det-status` is also the lowest element on the stage and therefore the
+          first thing a stage that grew too tall loses — `scripts/check-projector-fit.mjs` measures
+          this element's own bottom edge against the fold for exactly that reason, so it stays on
+          every phase even when the artifact leaves it empty. */}
       <div className="det-status">
         <span className="det-thai text-[3.1vh] opacity-75">{status}</span>
+        <span className="flex items-center">{statusCentre}</span>
         <span className="flex items-baseline gap-[1.4vh]">{statusRight}</span>
       </div>
+      {foot}
     </div>
   )
 }
 
-/** `คดีที่ N จาก 9` — the reference's `CASE 1 OF 10`, in Thai and over nine. ONE text node, so it
- *  cannot collide with any bare-number assertion elsewhere on the same screen. */
-const caseLine = (order: number) => `คดีที่ ${order} จาก ${QUESTION_COUNT}`
+/** The HUD's plate: `CASE 04 / 09`. Latin and numerals ONLY — this is Press Start 2P and it
+ *  carries no Thai glyphs at all. ONE text node, so it cannot collide with any bare-number
+ *  assertion elsewhere on the same screen. */
+const pad2 = (n: number) => String(n).padStart(2, '0')
+const casePlate = (order: number) => `CASE ${pad2(order)} / ${pad2(QUESTION_COUNT)}`
+const allCasesPlate = () => `CASES ${pad2(QUESTION_COUNT)} / ${pad2(QUESTION_COUNT)}`
 
 function Stage({
-  state, stats, origin, question, rankDeltas, tokenError, hostControls, hostToken, onReset, onStart,
+  state, stats, origin, question, rankDeltas, gains, tokenError, hostControls, hostToken, onReset, onStart,
 }: {
   state: PublicGameState | null
   stats: RoomStats | null
   origin: string
   question: Question | null
   rankDeltas: RankDeltas
+  gains: RankDeltas
   tokenError: boolean
   hostControls: React.ReactNode
   /** Non-empty by construction: `Stage` only renders once the gate has resolved a held token. */
@@ -691,14 +714,9 @@ function Stage({
   }
 
   const frame = (
-    props: Omit<Parameters<typeof StageFrame>[0], 'phase' | 'tokenError' | 'hostControls'>,
+    props: Omit<Parameters<typeof StageFrame>[0], 'tokenError' | 'hostControls'>,
   ) => (
-    <StageFrame
-      phase={state.phase as Exclude<PublicGameState['phase'], 'lobby'>}
-      tokenError={tokenError}
-      hostControls={hostControls}
-      {...props}
-    />
+    <StageFrame tokenError={tokenError} hostControls={hostControls} {...props} />
   )
 
   /* THE RULES, once, between the lobby and the first reading (spec §3). Inside the frame rather
@@ -706,9 +724,7 @@ function Stage({
      button lives — and this screen has NO countdown, so Next is the only way off it. */
   if (state.phase === 'rules') {
     return frame({
-      // Not `BRIEFING` — that is this phase's own plate, and the HUD would then read the same word
-      // twice across one band.
-      clock: <CaseStamp label="RULES" />,
+      plate: 'BRIEFING',
       status: 'ก่อนเริ่มคดีแรก',
       children: <RulesStage />,
     })
@@ -718,20 +734,22 @@ function Stage({
     if (!question) return null
     const reading = state.phase === 'reading'
     return frame({
-      clock: reading
-        ? <div className="det-hud-dots"><DotCountdown remainingMs={state.remainingMs} /></div>
-        : (
-          <div className="det-hud-timer">
-            <span aria-hidden="true">⏱</span>
-            <TimerBar remainingMs={state.remainingMs} totalMs={QUESTION_MS} />
-          </div>
-        ),
-      status: caseLine(question.order),
-      statusRight: reading ? (
-        <span className="det-thai text-[3.1vh]" style={{ color: 'var(--det-gold)' }}>
-          อ่านให้จบก่อน แล้วค่อยตัดสิน
-        </span>
-      ) : (
+      plate: casePlate(question.order),
+      status: reading ? (
+        <span style={{ color: 'var(--det-gold)' }}>อ่านให้จบก่อน แล้วค่อยตัดสิน</span>
+      ) : null,
+      /* READING'S COUNTDOWN IS TEN DOTS ALONG THE BOTTOM, one per second of the beat, not four in
+         the top corner. Ten was rejected once on the grounds that it would be "a row of specks" —
+         which was true of the 1vh dot it was rejected against and is not true of the 2.6vh dot the
+         approved artifact draws. At ten they also stop lying about the length of the beat: four
+         dots over ten seconds sit fully lit for the first six of them. */
+      statusCentre: reading ? <DotCountdown remainingMs={state.remainingMs} /> : null,
+      /* THE CLOCK IS A CYAN BAR ALONG THE VERY BOTTOM EDGE (the artifact's `.tbar`), the full width
+         of the screen — not a framed badge in the top-left corner. It is the one affordance that
+         means "you may answer now", it reads from the back of a hall without being read, and at
+         full width the room cannot miss it starting. `reading` deliberately has none. */
+      foot: reading ? null : <TimerBar remainingMs={state.remainingMs} totalMs={QUESTION_MS} />,
+      statusRight: reading ? null : (
         /*
          * THE ANSWERED COUNTER (spec §9) — `ตอบแล้ว 84/103`, bottom-right. Without it the host
          * cannot tell whether the room is still deciding or has finished and is waiting on them.
@@ -757,14 +775,15 @@ function Stage({
   if (state.phase === 'reveal') {
     if (!question) return null
     return frame({
-      clock: <CaseStamp order={question.order} />,
-      status: caseLine(question.order),
+      plate: casePlate(question.order),
+      status: null,
       children: (
         <RevealStage
           question={question}
           split={stats?.split ?? null}
           top={stats?.leaderboard ?? []}
           rankDeltas={rankDeltas}
+          gains={gains}
         />
       ),
     })
@@ -776,7 +795,7 @@ function Stage({
   if (state.phase === 'actcard') {
     const actIndex = state.actIndex ?? 0
     return frame({
-      clock: <CaseStamp label={`ACT ${actIndex + 1} / ${ACTS.length}`} />,
+      plate: `ACT ${actIndex + 1} / ${ACTS.length}`,
       status: `บทที่ ${actIndex + 1} จาก ${ACTS.length}`,
       children: <ActCard act={ACTS[actIndex]} />,
     })
@@ -784,16 +803,20 @@ function Stage({
 
   if (state.phase === 'tally') {
     return frame({
-      clock: <CaseStamp label={`CASES ${String(QUESTION_COUNT).padStart(2, '0')} / ${String(QUESTION_COUNT).padStart(2, '0')}`} />,
+      plate: allCasesPlate(),
       status: `จบครบทั้ง ${QUESTION_COUNT} คดี`,
       children: (
-        <Tally wrongPass={stats?.roomWrongPass ?? 0} decisions={(stats?.playerCount ?? 0) * QUESTION_COUNT} />
+        <Tally
+          wrongPass={stats?.roomWrongPass ?? 0}
+          decisions={(stats?.playerCount ?? 0) * QUESTION_COUNT}
+          closing={CLOSING_LINES}
+        />
       ),
     })
   }
 
   return frame({
-    clock: <CaseStamp label={`CASES ${String(QUESTION_COUNT).padStart(2, '0')} / ${String(QUESTION_COUNT).padStart(2, '0')}`} />,
+    plate: allCasesPlate(),
     status: 'ปิดคดีทั้งหมดแล้ว',
     children: <Podium top={(stats?.leaderboard ?? []).slice(0, 3)} detectives={stats?.playerCount ?? 0} />,
   })
@@ -817,7 +840,7 @@ function RulesStage() {
       <div aria-hidden="true" className="absolute inset-0" style={{ background: 'rgba(2, 3, 10, 0.72)' }} />
 
       <div
-        className="det-paper relative w-full max-w-6xl"
+        className="det-paper relative flex w-full max-w-6xl flex-col self-stretch"
         style={{
           border: '0.5vh solid #382c1f',
           borderRadius: '1.4vh',
@@ -827,7 +850,9 @@ function RulesStage() {
           fontWeight: 700,
         }}
       >
-        <div className="det-dossier-head det-term" style={{ fontSize: TYPE.floor }}>HOW THIS WORKS</div>
+        {/* A centred heading, in Thai — the artifact's `กติกา`. The room reads this screen as a
+            document, and a document with no title reads as an excerpt of one. */}
+        <h2 className="text-center" style={{ fontSize: '5.6vh', fontWeight: 800, lineHeight: 1.2 }}>กติกา</h2>
         <hr className="det-dossier-rule my-[2vh]" />
 
         <ol className="flex flex-col gap-[2.4vh]" style={{ fontSize: TYPE.answer, lineHeight: 1.35 }}>
@@ -835,9 +860,36 @@ function RulesStage() {
             <span className="det-term shrink-0" style={{ color: '#8c593b' }}>1</span>
             <span>จอจะขึ้น <strong style={{ color: '#b32d2d' }}>คำถาม</strong> กับ <strong style={{ color: '#b32d2d' }}>คำตอบของ AI</strong></span>
           </li>
-          <li className="flex gap-[2vh]">
-            <span className="det-term shrink-0" style={{ color: '#8c593b' }}>2</span>
-            <span>อ่าน 10 วิ แล้วตัดสินใน 15 วิ — ✓ ผ่าน (เชื่อได้) / ✗ ตีกลับ (มีปัญหา)</span>
+          <li className="flex flex-col gap-[1.4vh]">
+            <span className="flex gap-[2vh]">
+              <span className="det-term shrink-0" style={{ color: '#8c593b' }}>2</span>
+              <span>อ่าน 10 วิ แล้วตัดสินใน 15 วิ</span>
+            </span>
+            {/* THE TWO VERDICTS AS THE PAIR THEY ARE ON THE PHONE — outlined, side by side, green
+                and red. Written as a sentence they were a slash between two parentheses; drawn as
+                two boxes they are the two things about to appear under every thumb in the room,
+                in the same inks and the same order. */}
+            <span className="flex gap-[1.6vw]">
+              {[
+                { label: '✓ ผ่าน — เชื่อได้', ink: '#1c7a2e' },
+                { label: '✗ ตีกลับ — มีปัญหา', ink: '#b3253f' },
+              ].map((v) => (
+                <span
+                  key={v.ink}
+                  className="flex-1 text-center"
+                  style={{
+                    color: v.ink,
+                    border: `0.5vh solid ${v.ink}`,
+                    borderRadius: '0.7vh',
+                    padding: '1.1vh 0',
+                    fontWeight: 800,
+                    fontSize: '3.4vh',
+                  }}
+                >
+                  {v.label}
+                </span>
+              ))}
+            </span>
           </li>
           <li className="flex gap-[2vh]">
             <span className="det-term shrink-0" style={{ color: '#8c593b' }}>3</span>
@@ -845,7 +897,10 @@ function RulesStage() {
           </li>
         </ol>
 
-        <hr className="det-dossier-rule my-[2.4vh]" />
+        {/* The chips take the bottom edge of the sheet and the slack lands above them, so the
+            modal fills the stage at any projector height instead of floating at its own intrinsic
+            one with a band of scrim under it. */}
+        <hr className="det-dossier-rule mb-[2.4vh] mt-auto" />
 
         <div className="flex flex-wrap justify-center gap-[1.6vh]">
           {chips.map((chip) => (
@@ -870,20 +925,6 @@ function RulesStage() {
   )
 }
 
-/**
- * What stands in the HUD's clock slot when there is no clock to show. Same box metrics as the
- * timer badge (`.det-hud-dots`), so the band is exactly as tall on every phase and the host's
- * controls opposite it never shift by a pixel between one screen and the next.
- *
- * Latin and numerals only — this is the VT323 terminal face and it carries no Thai.
- */
-function CaseStamp({ order, label }: { order?: number; label?: string }) {
-  return (
-    <div className="det-hud-dots det-term text-[3.6vh]" style={{ color: '#8892b0' }}>
-      {label ?? `CASE ${String(order ?? 0).padStart(2, '0')} / ${String(QUESTION_COUNT).padStart(2, '0')}`}
-    </div>
-  )
-}
 
 /* ── The lobby board (spec §2) ────────────────────────────────────────────────────────────────
  *
@@ -1041,12 +1082,10 @@ const truncate = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NA
  * deleted outright: nothing is covered any more, so there is nothing for a fade to apologise for.
  */
 function NameBoard({
-  names, boardRef, onCapped,
+  names, boardRef,
 }: {
   names: { codename: string; avatar: string }[]
   boardRef: React.RefObject<HTMLDivElement | null>
-  /** How many arrivals the board could not seat. Surfaced, never swallowed. */
-  onCapped: (n: number) => void
 }) {
   const placedRef = useRef<Map<string, Placement>>(new Map())
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -1075,7 +1114,7 @@ function NameBoard({
     if (boardRect.width === 0 || boardRect.height === 0) return
 
     const pending = shown.filter((n) => !placedRef.current.has(n.codename))
-    if (pending.length === 0) { onCapped(0); return }
+    if (pending.length === 0) return
 
 
     const vh = window.innerHeight / 100
@@ -1114,12 +1153,12 @@ function NameBoard({
     })
 
     placements.forEach((p, i) => { if (p) placedRef.current.set(pending[i].codename, p) })
-    /* The ABSOLUTE shortfall, recomputed every pass, never accumulated: an unseated card stays
-       pending and is retried on the next poll, so a running total would count the same card again
-       every 1.5s. `log` nothing silently — this number is rendered beside the counter. */
-    onCapped(shown.filter((n) => !placedRef.current.has(n.codename)).length)
+    /* An unseated card stays pending and is retried on the next poll. NOTHING IS REPORTED: the
+       overflow note this used to feed ("+36 did not fit") was cut by the team — a player is
+       looking for their own name and the count beside the board is the authoritative number
+       either way — and the `capped` state it fed then sat here set-but-never-read. */
     setTick((n) => n + 1)
-  }, [shown, resizeKey, boardRef, onCapped])
+  }, [shown, resizeKey, boardRef])
 
   return (
     <div className="pointer-events-none absolute inset-0 z-0">
@@ -1145,13 +1184,27 @@ function NameBoard({
                 one element carrying both would let the landing animation override the tilt while
                 it ran and then snap it back. */}
             <span
-              className="det-thai det-paper inline-block whitespace-nowrap rounded px-[1.2vh] py-[0.6vh] shadow-lg"
+              className="det-thai det-paper relative inline-block whitespace-nowrap rounded px-[1.2vh] py-[0.6vh]"
               style={{
                 fontSize: TYPE.card,
                 lineHeight: 1.25,
+                boxShadow: '0.3vh 0.55vh 0.9vh rgba(0,0,0,0.55)',
                 transform: `rotate(${placement?.tilt ?? 0}deg)`,
               }}
             >
+              {/* THE PUSHPIN, straddling the card's top edge. It is what makes these evidence
+                  cards pinned to a board rather than chips in a list — and it is the same object
+                  the podium's three cards are pinned with, which is how the end of the game reads
+                  as the same world as the start. */}
+              <span
+                aria-hidden="true"
+                className="absolute left-1/2 block rounded-full"
+                style={{
+                  top: '-0.75vh', width: '1.5vh', height: '1.5vh', marginLeft: '-0.75vh',
+                  background: '#d4342f',
+                  boxShadow: 'inset -0.3vh -0.3vh 0 rgba(0,0,0,0.35)',
+                }}
+              />
               {p.avatar} {p.label}
             </span>
           </div>
@@ -1182,20 +1235,10 @@ function Lobby({
   onStart: () => void
 }) {
   const boardRef = useRef<HTMLDivElement | null>(null)
-  const [capped, setCapped] = useState(0)
-  const onCapped = useCallback((n: number) => setCapped(n), [])
-
-  /* The dark halo every piece of furniture wears. Not a solid plate: a plate would cut a rectangle
-     out of the board, and the point is that the cards pack right up to these things. */
-  const halo: React.CSSProperties = {
-    background: 'radial-gradient(ellipse at center, rgba(4,5,14,0.94) 55%, rgba(4,5,14,0) 100%)',
-    padding: '1.6vh 3vh',
-    borderRadius: '2vh',
-  }
 
   return (
-    <div ref={boardRef} className="relative z-10 min-h-[90vh]">
-      <NameBoard names={names} boardRef={boardRef} onCapped={onCapped} />
+    <div ref={boardRef} className="relative z-10 min-h-[95vh]">
+      <NameBoard names={names} boardRef={boardRef} />
 
       {/*
         * RESET, in the corner — and it is the only host control the lobby carries besides Start.
@@ -1227,15 +1270,23 @@ function Lobby({
       </div>
 
       <div className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center gap-[2.2vh]">
-        <h1 data-lobby-furniture className="det-screen-title" style={halo}>
+        <h1 data-lobby-furniture className="det-screen-title">
           ห้องสืบสวน
           {/* English — `.det-screen-title small` is Press Start 2P, which has no Thai glyphs. */}
           <small>SCAN TO JOIN THE CASE</small>
         </h1>
 
+        {/* THE ONE HALO ON THE BOARD, and it is a RING rather than a plate — the artifact's own
+            `0 0 0 .8cqh rgba(4,5,14,.55)` plus a drop shadow. It separates white paper from cream
+            paper; the title and the Start button need nothing, because the shelf packer blocks
+            their rectangles and no card can ever land on them. */}
         {joinUrl ? (
-          <div data-lobby-furniture style={halo}>
-            <div className="det-paper rounded-2xl p-[2.2vh] shadow-[0_1vh_0_#000]" aria-label="Join QR code">
+          <div data-lobby-furniture>
+            <div
+              className="det-paper rounded-2xl p-[2.2vh]"
+              style={{ boxShadow: '0 0 0 0.8vh rgba(4,5,14,0.55), 1vh 1.4vh 2.4vh rgba(0,0,0,0.75)' }}
+              aria-label="Join QR code"
+            >
               {/* `size` is a pixel count on this component's own API, so the rendered <svg>
                   carries fixed width/height ATTRIBUTES. The class is what actually sizes it: a CSS
                   declaration outranks a presentation attribute, so the code scales with the
@@ -1251,7 +1302,7 @@ function Lobby({
             aloud in the rare case a camera will not scan. Removing it is also what let the QR grow
             from 29% to 41% of the screen height, which matters far more to someone at the back. */}
 
-        <div data-lobby-furniture style={halo} className="pointer-events-auto">
+        <div data-lobby-furniture className="pointer-events-auto">
           <button
             type="button"
             onClick={onStart}
@@ -1261,7 +1312,13 @@ function Lobby({
           </button>
         </div>
 
-        <p data-lobby-furniture className="flex items-baseline justify-center gap-[1.2vh]" style={halo}>
+        {/* A DARK ROUNDED PILL, not a soft halo: this is the authoritative count and it sits at
+            the bottom edge where the board is densest, so it needs an edge of its own. */}
+        <p
+          data-lobby-furniture
+          className="flex items-baseline justify-center gap-[1.2vh]"
+          style={{ background: 'rgba(4,5,14,0.72)', padding: '0.9vh 2.6vh', borderRadius: '5vh' }}
+        >
           <span className="det-thai text-[3.1vh] opacity-80">{t('detectivesInRoom', 'th')}</span>
           {/* The authoritative number, on the numeral face — the cards behind it are the board's
               own view of the same room, and when the board runs out of shelves this is what still
@@ -1280,26 +1337,28 @@ function Lobby({
 }
 
 /**
- * `reading`'s countdown, the projector's copy of the phone's: discrete dots, never a bar. Spec §2
- * is explicit that the timer bar means "you may answer now" and nothing else, so the two phases
- * must not carry affordances that look alike from the back of a hall.
+ * `reading`'s countdown: ten discrete dots along the bottom of the screen, one per second of the
+ * beat, going out as it runs. Never a bar — spec §2 is explicit that the timer bar means "you may
+ * answer now" and nothing else, so the two phases must not carry affordances that look alike from
+ * the back of a hall.
  *
- * Ten dots would be a row of specks; the beat is 10s and each dot is worth 2.5s of it.
+ * TEN, not four. Four encoded a five-second beat in its own length: at ten seconds all four sit
+ * lit for the first six and the countdown says nothing for more than half its length. Ten was
+ * rejected once as "a row of specks", which was true of the dot it was rejected against and is not
+ * true of the 2.6vh dot the approved artifact draws.
  */
 function DotCountdown({ remainingMs }: { remainingMs: number }) {
-  const DOTS = 4
-  const lit = Math.max(0, Math.min(DOTS, Math.ceil(remainingMs / 2500)))
+  const DOTS = 10
+  const lit = Math.max(0, Math.min(DOTS, Math.ceil(remainingMs / 1000)))
   return (
-    <div className="flex items-center gap-[1.6vh]" role="presentation">
+    <div className="flex items-center gap-[1.2vw]" role="presentation">
       {Array.from({ length: DOTS }, (_, i) => (
         <span
           key={i}
           className="rounded-full"
           style={{
             width: '2.6vh', height: '2.6vh',
-            background: i < lit ? 'var(--det-cyan)' : 'transparent',
-            border: '0.4vh solid var(--det-cyan)',
-            opacity: i < lit ? 1 : 0.3,
+            background: i < lit ? 'var(--det-cyan)' : 'rgba(255,255,255,.22)',
           }}
         />
       ))}
@@ -1320,157 +1379,179 @@ function FileHeader({ text }: { text: string }) {
 
 /**
  * `reading` and `question`, which are the same scene — the room gets the question and the duck's
- * answer in full, and the ONLY differences are in the frame around them (spec §2): during the
- * beat there is no timer bar, because answering is impossible, and no answered counter, because
- * nobody can have answered yet and a row of zeroes reads as a fault rather than a beat. Both of
- * those live in `StageFrame`'s slots, which is why one component serves both phases here.
+ * answer in full, and the ONLY differences are in the frame around them (spec §2): during the beat
+ * there is no clock bar, because answering is impossible, and no answered counter, because nobody
+ * can have answered yet and a row of zeroes reads as a fault rather than as a beat. Both of those
+ * live in `StageFrame`'s slots, which is why one component serves both phases here.
  *
- * THE TWO FIELD LABELS ARE GONE (spec §1). `คำถาม / สถานการณ์:` and `เจ้าเป็ด AI ตอบว่า:` measured
- * 14.6px, and raising them to the 3.1vh floor would have eaten the question's own space on the
- * sheet. The dossier's structure already says what each field is: the question is the sentence on
- * the paper, and the answer is the one quoted into a screen with the duck's portrait beside it.
+ * WHAT THE APPROVED ARTIFACT DRAWS, and what this had that it does not:
+ *
+ *  - NO FOLDER TAB. The artifact's case file is a plain sheet, rounded on all four corners, and
+ *    the tab was the projector's own invention. The square top-left corner goes with it — that
+ *    corner only reads as intentional when something sits above it.
+ *  - NO `FILE 01 / 09 — AI STATEMENT` HEADER. The HUD says `CASE 01 / 09` two inches above it.
+ *  - THE QUESTION IS PLAIN INK ON PAPER, not text inside a tinted block. A tinted block reads as
+ *    a form field; the question is the sentence typed on the sheet.
+ *  - THE DUCK'S ANSWER IS A PALE BLUE BOX WITH A CYAN BAR DOWN ITS LEFT EDGE (`#eef4ff`), not a
+ *    dark navy screen with a portrait beside it. On cream paper the dark panel read as a hole cut
+ *    in the sheet, and the portrait duplicated the duck already walking the floor below.
+ *
+ * THE TWO FIELD LABELS STAY GONE (spec §1). `คำถาม / สถานการณ์:` and `เจ้าเป็ด AI ตอบว่า:`
+ * measured 14.6px, and raising them to the 3.1vh floor would have eaten the question's own space.
  */
 function CaseBoard({ question }: { question: Question }) {
-  const no = String(question.order).padStart(2, '0')
-  const of = String(QUESTION_COUNT).padStart(2, '0')
   return (
-    /* `flex-1` + a full-width sheet, NOT a centred group: the file has to TAKE the middle of the
-       stage, or the scene collapses back into a small pill floating on black with ~250px of dead
-       projector underneath it — which is the measured problem this pass exists to fix. */
     /*
-     * `pb-[14.5vh]` IS THE ROOM'S HEADROOM, not a taste margin. The case file lies on the desk in
-     * front of an investigation room whose floor line the backdrop paints at 72.2vh, and whose
-     * detective's hat reaches ~5vh above his own feet-line into the band below that. A sheet that
-     * simply took the whole stage cut both characters off at the waist — a headless torso poking
-     * out from under a piece of paper, which is what this pass is fixing, not shipping. Stopping
-     * the paper here leaves them standing whole on the floor below it, which is the point of
-     * having painted a floor.
+     * `pb-[12vh]` IS THE ROOM'S HEADROOM, not a taste margin. The case file lies on the desk in
+     * front of an investigation room whose floor the backdrop paints across the bottom, and whose
+     * detective's hat reaches above his own feet-line into the band below it. A sheet that simply
+     * took the whole stage cut both characters off at the waist.
      */
-    <div className="flex min-h-0 flex-1 flex-col pt-[1.8vh] pb-[14.5vh]">
-      <Dossier
-        tab={`CASE ${no}`}
-        className="min-h-0 w-full flex-1"
-        bodyClassName="flex min-h-0 flex-1 flex-col"
-      >
-        <FileHeader text={`FILE ${no} / ${of} — AI STATEMENT`} />
-        <hr className="det-dossier-rule mt-[1.2vh]" />
+    <div className="flex min-h-0 flex-1 flex-col px-[4vw] pt-[2vh] pb-[12vh]">
+      {/* `pt-[10vh]` on the BODY clears the CLASSIFIED rubber stamp, which `.det-dossier::before`
+          pins to the paper's own top-right corner at -11 degrees. Vertically rather than with a
+          right-hand `padding`: a reserve on the right narrows every line on the sheet, for the
+          whole height of it, to miss a mark that sits above all of them. */}
+      <Dossier className="min-h-0 w-full flex-1" bodyClassName="flex min-h-0 flex-1 flex-col justify-center gap-[2.4vh] pt-[10vh]">
+        <p className="det-thai" style={{ fontSize: TYPE.question, lineHeight: 1.3 }}>
+          {question.ask}
+        </p>
 
-        {/* The SHEET stretches; the fields on it do not. A tinted block grown to fill a tall sheet
-            reads as an empty form — the paper wants margin around what is typed on it. */}
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-[2.4vh]">
-          {/*
-            * THE QUESTION IS ON THE PAPER, not floating over the stage in cyan above it. That is
-            * the reference's own arrangement and it is what earns the sheet its size — v3.1
-            * shipped one sentence on a 425px sheet with 265px of it blank, which read as
-            * unfinished. Rendered exactly ONCE, here: a second copy above the folder would be both
-            * a worse read from the back of the room and an ambiguous query for anything asserting
-            * on the question text.
-            */}
-          <div className="det-dossier-block p-[2.4vh]">
-            <p className="det-thai" style={{ fontSize: TYPE.question, lineHeight: 1.3 }}>
-              {question.ask}
-            </p>
-          </div>
-
-          {/*
-            * The duck's answer, quoted into the file as a screenshot pasted onto paper — the
-            * reference's dark `#101735` panel with the cyan hairline and the duck's portrait beside
-            * it. The ONE thing on this sheet allowed the screen palette, because it IS a screen;
-            * everything else on cream uses the paper inks (`.det-dossier-head`/`-label`).
-            *
-            * This is also where the duck now stands. It used to be a 150px sprite in the margin
-            * beside the folder, which put it in the exact band of floor the patrolling duck walks
-            * along now that the room is painted behind the whole stage — two ducks, same depth,
-            * reading as a duplicated sprite rather than as two characters.
-            */}
-          <div className="det-dossier-screen flex items-center gap-[2vh] p-[2vh]">
-            <div className="det-dossier-avatar p-[0.8vh]">
-              <Duck size="9vh" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="det-thai" style={{ fontSize: TYPE.answer, lineHeight: 1.35 }}>
-                {question.duckSays}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/*
+          * The duck's answer, quoted onto the sheet. Pale blue with a cyan rule down the left edge
+          * — a quotation on paper, in the one screen-palette colour that survives on cream because
+          * it is a BORDER rather than a field of type. The duck is an emoji at the head of its own
+          * sentence, which is where a quotation's speaker belongs; the walking duck on the floor
+          * below is the same character and does not need repeating at the same depth.
+          */}
+        <p
+          className="det-thai"
+          style={{
+            background: '#eef4ff',
+            borderLeft: '0.9vh solid var(--det-cyan)',
+            borderRadius: '0 0.6vh 0.6vh 0',
+            padding: '2.2vh 2.6vw',
+            fontSize: TYPE.answer,
+            lineHeight: 1.35,
+          }}
+        >
+          <span aria-hidden="true">🦆 </span>&ldquo;{question.duckSays}&rdquo;
+        </p>
       </Dossier>
     </div>
   )
 }
 
+
+/**
+ * How long the verdict beat holds the screen before the standings take it.
+ *
+ * REVEAL_MS is 12s, so this splits it roughly in half. It is measured from the moment this
+ * component mounts with a new question — deliberately NOT from `remainingMs`, which `hold` freezes:
+ * a host who holds the reveal two seconds in would otherwise never see the standings at all.
+ * "Arrives while the clock is frozen" is recoverable; "never arrives" is not.
+ */
+const VERDICT_BEAT_MS = 5_500
+
+/**
+ * THE REVEAL, IN TWO BEATS — and the geometry is what forces it, not a preference.
+ *
+ * The approved artifact draws the standings as a FULL SCREEN: a 9cqh title at the top, then ten
+ * rows at 8.0cqh pitch starting at 17cqh, which ends at 97cqh. That occupies the entire stage. It
+ * cannot share one with a case file and a split bar in a side column, which is what this screen
+ * used to be — and the artifact's own note says so in as many words: the lesson moved to the
+ * middle of the screen "ส่วนอันดับย้ายไปเป็นจังหวะถัดไปแทนที่จะแย่งกันขึ้นพร้อมกัน" — the standings
+ * moved to the next beat instead of competing to arrive at the same time.
+ *
+ * BEAT ONE is the answer: the verdict word, what the room did, the evidence, and the lesson.
+ * BEAT TWO is where everyone now stands.
+ *
+ * THE EVIDENCE STAYS, and that is a deliberate deviation from the artifact's own sketch of beat
+ * one, which draws only the verdict, the split and the teaching line and leaves the bottom half of
+ * the screen empty. `question.truth` and `question.highlight` are schema-REQUIRED fields
+ * (lib/types.ts documents `highlight` as "marked on the reveal") and this is their only render
+ * site in the repo; dropping the sheet would orphan two fields the content the team just wrote is
+ * carried in. They go in the band the sketch left empty, and the ruled teaching line moves BELOW
+ * them — the artifact's note is explicit that the lesson is the last thing the room reads, and
+ * putting it above the evidence would invert the reading order it was moved for.
+ */
 function RevealStage({
-  question, split, top, rankDeltas,
+  question, split, top, rankDeltas, gains,
 }: {
   question: Question
   split: { pass: number; reject: number } | null
   top: LeaderboardRow[]
   rankDeltas: RankDeltas
+  gains: RankDeltas
 }) {
+  const [beat, setBeat] = useState<'verdict' | 'standings'>('verdict')
+  useEffect(() => {
+    setBeat('verdict')
+    const id = setTimeout(() => setBeat('standings'), VERDICT_BEAT_MS)
+    return () => clearTimeout(id)
+  }, [question.id])
+
+  if (beat === 'standings' && top.length > 0) {
+    return <Standings entries={top} caseOrder={question.order} deltas={rankDeltas} gains={gains} beat={question.order} />
+  }
+
   // Case 5's shape rule, restated here: a "here's the trick" framing breaks on the one question
   // where the duck is right. The label names what the panel below is doing, not what went wrong.
   const truthLabel = question.verdict === 'reject' ? 'เป็ดพลาดตรงนี้' : 'ทำไมข้อนี้เชื่อได้'
-  const no = String(question.order).padStart(2, '0')
-  const of = String(QUESTION_COUNT).padStart(2, '0')
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div
-        className="grid min-h-0 flex-1 items-stretch gap-[3vh] py-[1.6vh]"
-        style={{ gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)' }}
+    <div className="flex min-h-0 flex-1 flex-col gap-[2vh] px-[4vw] pt-[2vh] pb-[2vh]">
+      {/*
+        * THE VERDICT, very large, at the top and centred — the first thing the room reads and the
+        * only word on the screen that answers the question they just voted on. Thai face, NOT the
+        * pixel one the artifact sets it in: Press Start 2P carries no Thai glyphs at all and
+        * `ตีกลับ` would lose its vowel marks at the biggest size on the screen.
+        */}
+      <p
+        className="det-thai shrink-0 text-center"
+        style={{
+          fontSize: '7.4vh',
+          lineHeight: 1.1,
+          color: question.verdict === 'reject' ? 'var(--det-pink)' : 'var(--det-green)',
+        }}
       >
-        <Dossier
-          tab={`CASE ${no} · CLOSED`}
-          className="min-h-0"
-          bodyClassName="flex min-h-0 flex-1 flex-col justify-center"
-        >
-          <FileHeader text={`FILE ${no} / ${of} — FINDINGS`} />
+        {question.verdict === 'reject' ? 'ตีกลับ' : 'ผ่าน'}
+      </p>
 
-          <p className="det-thai mt-[2vh]" style={{ fontSize: '3.4vh', lineHeight: 1.35 }}>
-            <HighlightedDuckLine text={question.duckSays} highlight={question.highlight} />
-          </p>
-
-          <hr className="det-dossier-rule my-[2vh]" />
-
-          <div className="det-dossier-label det-thai" style={{ fontSize: TYPE.floor }}>{truthLabel}</div>
-          <p className="det-thai mt-[1vh]" style={{ fontSize: '4.2vh', lineHeight: 1.3 }}>
-            {question.truth}
-          </p>
-
-          {/*
-            * SLAMMED OVER THE FILE, straddling its top edge — the whole point of `.stamp-slam`,
-            * which until now landed on empty black above the columns. It is a CHILD of the sheet
-            * rather than a sibling because `.det-dossier` is the `position: relative` ancestor:
-            * anchored to the column instead, it floated most of a stage-height away from the paper
-            * it is meant to be stamped on. Left of centre on purpose — the folder tab owns the
-            * sheet's top-left and `.det-dossier::before`'s CLASSIFIED DOSSIER stamp owns its
-            * top-right, and this has to miss both. `tone="paper"` is what makes it legible here.
-            */}
-          <div className="absolute z-20" style={{ left: '38%', top: '-3.4vh' }}>
-            <VerdictStamp verdict={question.verdict} tone="paper" />
-          </div>
-        </Dossier>
-
-        <div className="flex min-h-0 flex-col items-center gap-[2vh]">
-          {/* `verdict` is what makes this bar honest — see SplitBar's own doc comment. */}
-          <SplitBar split={split} verdict={question.verdict} />
-          <Standings entries={top} caseOrder={question.order} deltas={rankDeltas} beat={question.order} />
-        </div>
+      {/* What the room did, full width, coloured by which side was CORRECT — see SplitBar. */}
+      <div className="shrink-0">
+        <SplitBar split={split} verdict={question.verdict} />
       </div>
 
+      {/* The evidence: the duck's own sentence with the lie marked in it, and what was actually
+          true. On the cream sheet, because it IS the case file's findings. */}
+      <Dossier className="min-h-0 flex-1" bodyClassName="flex min-h-0 flex-1 flex-col justify-center gap-[1.4vh] pt-[9vh]">
+        <p className="det-thai" style={{ fontSize: '3.6vh', lineHeight: 1.35 }}>
+          <HighlightedDuckLine text={question.duckSays} highlight={question.highlight} />
+        </p>
+        <hr className="det-dossier-rule" />
+        <div className="det-dossier-label det-thai" style={{ fontSize: TYPE.floor }}>{truthLabel}</div>
+        <p className="det-thai" style={{ fontSize: '4.2vh', lineHeight: 1.3 }}>{question.truth}</p>
+      </Dossier>
+
       {/*
-        * THE TEACHING LINE (spec §9), across the middle of the screen and ruled above and below.
+        * THE TEACHING LINE (spec §9), ruled above and below, spanning the screen, and LAST.
         *
-        * It used to sit at 2.4vh in the bottom corner of the case file — the SMALLEST thing on the
-        * one screen where the lesson is supposed to land, under a truth statement half again its
-        * size and beside a leaderboard. At 4.2vh across the full width it is the last thing the
-        * room reads on this screen and the only thing spanning it, which is the weight a "here is
-        * how you could have caught it" line has to carry.
+        * It used to sit at 2.4vh in the bottom corner of the case file — the smallest thing on the
+        * one screen where the lesson is supposed to land. At 4.2vh across the full width it is the
+        * last thing the room reads on this screen and the only thing spanning it, which is the
+        * weight a "here is how you could have caught it" line has to carry.
         */}
-      <div className="shrink-0" style={{ borderTop: '0.3vh solid var(--det-border)', borderBottom: '0.3vh solid var(--det-border)' }}>
+      <div
+        className="shrink-0"
+        style={{
+          borderTop: '0.3vh solid rgba(255,215,0,.45)',
+          borderBottom: '0.3vh solid rgba(255,215,0,.45)',
+        }}
+      >
         <p
           className="det-thai mx-auto max-w-6xl text-center"
-          style={{ fontSize: '4.2vh', lineHeight: 1.25, padding: '1.4vh 0', color: 'var(--det-gold)' }}
+          style={{ fontSize: '4.2vh', lineHeight: 1.25, padding: '1.6vh 0', color: '#ffe9a8' }}
         >
           {question.tell}
         </p>

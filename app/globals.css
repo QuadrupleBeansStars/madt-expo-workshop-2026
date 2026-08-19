@@ -637,21 +637,32 @@ body {
    text would make "the verdict" ambiguous on that screen. English, because this is the pixel
    face and Press Start 2P has no Thai glyphs. */
 .det-dossier::before {
-  content: "CLASSIFIED DOSSIER";
+  content: "CLASSIFIED";
   position: absolute;
-  top: 14px;
-  right: 20px;
-  border: 3px solid #b32d2d;
-  color: #b32d2d;
+  top: 4vh;
+  right: 4vw;
+  border: 0.4vh solid rgba(180, 40, 40, 0.45);
+  color: rgba(180, 40, 40, 0.5);
   font-family: var(--font-pixel), monospace;
-  font-size: 9px;
-  padding: 3px 8px;
-  transform: rotate(5deg);
-  opacity: 0.85;
+  /* 2.6vh, not the flat 9px this shipped with. A ::before has no text node, so neither the 3.1vh
+     floor test nor `check:projector`'s smallest-text probe can see it — it stayed at 9px through
+     an entire legibility pass while every measurable thing on the screen was raised. The approved
+     artifact draws it at 2.6cqh, rotated -11deg like every other stamp in the game. */
+  font-size: 2.6vh;
+  letter-spacing: 0.06em;
+  padding: 0.9vh 1.2vw;
+  transform: rotate(-11deg);
   font-weight: bold;
-  border-radius: 4px;
+  border-radius: 0.5vh;
   pointer-events: none;
 }
+
+/* A sheet with NO folder tab above it, which is what the approved artifact draws on the case
+   board: the tab is the projector's own invention and the artifact's `.dos` is a plain sheet
+   rounded on all four corners. The square top-left only reads as intentional when something sits
+   above it (see components/game/Dossier.tsx), so removing the tab has to take the square corner
+   with it or it reads as a rounding bug. */
+.det-dossier-plain { border-radius: 1vh; }
 
 /* The three ink tones the reference uses INSIDE its dossier: the file header (`#544132`), a
    field label (`#8c593b`) and the tinted block a field sits in (`#ebd9cc` at 60% over

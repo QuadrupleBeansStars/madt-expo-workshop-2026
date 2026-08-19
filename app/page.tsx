@@ -444,6 +444,7 @@ function RevealSheet({ you }: { you?: PublicGameState['you'] }) {
   const rank = you?.rank ?? 0
   const gap = you?.gapToNext
   const roomWrongPct = you?.roomWrongPct
+  const total = you?.score ?? 0
 
   const mark = correct === null ? '–' : correct ? '✓' : '✗'
   const ink = correct === null ? '#7a6a52' : correct ? '#1c7a2e' : '#b3253f'
@@ -469,9 +470,17 @@ function RevealSheet({ you }: { you?: PublicGameState['you'] }) {
             : gap !== undefined && (
               <p className="det-frank-gap">ห่างอันดับ {rank - 1} อยู่ <b>{gap}</b> แต้ม</p>
             )}
-          {roomWrongPct !== undefined && (
-            <p className="det-frank-room">ห้องนี้ {roomWrongPct}% ตอบพลาดข้อนี้</p>
-          )}
+          {/*
+            * THE RUNNING TOTAL, on the quiet line rather than the loud one. `+300` answers "what
+            * did I just get" and is the beat; this answers "how am I doing", which is a different
+            * question and a smaller one — a player has about ten seconds with this screen before
+            * the projector moves on, and two numbers competing for the same glance means neither
+            * is read. It shares the room line's weight deliberately.
+            */}
+          <p className="det-frank-room">
+            รวม {total.toLocaleString('en-US')} แต้ม
+            {roomWrongPct !== undefined && <> · ห้องนี้ {roomWrongPct}% ตอบพลาดข้อนี้</>}
+          </p>
         </div>
       )}
     </div>

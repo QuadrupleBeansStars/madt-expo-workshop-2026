@@ -5,8 +5,18 @@ import type { Verdict } from '@/lib/types'
  * `/api/stats` had no current question to measure (defensive only — `RevealStage` only mounts
  * this with a real question in hand).
  *
+ * ONE BAR, WITH THE LABELS INSIDE IT. The approved artifact draws a single full-width bar whose
+ * two fills each carry their own label centred in them; the labels used to sit in a separate row
+ * above, which made the bar a decoration of a caption rather than the thing being read. Inside,
+ * the share and its size are the same object.
+ *
+ * That is also why the fills no longer carry `.bar-grow`: that class animates `transform: scaleX`,
+ * and text inside a scaled element is squashed with it. The width transition does the same work
+ * without touching the type, and `prefers-reduced-motion` collapses it here rather than in the
+ * stylesheet because the declaration is inline.
+ *
  * COLOURED BY CORRECTNESS, NOT BY ACTION, and deliberately out of step with the phone's two
- * buttons, which are green for ผ่าน because approve/reject reads as go/stop on a control you press
+ * stamps, which are green for ผ่าน because approve/reject reads as go/stop on a control you press
  * (spec §7). On a question whose correct verdict is `reject`, the share that pressed ตีกลับ renders
  * green and the share that pressed ผ่าน renders pink.
  *
@@ -16,15 +26,13 @@ import type { Verdict } from '@/lib/types'
  * alarm-coloured is the honest rendering of a room that was fooled. The labels name the action, so
  * nobody has to work out which share is which from the colour.
  *
- * The pass/reject LABELS live outside the growing fill — `.bar-grow` animates `transform: scaleX`
- * on the fill divs, and text inside a scaled element gets squashed with it. Labels also carry an
- * icon and a count, never the bare word ผ่าน/ตีกลับ alone: `VerdictStamp` above already owns that
- * exact two-word text on this same screen, and a second element with the identical bare text
- * would make it ambiguous which one is "the verdict". Each label stays ONE text node for the same
- * reason — splitting the count into its own element would reintroduce that ambiguity.
+ * Each label carries an icon and a PERCENTAGE, never the bare word ผ่าน/ตีกลับ alone: the reveal's
+ * own verdict headline above this owns that exact two-word text, and a second element with the
+ * identical bare text would make it ambiguous which one is "the verdict". Each label stays ONE
+ * text node for the same reason.
  *
  * `data-share` and `data-correct` are on the fills so a test can assert which share was marked
- * correct without depending on a class name or on a colour value.
+ * correct, and the percentage arithmetic, without depending on a class name or on a colour value.
  */
 export function SplitBar({
   split, verdict,
@@ -38,33 +46,42 @@ export function SplitBar({
   const total = pass + reject
   const passPct = total > 0 ? Math.round((pass / total) * 100) : 0
   const rejectPct = total > 0 ? 100 - passPct : 0
-  const colourFor = (share: Verdict) => (share === verdict ? 'var(--rt-green)' : 'var(--rt-pink)')
+  const correct = (share: Verdict) => share === verdict
+
+  const fill = (share: Verdict, pct: number, label: string) => (
+    <div
+      data-share={share}
+      data-correct={correct(share) ? 'true' : 'false'}
+      className="flex h-full items-center justify-center overflow-hidden whitespace-nowrap"
+      style={{
+        width: `${pct}%`,
+        background: correct(share) ? 'var(--det-green)' : 'var(--det-pink)',
+        /* Ink, not a palette token: neon green needs near-black on it and hot pink needs white,
+           and both are contrast decisions about THIS pair rather than theme colours. */
+        color: correct(share) ? '#04120a' : '#ffffff',
+        transition: 'width 0.6s ease-out',
+      }}
+    >
+      {label}
+    </div>
+  )
 
   return (
-    <div className="w-full" style={{ fontFamily: 'var(--font-thai), sans-serif', fontWeight: 700 }}>
-      <div className="mb-[0.8vh] flex justify-between text-[3.1vh] font-bold">
-        <span style={{ color: colourFor('pass') }}>✓ ผ่าน {pass}</span>
-        <span style={{ color: colourFor('reject') }}>✕ ตีกลับ {reject}</span>
-      </div>
-      <div
-        className="flex h-[4vh] w-full overflow-hidden rounded-full"
-        style={{ background: 'var(--rt-border)' }}
-      >
-        {/* Pass first, always: the reveal test reads these two fills positionally to check the
-            percentage arithmetic, and the order is what makes that assertion mean anything. */}
-        <div
-          className="bar-grow h-full"
-          data-share="pass"
-          data-correct={verdict === 'pass' ? 'true' : 'false'}
-          style={{ width: `${passPct}%`, background: colourFor('pass') }}
-        />
-        <div
-          className="bar-grow h-full"
-          data-share="reject"
-          data-correct={verdict === 'reject' ? 'true' : 'false'}
-          style={{ width: `${rejectPct}%`, background: colourFor('reject') }}
-        />
-      </div>
+    <div
+      className="flex w-full overflow-hidden"
+      style={{
+        height: '7vh',
+        borderRadius: '0.6vh',
+        border: '0.4vh solid rgba(255, 255, 255, 0.3)',
+        fontFamily: 'var(--font-thai), system-ui, sans-serif',
+        fontWeight: 800,
+        fontSize: '3.4vh',
+      }}
+    >
+      {/* Pass first, always: the reveal test reads these two fills positionally to check the
+          percentage arithmetic, and the order is what makes that assertion mean anything. */}
+      {fill('pass', passPct, `✓ ผ่าน ${passPct}%`)}
+      {fill('reject', rejectPct, `✗ ตีกลับ ${rejectPct}%`)}
     </div>
   )
 }

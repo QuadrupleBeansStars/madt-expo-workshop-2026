@@ -23,8 +23,11 @@ import type { ReactNode } from 'react'
 export function Dossier({
   tab, children, className, bodyClassName,
 }: {
-  /** The folder tab's label. Latin and numerals only — VT323 has no Thai. */
-  tab: string
+  /** The folder tab's label. Latin and numerals only — VT323 has no Thai.
+   *  OMIT IT for a plain sheet: the approved artifact's case board is a sheet with no tab at all,
+   *  and the square top-left corner goes with it (`.det-dossier-plain`) — that corner only reads
+   *  as intentional when something sits above it. */
+  tab?: string
   children: ReactNode
   /** On the wrapper, for the column the folder occupies. */
   className?: string
@@ -39,8 +42,8 @@ export function Dossier({
       {/* `fontSize` inline, not in the class: `.det-dossier-tab` (app/globals.css) pins the tab at
           a flat 18px, which is below the 3.1vh floor on every projector at or above 1080p, and
           that file is out of bounds for this pass. An inline declaration outranks it. */}
-      <div className="det-dossier-tab self-start" style={{ fontSize: '3.1vh' }}>📁 {tab}</div>
-      <div className={`det-dossier ${bodyClassName ?? ''}`}>{children}</div>
+      {tab ? <div className="det-dossier-tab self-start" style={{ fontSize: '3.1vh' }}>📁 {tab}</div> : null}
+      <div className={`det-dossier ${tab ? '' : 'det-dossier-plain'} ${bodyClassName ?? ''}`}>{children}</div>
     </div>
   )
 }

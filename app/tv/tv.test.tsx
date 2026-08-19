@@ -73,25 +73,45 @@ describe('the projector', () => {
     expect(screen.getByText(/7/)).toBeInTheDocument() // answered count
   })
 
-  it('shows the verdict, the truth, the room split and the top five on a reveal', async () => {
+  /*
+   * THE REVEAL IS TWO BEATS as of the v3.2 fidelity pass: the verdict, the room's split, the
+   * evidence and the lesson — then, after `VERDICT_BEAT_MS`, the standings on a screen of their
+   * own. The approved artifact's standings occupy a whole stage (a 9vh title over ten rows at an
+   * 8.0vh pitch), which is what forced the split; the two used to compete for one screen.
+   *
+   * So this is two tests, and each has to be able to fail on its own: the first would pass on an
+   * implementation that never advanced, the second on one that skipped the verdict entirely.
+   */
+  it('opens a reveal on the verdict, the room split and the truth — not the standings', async () => {
     mockFetch({ ...base, phase: 'reveal' })
     const { container } = render(<TV />)
-    // The exact bare-word match on the verdict stamp stays unique even though SplitBar's own
-    // labels also contain ผ่าน/ตีกลับ: SplitBar's text is `✓ ผ่าน 7` / `✕ ตีกลับ 3`, never the bare
-    // two-word string alone (see SplitBar's own doc comment on why).
+    // The bare-word match on the verdict headline stays unique even though SplitBar's own labels
+    // also contain ผ่าน/ตีกลับ: those read `✓ ผ่าน 70%` / `✗ ตีกลับ 30%`, never the bare two-word
+    // string alone (see SplitBar's own doc comment on why).
     expect(await screen.findByText(q0.verdict === 'reject' ? 'ตีกลับ' : 'ผ่าน')).toBeInTheDocument()
     expect(screen.getByText(q0.truth)).toBeInTheDocument()
-    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+    expect(screen.queryByText('หมูกรอบ')).toBeNull()
 
-    // IMPORTANT 3 (final whole-branch review): this test's own title has always claimed "the room
-    // split", but SplitBar's percentage arithmetic (:16-17) was asserted nowhere in the repo.
-    // Fixture is pass:7, reject:3 of 10 -> 70%/30%. Labels first, then the actual fill widths.
-    expect(screen.getByText('✓ ผ่าน 7')).toBeInTheDocument()
-    expect(screen.getByText('✕ ตีกลับ 3')).toBeInTheDocument()
-    const [passFill, rejectFill] = container.getElementsByClassName('bar-grow')
+    // SplitBar's percentage arithmetic. Fixture is pass:7, reject:3 of 10 -> 70%/30%. The labels
+    // first, then the actual fill widths — the labels alone would pass on a bar drawn 50/50.
+    expect(screen.getByText('✓ ผ่าน 70%')).toBeInTheDocument()
+    expect(screen.getByText('✗ ตีกลับ 30%')).toBeInTheDocument()
+    const passFill = container.querySelector('[data-share="pass"]')
+    const rejectFill = container.querySelector('[data-share="reject"]')
     expect(passFill).toHaveStyle({ width: '70%' })
     expect(rejectFill).toHaveStyle({ width: '30%' })
   })
+
+  // …and then the standings take the screen. The timeout is past VERDICT_BEAT_MS deliberately: at
+  // findByText's 1s default this would go red for the feature working.
+  it('hands the reveal over to the standings on the second beat', async () => {
+    mockFetch({ ...base, phase: 'reveal' })
+    render(<TV />)
+    expect(await screen.findByText('หมูกรอบ', {}, { timeout: 9000 })).toBeInTheDocument()
+    // The verdict beat is gone, not merely covered — both on one screen is the thing this split
+    // exists to stop.
+    expect(screen.queryByText(q0.truth)).toBeNull()
+  }, 12000)
 
   it('names the trick on an act card and carries the at-work line', async () => {
     mockFetch({ ...base, phase: 'actcard', actIndex: 0, questionId: null })
@@ -285,8 +305,8 @@ describe('the reading branch and the split bar', () => {
     // The minority share — the 3 who pressed ตีกลับ — is the one marked correct and coloured green.
     expect(pass.correct).toBe('false')
     expect(reject.correct).toBe('true')
-    expect(reject.style).toContain('rt-green')
-    expect(pass.style).toContain('rt-pink')
+    expect(reject.style).toContain('det-green')
+    expect(pass.style).toContain('det-pink')
   })
 
   // The other half of the same statement: identical split, identical shares, opposite verdict.
@@ -294,7 +314,7 @@ describe('the reading branch and the split bar', () => {
   it('flips which share is green when the correct verdict is pass', () => {
     const [pass] = shares('pass')
     expect(pass.correct).toBe('true')
-    expect(pass.style).toContain('rt-green')
+    expect(pass.style).toContain('det-green')
   })
 })
 

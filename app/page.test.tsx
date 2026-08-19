@@ -338,7 +338,9 @@ describe('the reveal, on rank and the gap', () => {
     const { container } = render(<Page />)
     expect(await screen.findByText(/คุณนำห้องอยู่/)).toBeInTheDocument()
     expect(container.textContent).not.toContain('ห่างอันดับ')
-    expect(container.textContent).not.toContain('0 แต้ม')
+    // `อยู่ 0 แต้ม`, not a bare `0 แต้ม`: the running total on the same sheet legitimately ends in
+    // a zero ("รวม 300 แต้ม"), and the defect being guarded is the GAP LINE rendering a zero gap.
+    expect(container.textContent).not.toContain('อยู่ 0 แต้ม')
   })
 
   it('a real tie one rank down is still a gap of 0, not a lead', async () => {
@@ -346,6 +348,17 @@ describe('the reveal, on rank and the gap', () => {
     const { container } = render(<Page />)
     await waitFor(() => expect(container.textContent).toContain('ห่างอันดับ 1 อยู่ 0 แต้ม'))
     expect(screen.queryByText(/คุณนำห้องอยู่/)).toBeNull()
+  })
+
+  /* The player's own running total, on the reveal. `+points` says what the question was worth;
+     this says where they now stand, which is the other half of "how am I doing" and the thing a
+     player asked for out loud. Both are asserted, because the total alone would pass on a screen
+     that had quietly lost the per-question number. */
+  it('carries the running total alongside the points just scored', async () => {
+    reveal({ rank: 3, gapToNext: 85, score: 1240 })
+    const { container } = render(<Page />)
+    await waitFor(() => expect(container.textContent).toContain('รวม 1,240 แต้ม'))
+    expect(screen.getByText('+300')).toBeInTheDocument()
   })
 
   it('says nothing about a gap when the server sent none', async () => {

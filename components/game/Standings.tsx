@@ -25,19 +25,15 @@ export type LeaderboardRow = {
 export type RankDeltas = Record<string, number | undefined>
 
 /**
- * TEN PLACES, not five — and the rename is the point of the file (spec §5). `TopFive` was an
- * honest name for a five-row component and a lie for a ten-row one, and a component whose name
- * disagrees with what it renders is how the next person ships a sixth row into a five-row layout.
+ * TEN PLACES ON A SCREEN THIS COMPONENT NOW OWNS OUTRIGHT.
  *
- * ROW PITCH. The spec's numbers are `8.0vh` pitch and a `≈5.6vh` body, so every pair keeps a
- * 2.4vh gap — a 70/30 split of the pitch. Ten rows at 8.0vh is 80vh, which is the WHOLE stage of
- * a 95vh frame once the HUD and the status line are paid for, so those numbers only compute on a
- * screen this component owns outright. It does not own one: there is no `standings` phase, and it
- * shares the reveal with the case file and the split bar. So the grid takes `1fr` rows of whatever
- * height it is actually given and the body caps at `min(5.6vh, 70%)`. On a full-height stage that
- * IS the spec — 8.0vh pitch, 5.6vh body. In the reveal's column it scales down and keeps the 70/30
- * ratio, which is what the 2.4vh gap was protecting: no two rows ever touch. The measured pitch is
- * in the batch report.
+ * The approved artifact draws the standings as a full stage: the shared 9vh title at the top, then
+ * ten rows at an 8.0vh pitch beginning below it, which reaches the bottom edge. That arithmetic
+ * only closes on a whole screen — which is exactly why the reveal became two beats
+ * (app/tv/page.tsx's `RevealStage`) instead of trying to fit this beside a case file and a split
+ * bar. The grid takes `1fr` rows of whatever height the stage gives it and the row body caps at
+ * `min(5.6vh, 78%)`, so the 8.0/5.6 spec holds at full height and the gap between every pair
+ * survives being squeezed.
  *
  * ONE BEAT. The number counts up, the row slides to its new slot and the arrow fades in, all over
  * {@link STANDINGS_BEAT_MS}, and the rank numeral flips at the MIDPOINT — when the row is nearest
@@ -55,47 +51,61 @@ import { STANDINGS_PLACES } from '@/lib/game'
 
 /** Gold, silver, bronze, then neutral — the left rail, which is the second encoding of rank
  *  (spec §5). Colour alone is never the only cue: the numeral is right beside it and is larger
- *  for the same three places. */
-const RAIL = ['var(--det-gold)', '#c9d1e0', '#c07f3a'] as const
-const RAIL_NEUTRAL = 'var(--det-border)'
+ *  for the same three places. Silver is the approved artifact's `#cdd4e0`. */
+const RAIL = ['var(--det-gold)', '#cdd4e0', '#c07f3a'] as const
+const RAIL_NEUTRAL = 'rgba(255, 255, 255, 0.16)'
 
 export function Standings({
-  entries, caseOrder, deltas, beat,
+  entries, caseOrder, deltas, gains, beat,
 }: {
   entries: LeaderboardRow[]
   /** Which case the room has just closed — the subtitle's `AFTER CASE n OF 09`. */
   caseOrder: number
   /** Previous rank minus current rank, by codename. Positive is a climb. */
   deltas?: RankDeltas
+  /** What each row scored on the case just closed — the `+300` beside the name. */
+  gains?: RankDeltas
   /** Changes once per reveal; restarts the beat. The question's order is the natural value. */
   beat: number
 }) {
   if (entries.length === 0) return null
   const rows = entries.slice(0, STANDINGS_PLACES)
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center">
+    <div className="flex min-h-0 w-full flex-1 flex-col items-center px-[6vw]">
       {/* `paddingTop`: Thai upper vowels and tone marks sit ABOVE the em box, and at 9vh with this
-          title's glow they reach into whatever is directly above — on the reveal that is the split
-          bar, a few pixels up. The padding is the clearance, not decoration. */}
-      <h2 className="det-screen-title shrink-0" style={{ paddingTop: '1.8vh' }}>
+          title's glow they reach into whatever is directly above. The padding is the clearance. */}
+      <h2 className="det-screen-title shrink-0" style={{ paddingTop: '1.2vh' }}>
         อันดับตอนนี้
         {/* English, because `.det-screen-title small` is Press Start 2P and that face carries no
             Thai glyphs at all. */}
-        <small>{`AFTER CASE ${caseOrder} OF ${String(QUESTION_COUNT).padStart(2, '0')}`}</small>
+        <small>{`AFTER CASE ${String(caseOrder).padStart(2, '0')} OF ${String(QUESTION_COUNT).padStart(2, '0')}`}</small>
       </h2>
       <ol
         className="grid min-h-0 w-full flex-1"
         style={{ gridTemplateRows: `repeat(${rows.length}, minmax(0, 1fr))` }}
       >
         {rows.map((row) => (
-          <StandingRow key={row.codename} row={row} delta={deltas?.[row.codename]} beat={beat} />
+          <StandingRow
+            key={row.codename}
+            row={row}
+            delta={deltas?.[row.codename]}
+            gain={gains?.[row.codename]}
+            beat={beat}
+          />
         ))}
       </ol>
     </div>
   )
 }
 
-function StandingRow({ row, delta, beat }: { row: LeaderboardRow; delta: number | undefined; beat: number }) {
+function StandingRow({
+  row, delta, gain, beat,
+}: {
+  row: LeaderboardRow
+  delta: number | undefined
+  gain: number | undefined
+  beat: number
+}) {
   const reduced = usePrefersReducedMotion()
   const settled = useAfterFirstFrame(`${beat}:${row.codename}`)
   const score = useCountUp(row.score, STANDINGS_BEAT_MS)
@@ -114,57 +124,84 @@ function StandingRow({ row, delta, beat }: { row: LeaderboardRow; delta: number 
       className="flex list-none items-center"
       style={{
         transform: travelling ? `translateY(${rowsMoved * 100}%)` : 'translateY(0)',
-        transition: reduced ? 'none' : `transform ${STANDINGS_BEAT_MS}ms cubic-bezier(0.2, 0.8, 0.2, 1)`,
+        transition: reduced ? 'none' : `transform ${STANDINGS_BEAT_MS}ms cubic-bezier(0.32, 1.28, 0.4, 1)`,
       }}
     >
       <div
-        className="flex w-full items-center gap-[1.6vh] overflow-hidden rounded-[0.8vh] pr-[1.6vh]"
+        className="flex w-full items-center gap-[1.2vw] overflow-hidden rounded-[0.6vh] pr-[1.8vw]"
         style={{
-          /* 70% of the pitch is the spec's 5.6-of-8.0 ratio, and it holds while the column is
-             tall. Squeezed — ten rows in the reveal's right column, under a 9vh title and a split
-             bar — 70% of a short pitch drops below the 3.1vh text it has to hold, and the row's
-             own `overflow: hidden` would then CLIP the names rather than let them spill. 78% with
-             a line-height of 1 keeps the text inside the box all the way down, and still leaves a
-             visible gap between every pair, which is what the 2.4vh was protecting. */
+          /* 78% of the pitch with a line-height of 1 keeps the text inside the box at every stage
+             height and still leaves a visible gap between every pair — which is what the spec's
+             2.4vh out of the 8.0vh pitch was protecting: no two rows ever touch. */
           height: 'min(5.6vh, 78%)',
           lineHeight: 1,
-          background: 'rgba(13, 17, 39, 0.86)',
-          border: '0.2vh solid var(--det-border)',
-          borderLeft: `1.1vh solid ${top3 ? RAIL[row.rank - 1] : RAIL_NEUTRAL}`,
+          background: 'rgba(255, 255, 255, 0.06)',
           fontFamily: 'var(--font-thai), system-ui, sans-serif',
           fontWeight: 700,
           fontSize: '3.1vh',
         }}
       >
+        {/* THE RAIL — rank encoded a second time, as a colour down the left edge of the row, so
+            the top three read from the back of the hall before any numeral is legible. */}
+        <span
+          aria-hidden="true"
+          className="h-full w-[0.9vw] shrink-0"
+          style={{ background: top3 ? RAIL[row.rank - 1] : RAIL_NEUTRAL }}
+        />
+
         {/*
           * THE RANK-CHANGE INDICATOR COMES FIRST (spec §5) — before the position, the avatar and
           * the name. The eye should learn who climbed before it learns who they are. It fades in
           * over the same beat everything else moves on, so the arrow arrives as the row settles
           * rather than announcing the move before it happens.
+          *
+          * It carries HOW FAR, not just which way: a row that climbed four places and one that
+          * climbed one are different events, and the artifact prints the distance beside the
+          * arrowhead. A held place renders a dash in transparent ink so the column keeps its width
+          * without saying anything.
           */}
         <span
           data-rank-change={direction}
           aria-hidden="true"
-          className="w-[3.4vh] shrink-0 text-center"
+          className="w-[5.5vw] shrink-0 text-center"
           style={{
             fontFamily: 'var(--font-retro), monospace',
-            opacity: reduced ? 1 : settled ? 1 : 0,
+            fontSize: '3.4vh',
+            opacity: reduced || settled ? 1 : 0,
             transition: reduced ? 'none' : `opacity ${STANDINGS_BEAT_MS}ms ease-out`,
-            color: direction === 'up' ? 'var(--det-green)' : direction === 'down' ? 'var(--det-pink)' : '#8892b0',
+            color: direction === 'up' ? 'var(--det-green)' : direction === 'down' ? 'var(--det-pink)' : 'transparent',
           }}
         >
-          {direction === 'up' ? '▲' : direction === 'down' ? '▼' : direction === 'new' ? '•' : '–'}
+          {direction === 'up' ? `▲${rowsMoved}` : direction === 'down' ? `▼${-rowsMoved}` : '–'}
         </span>
 
         <RankNumeral rank={row.rank} delta={delta} beat={beat} large={top3} />
 
-        <span className="shrink-0" aria-hidden="true">{row.avatar}</span>
-        <span className="min-w-0 flex-1 truncate">{row.codename}</span>
+        <span className="shrink-0" style={{ fontSize: '3.7vh' }} aria-hidden="true">{row.avatar}</span>
+        <span className="min-w-0 truncate">{row.codename}</span>
+
+        {/* WHAT THIS ROW JUST SCORED, in the climb's own green, beside the NAME rather than beside
+            the total: the total is where they are, this is what just happened. Fades in on the
+            same beat as the arrow. Absent renders nothing — a player who scored zero on this
+            question did not gain, and "+0" is a different statement from silence. */}
         <span
           className="shrink-0 tabular-nums"
-          style={{ fontFamily: 'var(--font-retro), monospace', color: 'var(--det-gold)' }}
+          style={{
+            fontFamily: 'var(--font-retro), monospace',
+            fontSize: '3.4vh',
+            color: 'var(--det-green)',
+            opacity: reduced || settled ? 1 : 0,
+            transition: reduced ? 'none' : `opacity ${STANDINGS_BEAT_MS}ms ease-out`,
+          }}
         >
-          {score}
+          {gain !== undefined && gain > 0 ? `+${gain}` : ''}
+        </span>
+
+        <span
+          className="ml-auto shrink-0 tabular-nums"
+          style={{ fontFamily: 'var(--font-retro), monospace', fontSize: '4.6vh', color: 'var(--det-gold)' }}
+        >
+          {score.toLocaleString('en-US')}
         </span>
       </div>
     </li>
