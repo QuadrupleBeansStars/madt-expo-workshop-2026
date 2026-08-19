@@ -26,6 +26,21 @@ const LIFT: Record<number, string> = { 1: '-9cqh', 2: '-3cqh', 3: '0cqh' }
 const TILT: Record<number, number> = { 1: 0, 2: -2.5, 3: 2.5 }
 
 /**
+ * GOLD, SILVER, BRONZE — the same three metals the standings' rails already use, so a room that
+ * has watched nine leaderboards reads the podium's three places without comparing any numbers.
+ * First place additionally keeps its glow; the other two are frames only.
+ */
+const FRAME: Record<number, string> = { 1: 'var(--det-gold)', 2: '#cdd4e0', 3: '#c07f3a' }
+
+/**
+ * The width of the SLOT each flanking card sits in, not of the card. Both flanks take the wider of
+ * the two, so first place lands exactly on the centre line of the stage instead of being pushed
+ * off it by 4cqw of difference between second and third. The cards keep their own three distinct
+ * widths inside those slots — the shape IS the ranking.
+ */
+const FLANK_SLOT = '21cqw'
+
+/**
  * EVERY SIZE ON THE CARDS IS `cqh`/`cqw`, NOT `vh`. The three widths already were, so sizing the
  * type in `vh` meant the type and the card it sits in scaled against two different things: on a
  * stage shorter than the viewport (which is every stage here — the HUD and the status band are
@@ -103,9 +118,12 @@ export function Podium({ top, detectives }: { top: PodiumEntry[]; detectives: nu
           aria-hidden="true"
           className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2"
           style={{
-            width: '34cqw',
+            width: '46cqw',
             height: '74cqh',
-            background: 'linear-gradient(to top, rgba(255,231,178,0.32), transparent 74%)',
+            /* A RADIAL cone, not a linear wash inside a box: the linear one faded at the top and
+               kept two hard vertical edges all the way down, which on a flat ground reads as a
+               grey rectangle rather than as light. */
+            background: 'radial-gradient(ellipse 58% 100% at 50% 100%, rgba(255,231,178,0.30), rgba(255,231,178,0) 72%)',
             opacity: revealed >= 3 ? 1 : 0,
             transition: reduced ? 'none' : 'opacity 0.6s ease',
           }}
@@ -125,19 +143,31 @@ export function Podium({ top, detectives }: { top: PodiumEntry[]; detectives: nu
           <small>{`TOP 3 OF ${detectives} DETECTIVES`}</small>
         </h1>
 
-        <div
-          className="absolute inset-x-0 flex items-end justify-center gap-[2.6cqw]"
-          style={{ bottom: '13cqh' }}
-        >
-          {VISUAL_ORDER.map((rank) => (
-            <PodiumCard
-              key={rank}
-              rank={rank}
-              entry={byRank(rank)}
-              landed={revealed >= LANDED_ORDER[rank]}
-              reduced={reduced}
-            />
-          ))}
+        {/* CENTRED ON BOTH AXES. The group used to be pinned to `bottom: 13cqh`, which left it
+            sitting low with a band of desk under it and the title floating a long way above; and
+            because second and third are different widths, `justify-center` on the row put first
+            place off the centre line. Equal flanking slots fix the second half of that. */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          {/* `translateY` compensates for the LIFTS: they raise the cards visually without
+              changing the row's layout height, so a row centred by the flexbox sits high on the
+              screen by half the largest lift. Half of 9cqh puts the group's visible centre on the
+              stage's. */}
+          <div className="flex items-end justify-center gap-[2.6cqw]" style={{ transform: 'translateY(4.5cqh)' }}>
+            {VISUAL_ORDER.map((rank) => (
+              <div
+                key={rank}
+                className="flex justify-center"
+                style={{ width: rank === 1 ? undefined : FLANK_SLOT }}
+              >
+                <PodiumCard
+                  rank={rank}
+                  entry={byRank(rank)}
+                  landed={revealed >= LANDED_ORDER[rank]}
+                  reduced={reduced}
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Last, over the whole screen's worth of result. */}
@@ -145,7 +175,9 @@ export function Podium({ top, detectives }: { top: PodiumEntry[]; detectives: nu
           aria-hidden={revealed >= 5 ? undefined : 'true'}
           className="absolute left-1/2 z-30"
           style={{
-            top: '33cqh',
+            /* Straddling the TOP EDGE of first place's card, the way a stamp lands on a document
+               rather than through the middle of what is written on it. */
+            top: '24cqh',
             fontFamily: 'var(--font-pixel), monospace',
             fontSize: '5.6cqh',
             letterSpacing: '0.08em',
@@ -188,10 +220,11 @@ function PodiumCard({
         fontFamily: 'var(--font-thai), system-ui, sans-serif',
         fontWeight: 700,
         borderRadius: '0.6cqh',
-        border: first ? '0.6cqh solid var(--det-gold)' : undefined,
-        boxShadow: first
-          ? '0 0 4cqh rgba(255,215,0,0.5), 0.7cqh 1.2cqh 2cqh rgba(0,0,0,0.65)'
-          : '0.6cqh 1cqh 1.6cqh rgba(0,0,0,0.6)',
+        border: `0.6cqh solid ${FRAME[rank]}`,
+        /* NO DROP SHADOW. The pin, the tilt and the paper are what make these cards physical; the
+           shadow under them only muddied the three metal frames the ranking is now encoded in.
+           First place keeps its GLOW, which is light rather than shadow and is the announcement. */
+        boxShadow: first ? '0 0 4cqh rgba(255,215,0,0.5)' : undefined,
         opacity: landed ? 1 : 0,
         transform: landed
           ? `translateY(${LIFT[rank]}) scale(1) rotate(${TILT[rank]}deg)`

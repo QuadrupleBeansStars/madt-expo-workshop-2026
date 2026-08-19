@@ -281,7 +281,7 @@ export default function TvPage() {
 
   useEffect(() => () => { if (nextTimerRef.current) clearTimeout(nextTimerRef.current) }, [])
 
-  const control = useCallback(async (action: 'start' | 'next' | 'hold') => {
+  const control = useCallback(async (action: 'start' | 'next' | 'hold' | 'ping') => {
     try {
       const res = await fetch('/api/control', {
         method: 'POST',
@@ -333,6 +333,32 @@ export default function TvPage() {
   }
 
   /*
+   * WHICH BEAT OF THE REVEAL THE ROOM IS ON, and it is advanced by the HOST, not by a clock.
+   *
+   * It was a 5.5s timer inside a 12s reveal, and that lost the standings outright: a host reading
+   * a fast room presses ถัดไป at four seconds, the phase advances to the next case, and the
+   * scoreboard for that case is never shown — silently, with nothing on screen to say so. The
+   * user's report was "the scoreboard is gone".
+   *
+   * So the FIRST ถัดไป on a reveal flips this and posts nothing (see `onNext`), and the second
+   * one advances the room. A press cannot skip the standings because the press IS what shows them.
+   *
+   * THE FALLBACK BELOW IS NOT THE INTENDED PATH and is not a return of the old timer: the SERVER
+   * auto-advances a reveal after REVEAL_MS whether or not anyone pressed anything, so without it a
+   * host who simply talks through the reveal would still lose the standings — the one failure this
+   * change exists to remove. It fires late, leaving the standings up for the rest of the window.
+   */
+  const [revealBeat, setRevealBeat] = useState<'verdict' | 'standings'>('verdict')
+  const revealPhase = state?.phase === 'reveal'
+  const revealQuestionId = state?.questionId ?? null
+  useEffect(() => {
+    if (!revealPhase) { setRevealBeat('verdict'); return }
+    setRevealBeat('verdict')
+    const id = setTimeout(() => setRevealBeat('standings'), REVEAL_FALLBACK_MS)
+    return () => clearTimeout(id)
+  }, [revealPhase, revealQuestionId])
+
+  /*
    * THE DOUBLE-TAP HAZARD. Two quick presses during a reveal could advance to question N+1 AND
    * immediately past it into ITS reveal — the room never gets that question's answer window, and
    * nothing on screen says so until the leaderboard looks wrong later. Projectors lag; hosts tap
@@ -356,6 +382,21 @@ export default function TvPage() {
    */
   const onNext = useCallback(async () => {
     if (nextPending) return
+    /*
+     * The reveal's own second beat, taken locally and WITHOUT advancing the room: it has seen the
+     * verdict and now gets the standings. The next press advances the case.
+     *
+     * IT STILL PINGS. `ping` (app/api/control/route.ts) checks the token and does nothing else, in
+     * every phase — so a host whose token has gone stale finds out on the FIRST press rather than
+     * discovering it one press later when the room is waiting. Without it this press was the one
+     * host action that could silently do nothing at all: `scripts/check-projector-fit.mjs` probes
+     * exactly that, on a reveal, and caught it.
+     */
+    if (revealPhase && revealBeat === 'verdict') {
+      setRevealBeat('standings')
+      void control('ping')
+      return
+    }
     setNextPending(true)
     const ok = await control('next')
     if (ok) {
@@ -363,7 +404,7 @@ export default function TvPage() {
     } else {
       setNextPending(false)
     }
-  }, [nextPending, control])
+  }, [nextPending, control, revealPhase, revealBeat])
 
   const question = state?.questionId ? QUESTIONS_IN_ORDER.find((q) => q.id === state.questionId) ?? null : null
 
@@ -486,6 +527,7 @@ export default function TvPage() {
           question={question}
           rankDeltas={rankDeltas}
           gains={gains}
+          revealBeat={revealBeat}
           tokenError={tokenError}
           hostToken={token}
           onReset={(ok) => { setTokenError(!ok); if (ok) lastSeqRef.current = -1 }}
@@ -544,7 +586,6 @@ function HostControls({
   onHold: () => void
   onReset: (ok: boolean) => void
 }) {
-  const borderColor = tokenError ? 'var(--rt-pink)' : 'var(--rt-green)'
   const canNext = phase !== 'lobby' && phase !== 'podium' && !nextPending
   const canHold = phase === 'reveal'
 
@@ -563,19 +604,31 @@ function HostControls({
    * in the middle of the screen where a host who just mistyped is far more likely to see it.
    * `scripts/check-projector-fit.mjs` probes exactly this state, on `reveal`, for both reasons.
    */
+  /*
+   * NO PANEL AND NO RING. This cluster used to sit in a dark box outlined in `--rt-green` — a v2
+   * token, on a screen themed entirely in `--det-*` — which made a healthy room look like it was
+   * being warned about something and made the three controls read as a separate widget bolted into
+   * the corner. The token error still has a home: `StageFrame` puts the message in the HUD's
+   * centre slot, in the middle of the screen, where a host who just mistyped will actually see it.
+   *
+   * The three buttons are the SAME OBJECT as the lobby's Start and the phone's action button —
+   * `.det-btn`, gold with dark ink for the one that moves the room forward, purple for the two
+   * that do not. `--det-btn-pad` is tightened here because this is a corner cluster rather than a
+   * splashy CTA; the size still comes from the page root, so it scales with the projector.
+   */
   return (
     <div
-      className="flex items-center gap-[1vh] rounded-lg p-[0.6vh]"
-      style={{ background: 'var(--rt-panel)', border: '0.3vh solid', borderColor }}
+      className="flex items-center gap-[1vh]"
+      style={{ '--det-btn-pad': '0.8vh 1.6vh' } as React.CSSProperties}
     >
-      <button type="button" className="pixel-btn host-ctrl gold" style={HOST_BTN} disabled={!canNext} onClick={onNext}>
+      <button type="button" className="det-btn det-btn-gold det-btn-thai" style={HOST_BTN} disabled={!canNext} onClick={onNext}>
         {nextPending ? '✓ ส่งแล้ว' : t('hostNext', 'th')}
       </button>
       {/* Hold renders pressed while state.holding is true — the only host control with a
           two-way toggle, so it needs its own visible on/off state, not just enabled/disabled. */}
       <button
         type="button"
-        className="pixel-btn host-ctrl"
+        className="det-btn det-btn-thai"
         style={HOST_BTN}
         disabled={!canHold}
         aria-pressed={holding}
@@ -590,8 +643,8 @@ function HostControls({
         label={t('hostReset', 'th')}
         armedLabel={t('hostResetArmed', 'th')}
         onDone={onReset}
-        className="host-reset"
-        style={{ fontSize: TYPE.control, padding: '0.6vh 1.2vh' }}
+        className="det-btn det-btn-thai det-btn-danger"
+        style={HOST_BTN}
       />
     </div>
   )
@@ -685,7 +738,7 @@ const casePlate = (order: number) => `CASE ${pad2(order)} / ${pad2(QUESTION_COUN
 const allCasesPlate = () => `CASES ${pad2(QUESTION_COUNT)} / ${pad2(QUESTION_COUNT)}`
 
 function Stage({
-  state, stats, origin, question, rankDeltas, gains, tokenError, hostControls, hostToken, onReset, onStart,
+  state, stats, origin, question, rankDeltas, gains, revealBeat, tokenError, hostControls, hostToken, onReset, onStart,
 }: {
   state: PublicGameState | null
   stats: RoomStats | null
@@ -693,6 +746,9 @@ function Stage({
   question: Question | null
   rankDeltas: RankDeltas
   gains: RankDeltas
+  /** Which beat of the reveal the host has advanced to. Owned by `TvPage`, because the control
+   *  that changes it is up there. */
+  revealBeat: 'verdict' | 'standings' 
   tokenError: boolean
   hostControls: React.ReactNode
   /** Non-empty by construction: `Stage` only renders once the gate has resolved a held token. */
@@ -784,6 +840,7 @@ function Stage({
           top={stats?.leaderboard ?? []}
           rankDeltas={rankDeltas}
           gains={gains}
+          beat={revealBeat}
         />
       ),
     })
@@ -1264,8 +1321,8 @@ function Lobby({
           label={t('hostReset', 'th')}
           armedLabel={t('hostResetArmed', 'th')}
           onDone={onReset}
-          className="host-reset"
-          style={{ fontSize: TYPE.control, padding: '0.6vh 1.2vh' }}
+          className="det-btn det-btn-thai det-btn-danger"
+          style={{ fontSize: TYPE.control, '--det-btn-pad': '0.8vh 1.6vh' } as React.CSSProperties}
         />
       </div>
 
@@ -1444,14 +1501,16 @@ function CaseBoard({ question }: { question: Question }) {
 
 
 /**
- * How long the verdict beat holds the screen before the standings take it.
+ * THE SAFETY NET under the host's own press, not a beat in its own right — see `revealBeat` in
+ * `TvPage`. The server auto-advances a reveal after REVEAL_MS (12s) whether or not anyone pressed
+ * anything, so a host who talks through one would lose the standings without this. Late enough
+ * that the host's press is what normally shows them, early enough to leave the board up for a few
+ * seconds before the server moves on.
  *
- * REVEAL_MS is 12s, so this splits it roughly in half. It is measured from the moment this
- * component mounts with a new question — deliberately NOT from `remainingMs`, which `hold` freezes:
- * a host who holds the reveal two seconds in would otherwise never see the standings at all.
- * "Arrives while the clock is frozen" is recoverable; "never arrives" is not.
+ * Measured from the moment the reveal is entered, deliberately NOT from `remainingMs`, which
+ * `hold` freezes: a host who holds the reveal two seconds in would otherwise never reach it.
  */
-const VERDICT_BEAT_MS = 5_500
+const REVEAL_FALLBACK_MS = 8_000
 
 /**
  * THE REVEAL, IN TWO BEATS — and the geometry is what forces it, not a preference.
@@ -1464,7 +1523,7 @@ const VERDICT_BEAT_MS = 5_500
  * moved to the next beat instead of competing to arrive at the same time.
  *
  * BEAT ONE is the answer: the verdict word, what the room did, the evidence, and the lesson.
- * BEAT TWO is where everyone now stands.
+ * BEAT TWO is where everyone now stands, and the HOST'S ถัดไป is what moves between them.
  *
  * THE EVIDENCE STAYS, and that is a deliberate deviation from the artifact's own sketch of beat
  * one, which draws only the verdict, the split and the teaching line and leaves the bottom half of
@@ -1476,21 +1535,16 @@ const VERDICT_BEAT_MS = 5_500
  * putting it above the evidence would invert the reading order it was moved for.
  */
 function RevealStage({
-  question, split, top, rankDeltas, gains,
+  question, split, top, rankDeltas, gains, beat,
 }: {
   question: Question
   split: { pass: number; reject: number } | null
   top: LeaderboardRow[]
   rankDeltas: RankDeltas
   gains: RankDeltas
+  /** Owned by `TvPage`, because the host's ถัดไป is what moves it. */
+  beat: 'verdict' | 'standings'
 }) {
-  const [beat, setBeat] = useState<'verdict' | 'standings'>('verdict')
-  useEffect(() => {
-    setBeat('verdict')
-    const id = setTimeout(() => setBeat('standings'), VERDICT_BEAT_MS)
-    return () => clearTimeout(id)
-  }, [question.id])
-
   if (beat === 'standings' && top.length > 0) {
     return <Standings entries={top} caseOrder={question.order} deltas={rankDeltas} gains={gains} beat={question.order} />
   }

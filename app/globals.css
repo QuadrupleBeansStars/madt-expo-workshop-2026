@@ -433,6 +433,36 @@ body {
 .det-btn.det-btn-gold { background-color: #b08200; border-color: #ffeb80; color: #241c00; }
 .det-btn.det-btn-gold:hover { background-color: #cca400; }
 
+/*
+ * THE HOST'S RESET, in the same family as the other two controls rather than as a bare 12px
+ * outline bolted into the corner. It is the only host action with NO undo — it ejects every phone
+ * in the room and throws away the leaderboard — so it is the one control that wears an alarm
+ * colour, quietly when idle and solid once ARMED. Armed and idle are different COLOURS, not just
+ * different words: the host reads this at a glance from a metre away with a room watching.
+ */
+.det-btn.det-btn-danger { background-color: #19030a; border-color: var(--det-pink); color: #ffd9e2; }
+.det-btn.det-btn-danger:hover { background-color: #2a0612; }
+.det-btn.det-btn-danger[data-armed='true'] {
+  background-color: var(--det-pink);
+  border-color: #ffffff;
+  color: #ffffff;
+  animation: host-reset-pulse 0.9s ease-in-out infinite;
+}
+
+/* Hold's on/off state. `.pixel-btn[data-pressed]` above did this while these were pixel buttons;
+   they are `.det-btn`s now, and a toggle with no visible ON state is the one control a host cannot
+   read from the podium. */
+.det-btn[data-pressed='true'] {
+  background-color: var(--det-gold);
+  color: #1e1713;
+  border-color: #fff3b0;
+  box-shadow: inset -0.4vh 0.4vh 0 rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .det-btn.det-btn-danger[data-armed='true'] { animation: none; }
+}
+
 /* The screen title shared by the lobby, the standings and the podium. `inline-block` matters on
    the lobby: a full-width title would cost the name board a whole band, so the title takes only
    the width of its own text and cards pack around it. */

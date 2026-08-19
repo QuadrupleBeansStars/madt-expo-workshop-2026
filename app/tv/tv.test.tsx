@@ -197,8 +197,12 @@ describe('the host Next control', () => {
       return body !== undefined && JSON.parse(String(body)).action === 'next'
     })
 
+  /* ON AN ACT CARD, not a reveal. A reveal's FIRST ถัดไป is the standings beat and deliberately
+     posts nothing (see "the reveal is advanced by the host" below), so a double-tap guard measured
+     there would be measuring the wrong control. Every other advanceable phase posts on the first
+     press, and the act card is one. */
   it('ignores a second Next press until the first registers, then accepts the next one', async () => {
-    const fetchSpy = mockFetchWithSpy({ ...base, phase: 'reveal' })
+    const fetchSpy = mockFetchWithSpy({ ...base, phase: 'actcard', actIndex: 0, questionId: null })
     const user = userEvent.setup()
     render(<TV />)
 
@@ -237,7 +241,7 @@ describe('the host Next control', () => {
         await new Promise((resolve) => setTimeout(resolve, 1500)) // ...but THIS response is slow
         return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } })
       }
-      return new Response(JSON.stringify({ ...base, phase: 'reveal', seq }), { headers: { 'content-type': 'application/json' } })
+      return new Response(JSON.stringify({ ...base, phase: 'actcard', actIndex: 0, questionId: null, seq }), { headers: { 'content-type': 'application/json' } })
     })
     vi.stubGlobal('fetch', fn)
     const user = userEvent.setup()
@@ -251,6 +255,60 @@ describe('the host Next control', () => {
     // the control POST's own 1500ms delay — and far short of a NEXT_GUARD_MS-after-resolution
     // re-enable, which would land closer to 1500 + 700 = 2200ms.
     await waitFor(() => expect(nextBtn).toBeEnabled(), { timeout: 1300 })
+  })
+})
+
+/*
+ * THE REVEAL IS ADVANCED BY THE HOST, not by a clock inside it.
+ *
+ * The standings used to appear on a 5.5s timer inside a 12s reveal window, which meant a host
+ * reading a fast room pressed ถัดไป at four seconds and the scoreboard for that case was never
+ * shown — silently. The user's report was "the scoreboard is gone". The first press now shows it
+ * and posts nothing; the second advances the room.
+ */
+describe('the reveal is advanced by the host', () => {
+  beforeEach(() => vi.unstubAllGlobals())
+
+  const spy = (state: Record<string, unknown>) => {
+    const fn = vi.fn(async (url: string) => new Response(
+      JSON.stringify(String(url).includes('/api/stats') ? stats : state),
+      { headers: { 'content-type': 'application/json' } },
+    ))
+    vi.stubGlobal('fetch', fn)
+    return fn
+  }
+  const nextPosts = (fn: ReturnType<typeof vi.fn>) =>
+    fn.mock.calls.filter(([url, init]) => {
+      if (!String(url).includes('/api/control')) return false
+      const body = init && typeof init === 'object' ? (init as RequestInit).body : undefined
+      return body !== undefined && JSON.parse(String(body)).action === 'next'
+    })
+
+  it('shows the standings on the first press, and does not advance the room', async () => {
+    const fetchSpy = spy({ ...base, phase: 'reveal' })
+    const user = userEvent.setup()
+    render(<TV />)
+    await screen.findByText(q0.truth)
+
+    await user.click(screen.getByRole('button', { name: /ถัดไป/ }))
+
+    expect(await screen.findByText('หมูกรอบ')).toBeInTheDocument()
+    // The room did NOT move: the press was spent on the beat, not on the phase.
+    expect(nextPosts(fetchSpy)).toHaveLength(0)
+  })
+
+  it('advances the room on the second press', async () => {
+    const fetchSpy = spy({ ...base, phase: 'reveal' })
+    const user = userEvent.setup()
+    render(<TV />)
+    await screen.findByText(q0.truth)
+
+    const next = screen.getByRole('button', { name: /ถัดไป/ })
+    await user.click(next)
+    await screen.findByText('หมูกรอบ')
+    await user.click(screen.getByRole('button', { name: /ถัดไป|ส่งแล้ว/ }))
+
+    expect(nextPosts(fetchSpy)).toHaveLength(1)
   })
 })
 
@@ -307,6 +365,15 @@ describe('the reading branch and the split bar', () => {
     expect(reject.correct).toBe('true')
     expect(reject.style).toContain('det-green')
     expect(pass.style).toContain('det-pink')
+  })
+
+  /* Nobody voted. Both fills are 0% wide, and the labels live inside them, so the bar would be an
+     empty outlined box — a broken widget rather than a fact. Found on a real reveal in a room that
+     had not answered. */
+  it('says so when nobody answered, instead of drawing an empty bar', () => {
+    const { container } = render(<SplitBar split={{ pass: 0, reject: 0 }} verdict="reject" />)
+    expect(container.querySelector('[data-share="pass"]')).toBeNull()
+    expect(container.textContent).toContain('ยังไม่มีใครตอบข้อนี้')
   })
 
   // The other half of the same statement: identical split, identical shares, opposite verdict.

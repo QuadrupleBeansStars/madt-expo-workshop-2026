@@ -78,10 +78,30 @@ export function SplitBar({
         fontSize: '3.4vh',
       }}
     >
-      {/* Pass first, always: the reveal test reads these two fills positionally to check the
-          percentage arithmetic, and the order is what makes that assertion mean anything. */}
-      {fill('pass', passPct, `✓ ผ่าน ${passPct}%`)}
-      {fill('reject', rejectPct, `✗ ตีกลับ ${rejectPct}%`)}
+      {/*
+        * NOBODY ANSWERED. Both fills would be 0% wide, and since the labels now live INSIDE them
+        * the bar rendered as an empty outlined box — which reads as a broken widget rather than as
+        * a fact. Found on a real reveal where the room had not voted. It says so instead.
+        *
+        * Not folded into the two fills as a "0%" label: 0% of nothing is not 0%, and a bar showing
+        * two zero shares implies two shares were counted.
+        */}
+      {total === 0 ? (
+        <div
+          data-share="none"
+          className="flex h-full w-full items-center justify-center"
+          style={{ color: '#8b95b5' }}
+        >
+          ยังไม่มีใครตอบข้อนี้
+        </div>
+      ) : (
+        <>
+          {/* Pass first, always: the reveal test reads these two fills positionally to check the
+              percentage arithmetic, and the order is what makes that assertion mean anything. */}
+          {fill('pass', passPct, `✓ ผ่าน ${passPct}%`)}
+          {fill('reject', rejectPct, `✗ ตีกลับ ${rejectPct}%`)}
+        </>
+      )}
     </div>
   )
 }
