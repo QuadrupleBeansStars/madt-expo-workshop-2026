@@ -12,7 +12,7 @@ export const ACT_COUNT = ACTS.length
  * question line and one duck sentence, and the room finishes in single digits. A window longer
  * than the reading buys dead air, not thought.
  */
-export const QUESTION_MS = 10_000
+export const QUESTION_MS = 8_000
 
 /**
  * The beat before the answer window opens, 10s of it. The room reads the question and the duck's

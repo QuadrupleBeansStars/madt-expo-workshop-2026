@@ -7,7 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
  * early-return on a null ref anyway. */
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 import type { PublicGameState, Question } from '@/lib/types'
-import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS } from '@/lib/game'
+import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, READING_MS } from '@/lib/game'
 import { ACTS, CLOSING_LINES } from '@/content/questions'
 import { QRCodeSVG } from 'qrcode.react'
 import { Duck } from '@/components/game/Duck'
@@ -925,7 +925,11 @@ function RulesStage() {
           <li className="flex flex-col gap-[1.4vh]">
             <span className="flex gap-[2vh]">
               <span className="det-term shrink-0" style={{ color: '#8c593b' }}>2</span>
-              <span>อ่าน 10 วิ แล้วตัดสินใน 15 วิ</span>
+              {/* DERIVED, never typed. This line read "อ่าน 10 วิ แล้วตัดสินใน 15 วิ" while the
+                  answer window was already 8 — the rules screen was telling the room the wrong
+                  number, and only a test's failure output caught it. Both come from the constants
+                  now, so retuning either clock cannot leave this behind. */}
+              <span>{`อ่าน ${READING_MS / 1000} วิ แล้วตัดสินใน ${QUESTION_MS / 1000} วิ`}</span>
             </span>
             {/* THE TWO VERDICTS AS THE PAIR THEY ARE ON THE PHONE — outlined, side by side, green
                 and red. Written as a sentence they were a slash between two parentheses; drawn as
@@ -955,7 +959,20 @@ function RulesStage() {
           </li>
           <li className="flex gap-[2vh]">
             <span className="det-term shrink-0" style={{ color: '#8c593b' }}>3</span>
-            <span>ถูกติดกันยิ่งได้เยอะ <strong style={{ color: '#b32d2d' }}>ผิดเมื่อไหร่เริ่มนับใหม่</strong></span>
+            {/* "ผิดหรือไม่ทัน", not just "ผิด". `scorePlayer` resets the streak on a MISSING
+                answer exactly as it does on a wrong one (lib/scoring.ts: `if (!a) { streak = 0 }`),
+                and with an eight-second window not answering is going to happen to somebody every
+                round. The rules screen has to state the rule the code actually applies. */}
+            <span>ถูกติดกันยิ่งได้เยอะ <strong style={{ color: '#b32d2d' }}>ผิดหรือไม่ทัน เริ่มนับใหม่</strong></span>
+          </li>
+          {/* THE SPEED BONUS IS NOW ANNOUNCED. It used to be kept off this screen deliberately, on
+              the argument that telling a room faster scores more makes it rush — the opposite of
+              what the workshop teaches. The team decided the other way, and the wording carries the
+              proportion so it cannot be misread as a reason to hurry: ten points against a hundred
+              for being right, which is the whole invariant behind MAX_SPEED_BONUS. */}
+          <li className="flex gap-[2vh]">
+            <span className="det-term shrink-0" style={{ color: '#8c593b' }}>4</span>
+            <span>ตอบไวได้โบนัสนิดหน่อย <strong style={{ color: '#8c593b' }}>แต่ตอบถูกสำคัญกว่ามาก</strong></span>
           </li>
         </ol>
 

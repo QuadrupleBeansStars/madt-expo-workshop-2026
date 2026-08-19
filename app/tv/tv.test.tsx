@@ -6,7 +6,8 @@ import userEvent from '@testing-library/user-event'
 // omits it only because it was written as a standalone illustration.
 import '@testing-library/jest-dom/vitest'
 import TV from './page'
-import { QUESTIONS_IN_ORDER } from '@/lib/game'
+import { QUESTIONS_IN_ORDER, QUESTION_MS, READING_MS } from '@/lib/game'
+import { scoreAnswer } from '@/lib/scoring'
 import { ACTS } from '@/content/questions'
 import { SplitBar } from '@/components/game/SplitBar'
 import { t } from '@/lib/i18n'
@@ -541,15 +542,31 @@ describe('the lobby', () => {
 describe('the rules screen', () => {
   beforeEach(() => vi.unstubAllGlobals())
 
-  it('renders the three rules and the scoring chips on phase "rules"', async () => {
+  /* THE CHIPS ARE CHECKED AGAINST THE SCORING FUNCTIONS, not against typed-in numbers.
+   *
+   * This screen is the room's only statement of how points work, and it is the one place a wrong
+   * number is never noticed: nobody in the audience can check it, and nothing else on the
+   * projector repeats it. It already shipped one — "ตัดสินใน 15 วิ" while the window was 8 —
+   * caught only because another test happened to print the screen's text.
+   *
+   * So the expected strings are BUILT from `scoreAnswer`, at each streak length the chips claim.
+   * Retune BASE_POINTS or MAX_STREAK_MULTIPLIER and this fails until the screen agrees. */
+  it('states scoring the room can trust, derived from the scoring code itself', async () => {
     mockFetch({ ...base, phase: 'rules', questionId: null })
     render(<TV />)
     expect(await screen.findByText(/จอจะขึ้น/)).toBeInTheDocument()
-    expect(screen.getByText(/อ่าน 10 วิ แล้วตัดสินใน 15 วิ/)).toBeInTheDocument()
-    expect(screen.getByText(/ผิดเมื่อไหร่เริ่มนับใหม่/)).toBeInTheDocument()
-    for (const chip of ['ถูก +100', 'ติดกัน2 +200', 'ติดกัน3+ +300', 'ผิด 0']) {
-      expect(screen.getByText(chip), chip).toBeInTheDocument()
-    }
+    expect(screen.getByText(`อ่าน ${READING_MS / 1000} วิ แล้วตัดสินใน ${QUESTION_MS / 1000} วิ`)).toBeInTheDocument()
+    expect(screen.getByText(/ผิดหรือไม่ทัน เริ่มนับใหม่/)).toBeInTheDocument()
+
+    // `QUESTION_MS` elapsed = the slowest correct answer, so speedBonus is 0 and each figure is
+    // the base times the multiplier alone — which is exactly what a chip promises.
+    const at = (streak: number) => scoreAnswer(true, streak, QUESTION_MS)
+    expect(screen.getByText(`ถูก +${at(1)}`)).toBeInTheDocument()
+    expect(screen.getByText(`ติดกัน2 +${at(2)}`)).toBeInTheDocument()
+    expect(screen.getByText(`ติดกัน3+ +${at(3)}`)).toBeInTheDocument()
+    expect(screen.getByText('ผิด 0')).toBeInTheDocument()
+    // The cap is real: a fourth in a row pays the same as the third, which is what "3+" claims.
+    expect(at(4)).toBe(at(3))
   })
 
   // The same content must NOT leak onto the screen the room is judging a question on. A rules
@@ -570,12 +587,27 @@ describe('the rules screen', () => {
    * them rush, which is the opposite of what this workshop teaches. The bonus stays a silent
    * tiebreaker, so nothing on this screen may name speed or time-based points.
    */
-  it('never mentions the speed bonus', async () => {
+  /* The team reversed this. It used to assert the speed bonus was ABSENT, on the argument that
+     telling a room faster scores more makes it rush — the opposite of what the workshop teaches.
+     It is announced now, and what this guards instead is the PROPORTION: the line may not promise
+     speed without saying being right matters more, because that is the thing that keeps the
+     mechanic honest (MAX_SPEED_BONUS is 10 against BASE_POINTS of 100). */
+  it('announces the speed bonus only alongside what outweighs it', async () => {
     mockFetch({ ...base, phase: 'rules', questionId: null })
     const { container } = render(<TV />)
     await screen.findByText(/จอจะขึ้น/)
     const text = container.textContent ?? ''
-    expect(text, 'the rules screen must not teach the room to rush').not.toMatch(/เร็ว|โบนัส|bonus|speed/i)
+    expect(text).toMatch(/ไว|เร็ว/)
+    expect(text, 'speed must never be offered without the thing that outweighs it').toMatch(/ตอบถูกสำคัญกว่า/)
+  })
+
+  // The clocks on this screen are derived from the constants. It once said "ตัดสินใน 15 วิ" while
+  // the window was 8 — the screen that teaches the rules was stating the wrong one.
+  it('states the real clocks, not typed-in ones', async () => {
+    mockFetch({ ...base, phase: 'rules', questionId: null })
+    const { container } = render(<TV />)
+    await screen.findByText(/จอจะขึ้น/)
+    expect(container.textContent).toContain(`อ่าน ${READING_MS / 1000} วิ แล้วตัดสินใน ${QUESTION_MS / 1000} วิ`)
   })
 
   /*

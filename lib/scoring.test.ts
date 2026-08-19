@@ -176,3 +176,33 @@ describe('scorePlayer', () => {
     expect(atMaxMultiplier.map((q) => q.order)).toEqual([4, 5, 6, 7])
   })
 })
+
+/*
+ * THE RULES SCREEN'S CLAIM, checked against the walk it describes.
+ *
+ * The projector tells the room "ผิดหรือไม่ทัน เริ่มนับใหม่". It used to say only "ผิด", which was
+ * a quieter version of the same bug the reveal had: the screen that teaches the rule stating a
+ * rule the code does not apply. A MISSING answer breaks the streak exactly as a wrong one does,
+ * and at an eight-second window that will happen to somebody every round.
+ */
+describe('what breaks a streak', () => {
+  const qs = QUESTIONS_IN_ORDER.slice(0, 4)
+  const right = (q: (typeof qs)[number]) => ans(q.id, q.verdict)
+
+  it('a wrong answer resets it', () => {
+    const wrong = qs[1].verdict === 'pass' ? 'reject' : 'pass'
+    const { perQuestion } = scorePlayer(
+      [right(qs[0]), ans(qs[1].id, wrong), right(qs[2])].filter(Boolean),
+      qs,
+    )
+    // Third question is a fresh streak of one, so it pays the base — not the double it would have
+    // paid had the miss in between not reset anything.
+    expect(perQuestion[qs[2].id].points).toBe(BASE_POINTS)
+  })
+
+  it('NOT answering resets it too — the half the screen used to leave out', () => {
+    const { perQuestion } = scorePlayer([right(qs[0]), right(qs[2])], qs) // qs[1] never answered
+    expect(perQuestion[qs[1].id]).toBeUndefined()
+    expect(perQuestion[qs[2].id].points).toBe(BASE_POINTS)
+  })
+})
