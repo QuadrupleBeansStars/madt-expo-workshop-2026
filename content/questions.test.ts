@@ -91,6 +91,25 @@ describe('QUESTIONS', () => {
     expect(Math.max(...runs)).toBeGreaterThan(Math.ceil((qs.length - passCount) / (passCount + 1)))
   })
 
+
+  /* No case's reason may point at another case. Case 1's used to end "ต่างจากอีกสองข้อในบทนี้" —
+     a comparison to two questions the room had not been asked yet, on the very first reveal of the
+     game. The reveal explains the case in front of the room and nothing else; the act card is the
+     screen that draws the three together, and it comes after all three have been played. */
+  it('explains each case on its own, never by pointing at another', () => {
+    const CROSS = /อีกสองข้อ|ข้ออื่น|ในบทนี้|ข้อถัดไป|ข้อต่อไป|สองข้อที่เหลือ/
+    for (const q of QUESTIONS) {
+      expect(CROSS.test(q.truth), `${q.id}: ${q.truth}`).toBe(false)
+    }
+  })
+
+  // Short enough to be read aloud in one breath while the room is still looking at the case.
+  it('keeps every reason under 120 characters', () => {
+    for (const q of QUESTIONS) {
+      expect(q.truth.length, `${q.id} is ${q.truth.length}`).toBeLessThanOrEqual(120)
+    }
+  })
+
   it('getQuestion finds by id and returns undefined otherwise', () => {
     expect(getQuestion(QUESTIONS[0].id)?.id).toBe(QUESTIONS[0].id)
     expect(getQuestion('nope')).toBeUndefined()

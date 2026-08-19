@@ -135,7 +135,12 @@ function StandingRow({
              2.4vh out of the 8.0vh pitch was protecting: no two rows ever touch. */
           height: 'min(5.6vh, 78%)',
           lineHeight: 1,
-          background: 'rgba(255, 255, 255, 0.06)',
+          /* OPAQUE, not a translucent white wash. A 6% white overlay reads as a row on flat black
+             and as nothing at all on the brown wall the whole game now stands on — the top six
+             rows disappeared into it entirely while the four below the desk cut stayed visible,
+             which is what "the leaderboard is gone" looked like. A row must carry its own ground
+             so it cannot depend on what happens to be behind it. */
+          background: 'rgba(6, 8, 20, 0.82)',
           fontFamily: 'var(--font-thai), system-ui, sans-serif',
           fontWeight: 700,
           fontSize: '3.1vh',
