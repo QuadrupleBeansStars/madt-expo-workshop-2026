@@ -35,6 +35,32 @@ export type StoryPanel = z.infer<typeof StoryPanelSchema>
  */
 export const StoryboardSchema = z.array(StoryPanelSchema).min(2).max(4)
 
+/** What the player is supposed to DO with this answer — not "is the duck right". */
+export const VerdictSchema = z.enum(['pass', 'reject'])
+export type Verdict = z.infer<typeof VerdictSchema>
+
+/**
+ * One question. Length caps are the projector budget, not style: `ask` renders at one size on a
+ * 1366x768 screen and `duckSays` sits in a speech bubble beside a large duck. Exceeding them does
+ * not wrap gracefully, it pushes the host's own controls off the bottom of the screen.
+ */
+export const QuestionSchema = z.object({
+  id: z.string().min(1),
+  order: z.number().int().min(1).max(9),
+  ask: z.string().min(1).max(80),
+  duckSays: z.string().min(1).max(140),
+  /** Exact substring of `duckSays`, marked on the reveal. The lie, or the load-bearing claim. */
+  highlight: z.string().min(1),
+  verdict: VerdictSchema,
+  truth: z.string().min(1).max(220),
+  tell: z.string().min(1).max(160),
+  /** Facilitator note. NEVER rendered — it exists so the check list travels with the content. */
+  needsCheck: z.string().optional(),
+}).refine((q) => q.duckSays.includes(q.highlight), {
+  message: 'highlight must be an exact substring of duckSays',
+})
+export type Question = z.infer<typeof QuestionSchema>
+
 export const DifficultySchema = z.enum(['easy', 'medium', 'hard', 'expert', 'final'])
 export type Difficulty = z.infer<typeof DifficultySchema>
 
@@ -94,43 +120,94 @@ export const DetectiveCaseSchema = z.object({
 )
 export type DetectiveCase = z.infer<typeof DetectiveCaseSchema>
 
-export type Player = { id: string; codename: string; joinedAt: number; spectator: boolean }
-export type Answer = { playerId: string; caseId: string; optionId: string; elapsedMs: number }
+export type Player = { id: string; codename: string; joinedAt: number; spectator: boolean; avatar: string }
+export type Answer = { playerId: string; questionId: string; verdict: Verdict; elapsedMs: number }
 
-export type Phase = 'lobby' | 'investigate' | 'reveal' | 'final'
+/**
+ * `rules` sits between `lobby` and the FIRST `reading` and is never entered again — question 2
+ * onward goes straight from `reveal` back to `reading` (see `lib/game.ts#nextState`).
+ * It is host-advanced with no countdown: `reading` and `question` have clocks because the room
+ * has to move together; a hundred people read a rules screen at a hundred speeds, and it is the
+ * one screen where spending an extra ten seconds costs the run nothing.
+ */
+export type Phase = 'lobby' | 'rules' | 'reading' | 'question' | 'reveal' | 'tally' | 'podium'
 
-/** Server-authoritative game state. `phaseStartedAt`/`phaseDurationMs` are the ONLY clock. */
+/** Server-authoritative. `phaseStartedAt`/`phaseDurationMs` are the ONLY clock. */
 export type GameState = {
   phase: Phase
-  /** 0-based index into game ROUNDS (cases sorted by order). Meaningful in investigate/reveal. */
-  roundIndex: number
-  /** Server epoch ms when the current phase began. */
+  /** 0-based index into QUESTIONS_IN_ORDER. */
+  qIndex: number
   phaseStartedAt: number
-  /** Duration of the current phase in ms; 0 for untimed phases (lobby, reveal, final). */
+  /** 0 for the host-advanced phases: lobby, rules, reveal, tally, podium. */
   phaseDurationMs: number
+  /** @deprecated The reveal is untimed and nothing freezes it. Kept so a persisted v3.1
+   *  snapshot still parses; no code reads it. */
+  holding: boolean
 }
 
-/** What clients receive from /api/state. `remainingMs` is server-computed; clients never derive it. */
 export type PublicGameState = {
   seq: number
   phase: Phase
-  roundIndex: number
-  caseId: string | null
+  qIndex: number
+  questionId: string | null
   remainingMs: number
   answeredCount: number
   playerCount: number
+  holding: boolean
   youAnswered?: boolean
-  /**
-   * Present only when the request carried a playerId that the store still knows — the same
-   * contract as The Decision Room's `you` (lib/room-store.ts). Its ABSENCE is the signal: a
-   * 200 for the id we sent, with no `you`, means the host reset the room and this phone's
-   * identity is gone. `youAnswered` cannot carry that signal, because it is already `false`
-   * for an unknown player and `false` is also the honest answer for a known one who has not
-   * answered yet.
-   */
   you?: {
     codename: string
-    /** Spectators are real players who never score. They must NOT be ejected. */
+    avatar: string
     spectator: boolean
+    score: number
+    rank: number
+    streak: number
+    wrongPass: number
+    /**
+     * The player's own result on the CURRENT question (`qIndex`), from their actual recorded
+     * answer — not ephemeral client state. `null` means they never answered it (spectator, or the
+     * window closed before they tapped); `false` means they answered and were wrong. Spec §5b:
+     * the phone's reveal has to show ถูก/ผิด + points + rank and survive a reload, so these two
+     * cannot live only in the phone's own React state the way v3 originally shipped them.
+     */
+    lastCorrect: boolean | null
+    lastPoints: number | null
+    /**
+     * Points between this player and the one immediately above them on the leaderboard — Kahoot's
+     * move, and the number that keeps someone playing: "85 behind 3rd" says the next question can
+     * change it, which a bare total cannot.
+     *
+     * ABSENT — not `0` — for rank 1, and absent for anyone off the board (a spectator, whose
+     * `rank` is the existing `0` sentinel). This is the same "absence is meaningful" contract
+     * `lastCorrect` documents above, and here it is load-bearing rather than tidy: ranks are
+     * POSITIONAL (see `lib/store.ts#getLeaderboard`), so two players on the same score sit at
+     * ranks n and n+1 and the lower one's REAL gap is `0`. If the leader were also sent `0` the
+     * phone could not tell "you lead" from "you are level with the person above you", which are
+     * opposite messages. Optional here, so the two cases cannot collapse.
+     *
+     * Derived from `getLeaderboard()` on every read; nothing new is stored. It is the player's
+     * own standing only — no other player's score or name is exposed by it.
+     */
+    gapToNext?: number
+    /**
+     * The share of the room, as a whole percent, that got the CURRENT question wrong.
+     *
+     * The phone shows it under the player's own result so a person can see they were not the only
+     * one fooled — which is what lets them accept it rather than quietly conclude they are bad at
+     * this. It is the workshop's whole argument in one number, on the screen they are already
+     * looking at.
+     *
+     * It has to come from the server. The pass/reject split is public, but WHICH SIDE IS WRONG is
+     * the answer key, and `app/page.tsx` is a client component: importing `content/questions`
+     * there would ship all nine verdicts into every player's bundle, readable in devtools. The
+     * server does the comparison and sends only the percentage.
+     *
+     * REVEAL-ONLY, like `lastCorrect`/`lastPoints` — during `question` it would tell an early
+     * answerer how the room is leaning.
+     *
+     * ABSENT — not `0` — when nobody answered. "Nobody got it wrong" and "nobody answered at all"
+     * are different facts, and 0 would render as the first while meaning the second.
+     */
+    roomWrongPct?: number
   }
 }
