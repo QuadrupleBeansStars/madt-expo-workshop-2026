@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getRoomStore } from '@/lib/room-store'
 
-const ACTIONS = ['advance'] as const
+const ACTIONS = ['advance', 'back'] as const
 type Action = (typeof ACTIONS)[number]
 
 export async function POST(req: Request) {
@@ -27,6 +27,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: `action must be one of ${ACTIONS.join(', ')}` }, { status: 400 })
   }
 
-  getRoomStore().advance(Date.now())
+  const store = getRoomStore()
+  if (action === 'back') store.back(Date.now())
+  else store.advance(Date.now())
   return NextResponse.json({ ok: true })
 }

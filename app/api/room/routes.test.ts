@@ -14,11 +14,12 @@ const req = (url: string, body?: unknown, headers: Record<string, string> = {}) 
 
 const AUTH = { 'x-facilitator-token': TOKEN }
 
-/** Advances the room past the two non-decide intro stages onto the first decide stage. */
-async function advanceToFirstDecide() {
-  await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH)) // -> stage 0 (intro)
-  await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH)) // -> stage 1 (data)
-  await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH)) // -> stage 2 (decide)
+const control = (action: string) =>
+  postControl(req('http://localhost/api/room/control', { action }, AUTH))
+
+/** lobby → q1 ask. */
+async function advanceToFirstAsk() {
+  await control('advance')
 }
 
 describe('room API', () => {
@@ -30,12 +31,14 @@ describe('room API', () => {
     delete process.env.FACILITATOR_TOKEN
   })
 
-  it('state returns lobby initially', async () => {
+  it('state returns lobby initially, without leaderboard or split', async () => {
     const res = await getState(req('http://localhost/api/room/state'))
     const body = await res.json()
     expect(res.status).toBe(200)
     expect(body.phase).toBe('lobby')
     expect(body.you).toBeUndefined()
+    expect('leaderboard' in body).toBe(false)
+    expect('split' in body).toBe(false)
   })
 
   it('join returns a player with an id', async () => {
@@ -64,55 +67,46 @@ describe('room API', () => {
     expect(res.status).toBe(400)
   })
 
-  it('state includes the leaderboard', async () => {
-    await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))
-    const body = await (await getState(req('http://localhost/api/room/state'))).json()
-    expect(Array.isArray(body.leaderboard)).toBe(true)
-    expect(body.leaderboard.length).toBe(1)
-  })
-
-  it('vote succeeds while open and is reflected in state for that player', async () => {
+  it('vote succeeds while an ask stage is open and is reflected in state for that player', async () => {
     const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
-    await advanceToFirstDecide()
-    const stateBefore = await (await getState(req('http://localhost/api/room/state'))).json()
-    const stageId = stateBefore.stageId as string
-
-    const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId, optionId: 'p65',
-    }))
+    await advanceToFirstAsk()
+    const res = await postVote(req('http://localhost/api/room/vote',
+      { playerId: player.id, questionId: 'q1', choiceIndex: 2 }))
     expect(res.status).toBe(200)
-
-    const body = await (await getState(req(`http://localhost/api/room/state?playerId=${player.id}`))).json()
-    expect(body.you.votedOptionId).toBe('p65')
-    expect(body.voteCount).toBe(1)
+    const state = await (await getState(
+      req(`http://localhost/api/room/state?playerId=${player.id}`))).json()
+    expect(state.you.pickedChoiceIndex).toBe(2)
+    expect(state.voteCount).toBe(1)
   })
 
   it('vote from an unknown player returns 400', async () => {
-    await advanceToFirstDecide()
-    const stateBefore = await (await getState(req('http://localhost/api/room/state'))).json()
-    const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: 'ghost', stageId: stateBefore.stageId, optionId: 'p65',
-    }))
+    await advanceToFirstAsk()
+    const res = await postVote(req('http://localhost/api/room/vote',
+      { playerId: 'ghost', questionId: 'q1', choiceIndex: 0 }))
     expect(res.status).toBe(400)
   })
 
-  it('vote in the lobby (no open decide stage) returns 409', async () => {
+  it('vote in the lobby returns 409', async () => {
     const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
-    const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId: 'decide-price', optionId: 'p65',
-    }))
+    const res = await postVote(req('http://localhost/api/room/vote',
+      { playerId: player.id, questionId: 'q1', choiceIndex: 0 }))
     expect(res.status).toBe(409)
   })
 
-  it('vote after the stage moves on returns 409', async () => {
+  it('vote on a reveal stage returns 409', async () => {
     const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
-    await advanceToFirstDecide()
-    const stateBefore = await (await getState(req('http://localhost/api/room/state'))).json()
-    const stageId = stateBefore.stageId as string
-    await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH))
-    const res = await postVote(req('http://localhost/api/room/vote', {
-      playerId: player.id, stageId, optionId: 'p65',
-    }))
+    await advanceToFirstAsk()
+    await control('advance')   // → q1 reveal
+    const res = await postVote(req('http://localhost/api/room/vote',
+      { playerId: player.id, questionId: 'q1', choiceIndex: 0 }))
+    expect(res.status).toBe(409)
+  })
+
+  it('vote with a non-integer choiceIndex reaches the store and returns 409', async () => {
+    const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
+    await advanceToFirstAsk()
+    const res = await postVote(req('http://localhost/api/room/vote',
+      { playerId: player.id, questionId: 'q1', choiceIndex: 1.5 }))
     expect(res.status).toBe(409)
   })
 
@@ -121,9 +115,27 @@ describe('room API', () => {
     expect(res.status).toBe(400)
   })
 
-  it('vote with a missing field returns 400', async () => {
-    const res = await postVote(req('http://localhost/api/room/vote', { playerId: 'x' }))
-    expect(res.status).toBe(400)
+  it('vote with a missing or wrong-typed field returns 400', async () => {
+    const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
+    await advanceToFirstAsk()
+    for (const bad of [
+      { playerId: player.id, questionId: 'q1' },                       // missing choiceIndex
+      { playerId: player.id, choiceIndex: 0 },                          // missing questionId
+      { questionId: 'q1', choiceIndex: 0 },                             // missing playerId
+      { playerId: player.id, questionId: 'q1', choiceIndex: '2' },      // string index
+    ]) {
+      const res = await postVote(req('http://localhost/api/room/vote', bad))
+      expect(res.status).toBe(400)
+    }
+  })
+
+  it('split appears only on the reveal stage', async () => {
+    await advanceToFirstAsk()
+    let state = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect('split' in state).toBe(false)
+    await control('advance')   // → q1 reveal
+    state = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect(state.split).toHaveLength(4)
   })
 
   it('control requires the facilitator token', async () => {
@@ -138,22 +150,34 @@ describe('room API', () => {
   })
 
   it('control rejects the wrong token', async () => {
-    const res = await postControl(
-      req('http://localhost/api/room/control', { action: 'advance' }, { 'x-facilitator-token': 'wrong' }),
-    )
+    const res = await postControl(req('http://localhost/api/room/control',
+      { action: 'advance' }, { 'x-facilitator-token': 'nope' }))
     expect(res.status).toBe(403)
   })
 
   it('control rejects an unknown action', async () => {
-    const res = await postControl(req('http://localhost/api/room/control', { action: 'explode' }, AUTH))
+    const res = await control('skip')
     expect(res.status).toBe(400)
   })
 
   it('control advance moves the room out of the lobby', async () => {
-    await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH))
-    const body = await (await getState(req('http://localhost/api/room/state'))).json()
-    expect(body.phase).toBe('stage')
-    expect(body.stageIndex).toBe(0)
+    await control('advance')
+    const state = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect(state.phase).toBe('stage')
+    expect(state.stageKind).toBe('ask')
+    expect(state.questionId).toBe('q1')
+  })
+
+  it('control back walks the room backwards', async () => {
+    await control('advance')   // q1 ask
+    await control('advance')   // q1 reveal
+    await control('back')      // q1 ask again
+    const state = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect(state.stageKind).toBe('ask')
+    expect(state.questionId).toBe('q1')
+    await control('back')      // lobby
+    const lobby = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect(lobby.phase).toBe('lobby')
   })
 
   it('reset requires the facilitator token', async () => {
@@ -168,22 +192,25 @@ describe('room API', () => {
   })
 
   it('reset rejects the wrong token', async () => {
-    const res = await postReset(req('http://localhost/api/room/reset', {}, { 'x-facilitator-token': 'wrong' }))
+    const res = await postReset(req('http://localhost/api/room/reset', {}, { 'x-facilitator-token': 'nope' }))
     expect(res.status).toBe(403)
   })
 
   it('reset returns the room to the lobby and clears players', async () => {
     await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))
-    await postControl(req('http://localhost/api/room/control', { action: 'advance' }, AUTH))
+    await control('advance')
     const res = await postReset(req('http://localhost/api/room/reset', {}, AUTH))
     expect(res.status).toBe(200)
-    const body = await (await getState(req('http://localhost/api/room/state'))).json()
-    expect(body.phase).toBe('lobby')
-    expect(body.playerCount).toBe(0)
+    const state = await (await getState(req('http://localhost/api/room/state'))).json()
+    expect(state.phase).toBe('lobby')
+    expect(state.playerCount).toBe(0)
   })
 
   it('state omits `you` for a playerId the store does not know (post-reset rejoin signal)', async () => {
-    const body = await (await getState(req('http://localhost/api/room/state?playerId=ghost'))).json()
-    expect(body.you).toBeUndefined()
+    const player = (await (await postJoin(req('http://localhost/api/room/join', { name: 'Nat' }))).json()).player
+    await postReset(req('http://localhost/api/room/reset', {}, AUTH))
+    const state = await (await getState(
+      req(`http://localhost/api/room/state?playerId=${player.id}`))).json()
+    expect(state.you).toBeUndefined()
   })
 })
