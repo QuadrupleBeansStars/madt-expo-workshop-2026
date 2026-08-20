@@ -1,6 +1,6 @@
 'use client'
 
-// The Decision Room — the projector.
+// Café Persona — the projector.
 //
 // One host drives 200 people through ten stages in fifteen minutes from this page. Everything the
 // room sees is rendered by `components/room/Stages.tsx`; this file owns only the three things that
@@ -82,12 +82,12 @@ export default function RoomPage() {
     return () => clearInterval(id)
   }, [])
 
-  const advance = useCallback(async () => {
+  const control = useCallback(async (action: 'advance' | 'back') => {
     try {
       const res = await fetch('/api/room/control', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-facilitator-token': token },
-        body: JSON.stringify({ action: 'advance' }),
+        body: JSON.stringify({ action }),
       })
       setTokenError(!res.ok)
     } catch {
@@ -108,12 +108,15 @@ export default function RoomPage() {
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.isContentEditable)) return
       if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'Spacebar') {
         event.preventDefault()   // space would otherwise scroll the projector
-        void advance()
+        void control('advance')
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        void control('back')
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [advance])
+  }, [control])
 
   const saveToken = (value: string) => {
     setToken(value)
@@ -126,8 +129,8 @@ export default function RoomPage() {
     : 0
 
   const shown: RoomFrame = frame ?? {
-    seq: -1, phase: 'lobby', stageIndex: 0, stageId: null, stageKind: null,
-    votingOpen: false, remainingMs: 0, playerCount: 0, voteCount: 0, tallies: [], leaderboard: [],
+    seq: -1, phase: 'lobby', stageIndex: 0, stageKind: null, questionId: null, questionIndex: null,
+    votingOpen: false, remainingMs: 0, playerCount: 0, voteCount: 0,
   }
 
   return (
@@ -152,7 +155,10 @@ export default function RoomPage() {
           value={token}
           onChange={(e) => saveToken(e.target.value)}
         />
-        <button type="button" className="room-host__btn" onClick={() => void advance()}>
+        <button type="button" className="room-host__btn room-host__btn--back" onClick={() => void control('back')}>
+          <span lang="th">{UI.backBtn.th}</span>
+        </button>
+        <button type="button" className="room-host__btn" onClick={() => void control('advance')}>
           <span lang="th">{UI.advance.th}</span>
         </button>
         {/* /api/room/reset, NOT /api/reset. The two workshops keep separate stores; the AI

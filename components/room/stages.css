@@ -1,997 +1,422 @@
-/*
- * The Decision Room — projector layout.
+/* Café Persona — the projector (`/biz`). Bright, colorful, poster-sized.
  *
- * A sibling of app/biz/deck.css's editorial language and it reads that file's tokens
- * (--deck-ink, --deck-clr, --deck-line …) rather than redefining them; every class here is
- * prefixed `.room-` so the two never collide and neither file has to be modified.
+ * Layered ON TOP of app/biz/deck.css (import order in app/biz/page.tsx, load-bearing under
+ * cssChunking: 'strict'). The host bar and alerts still use --deck-* tokens from that sheet;
+ * everything the room sees uses the --pp-* tokens below.
  *
- * Everything is sized for one constraint: a 200-person room reading a projector from the back
- * row. Figures are oversized and tabular; labels never drop below a readable weight; the
- * outcome screen's causal chain is the largest type in the workshop after the slide headline.
+ * Single-theme by design — a projector in a lit hall. Every color painted explicitly.
+ * The persona colors ARE the data palette: every bar and dot takes its color from
+ * [data-persona] and nothing else, so the color-coding teaches itself by the finale.
  *
- * FONTS: never the AI Detective pixel face — it carries no Thai glyphs, which is a live defect
- * on the sibling app. Everything inherits deck.css's Thai-capable sans.
- */
+ * SIZING RULE (this repo's hard-won convention): every font-size and vertical margin that could
+ * push content off a short projector uses min(clamp(px, vw, px), Nvh) — a projector is wide and
+ * SHORT, so the vh cap must exist even where the vw clamp usually wins. */
 
 .room-root {
-  min-height: 100dvh;
-  background: var(--deck-bg);
-}
-
-/* The stages carry more furniture than a pitch slide (charts, boards, six-step chains), so the
-   shell tops out rather than centring, and scrolls if a laptop is on a short display. */
-.room-slide {
-  justify-content: flex-start;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-top: clamp(30px, 4vh, 70px);
-}
-
-.room-slide .deck-stage {
-  max-width: 1500px;
-}
-
-/*
- * ── THE HEIGHT BUDGET ────────────────────────────────────────────────────────
- *
- * deck.css sizes type against viewport WIDTH only (`clamp(34px, 6vw, 84px)`). A pitch slide holds
- * a headline and a sentence, so width alone is fine. These stages hold a headline, a paragraph,
- * a chart pair or a six-step chain, a lesson and a live board — and on a 1366x768 projector the
- * width-only scale spent the whole height on the first two elements. Nine of ten stages ran off
- * the bottom of the screen; the worst was 2,574px past a 768px fold.
- *
- * So every base size is additionally capped in `vh`. On a wide, short screen — which is what a
- * projector is — the cap binds and the type shrinks to fit. On a tall screen nothing changes.
- *
- * Scoped to `.room-slide`, which raises these to (0,3,0) against deck.css's (0,2,0). That is
- * deliberate: at equal specificity these rules depend on sheet order, and sheet order has already
- * silently reverted them once (see the import comment in app/biz/page.tsx). Specificity holds
- * regardless of how the bundler orders the two files.
- *
- * `npm run check:projector` is the check. Re-run it after touching anything here.
- */
-.room-slide .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(24px, 3.9vw, 84px), 6.8vh);
-  line-height: 1.04;
-}
-
-.room-slide .deck-bi--hero .deck-bi__th {
-  line-height: 1.3;
-}
-
-.room-slide .deck-bi--body .deck-bi__th {
-  font-size: min(clamp(12px, 1.3vw, 30px), 2.3vh);
-  line-height: 1.35;
-}
-
-.room-slide .deck-bi--body .deck-bi__th {
-  line-height: 1.4;
-}
-
-.room-slide .deck-body {
-  margin-top: min(clamp(8px, 2vw, 30px), 1.5vh);
-}
-
-/* ── Join / lobby ────────────────────────────────────────────────────────── */
-
-.room-join {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
-  gap: clamp(28px, 5vw, 72px);
-  align-items: start;
-}
-
-.room-join__body {
-  margin-top: clamp(14px, 2vw, 26px);
-}
-
-.room-join__count {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  margin: clamp(22px, 3vw, 40px) 0 0;
-}
-
-.room-join__count-n {
-  font-size: clamp(44px, 7vw, 96px);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-clr);
-}
-
-.room-join__qr {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-  padding: clamp(16px, 2vw, 26px);
-  border: 1px solid var(--deck-line);
-  border-radius: 20px;
-  background: var(--deck-card);
-}
-
-/* White plate under the code regardless of theme: a QR inverted in dark mode does not scan. */
-.room-join__qr-box {
-  padding: 16px;
-  border-radius: 14px;
-  background: #ffffff;
-  line-height: 0;
-}
-
-.room-join__url {
-  margin: 0;
-  font-size: clamp(15px, 1.6vw, 22px);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  word-break: break-all;
-  text-align: center;
-  color: var(--deck-ink);
-}
-
-.room-join__hint .deck-bi__th {
-  text-align: center;
-}
-
-/* ── Data ────────────────────────────────────────────────────────────────── */
-
-.room-data,
-.room-decide__head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: clamp(26px, 4vw, 64px);
-  align-items: start;
-}
-
-.room-data__lead {
-  margin-top: min(clamp(8px, 1.4vw, 20px), 1.8vh);
-}
-
-/* Two charts stacked in half a screen is the whole cost of this stage. Everything below is sized
-   so both distributions land above the fold with their bars still proportional and their bucket
-   words still legible from the back. */
-.room-data__panels {
-  display: flex;
-  flex-direction: column;
-  gap: min(clamp(10px, 1.8vw, 30px), 2.4vh);
-}
-
-.room-data__gap {
-  margin: min(clamp(10px, 1.8vw, 24px), 2vh) 0 0;
-  padding-left: 16px;
-  border-left: 4px solid var(--deck-clr);
-}
-
-.room-data .room-bars {
-  gap: min(0.9vh, 9px);
-}
-
-.room-data .room-bars__track {
-  height: min(clamp(14px, 1.5vw, 26px), 2.8vh);
-}
-
-.room-slide .room-data .room-bars__label .deck-bi__th {
-  font-size: min(clamp(11px, 1.05vw, 17px), 2vh);
-  line-height: 1.15;
-}
-
-.room-slide .room-data .room-bars__label .deck-bi__th {
-  line-height: 1.2;
-}
-
-.room-data .room-bars__value {
-  font-size: min(clamp(16px, 1.8vw, 30px), 3.4vh);
-}
-
-.room-slide .room-data .room-data-panel__title .deck-bi__th {
-  font-size: min(clamp(11px, 1vw, 16px), 1.9vh);
-}
-
-
-.room-points {
-  list-style: none;
-  margin: min(clamp(10px, 1.8vw, 28px), 2.2vh) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: min(clamp(7px, 1.2vw, 18px), 1.6vh);
-}
-
-.room-points__item {
-  position: relative;
-  padding-left: 30px;
-}
-
-.room-points__item::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.62em;
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  background: var(--deck-clr);
-}
-
-/* ── Decide ──────────────────────────────────────────────────────────────── */
-
-/*
- * Two columns: the evidence the decision rests on, then the question and the vote (spec §2).
- * Charts lead on the left because that is the reading order of the room — look at the data, then
- * at what you are being asked. A stage with no evidence keeps the original single column, so the
- * question does not sit in half a screen with nothing beside it.
- */
-.room-decide[data-evidence="true"] {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: clamp(28px, 3.6vw, 64px);
-  align-items: start;
-}
-
-.room-evidence {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(12px, 1.4vw, 18px);
-  min-width: 0;
-  padding-right: clamp(20px, 2.4vw, 40px);
-  border-right: 2px solid var(--deck-line);
-}
-
-.room-evidence__title {
-  color: var(--deck-clr);
-}
-
-/*
- * `.room-slide` scrolls rather than clips, and on a projector that is the same thing as losing
- * the content: nobody walks over to scroll the screen mid-vote, and the first thing to go over
- * the edge is the live tally at the foot of the vote column. So the decide screen is typeset
- * one step down from the rest of the deck: still legible from the back of a 200-person room
- * (no chart text below 14px, counts at 28px, bars still full-width and proportional; only the
- * PLACEHOLDER pill drops to 12px, and it is a red block nobody has to read to notice), but two
- * charts, a question, four options and a clock all land inside one screen at once. Every figure
- * below was measured in Chrome at 1600x900, not guessed.
- */
-.room-evidence .room-data-panel {
-  gap: 8px;
-}
-
-.room-evidence .room-data-panel__title .deck-bi__th {
-  font-size: clamp(13px, 0.95vw, 16px);
-}
-
-
-.room-evidence .room-placeholder-badge {
-  padding: 4px 12px;
-}
-
-.room-evidence .room-placeholder-badge__text .deck-bi__th {
-  font-size: clamp(10px, 0.75vw, 12px);
-}
-
-
-.room-evidence .room-bars {
-  gap: 7px;
-}
-
-.room-evidence .room-bars__row {
-  grid-template-columns: minmax(96px, 26%) minmax(0, 1fr) auto;
-  gap: 12px;
-}
-
-.room-evidence .room-bars__track {
-  height: clamp(18px, 1.4vw, 24px);
-}
-
-.room-evidence .room-bars__label .deck-bi__th {
-  font-size: clamp(13px, 1vw, 16px);
-  line-height: 1.15;
-}
-
-.room-evidence .room-bars__label .deck-bi__th {
-  line-height: 1.2;
-}
-
-.room-evidence .room-bars__value {
-  font-size: clamp(19px, 1.7vw, 28px);
-}
-
-.room-decide__vote {
-  min-width: 0;
-}
-
-/* The head is a 2-col grid globally (prompt | clock). In half the screen that leaves the prompt
-   in a gutter, so inside the evidence layout the clock sits above the question instead. */
-.room-decide[data-evidence="true"] .room-decide__head {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: clamp(12px, 1.6vw, 20px);
-}
-
-.room-decide[data-evidence="true"] .room-decide__clock {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0 14px;
-  justify-self: start;
-  text-align: left;
-}
-
-/* 12vw is viewport-relative and does not know it is now in half a column. */
-.room-decide[data-evidence="true"] .room-decide__seconds {
-  font-size: clamp(40px, 3.8vw, 64px);
-}
-
-/* The question keeps the loudest type on the screen, one step down from a full-width hero. */
-.room-decide[data-evidence="true"] .deck-bi--hero .deck-bi__th {
-  font-size: clamp(28px, 2.5vw, 40px);
-}
-
-
-.room-decide[data-evidence="true"] .room-decide__context .deck-bi__th {
-  max-width: 46ch;
-  font-size: clamp(15px, 1.2vw, 19px);
-}
-
-.room-decide[data-evidence="true"] .room-decide__context .deck-bi__th {
-  max-width: 50ch;
-}
-
-.room-decide[data-evidence="true"] .room-options {
-  margin-top: clamp(12px, 1.3vw, 18px);
-  gap: 8px;
-}
-
-.room-decide[data-evidence="true"] .room-options__track {
-  height: clamp(18px, 1.4vw, 24px);
-}
-
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
-  font-size: clamp(14px, 1.15vw, 19px);
-}
-
-
-.room-decide[data-evidence="true"] .room-options__count {
-  font-size: clamp(18px, 1.6vw, 26px);
-}
-
-.room-decide[data-evidence="true"] .room-decide__votes {
-  margin-top: clamp(10px, 1.1vw, 14px);
-  font-size: clamp(18px, 1.6vw, 26px);
-}
-
-.room-decide[data-evidence="true"] .room-decide__state {
-  margin-top: 0;
-}
-
-/* The 220px label floor collapses the tally track to a stub at this width. */
-.room-decide[data-evidence="true"] .room-options__row {
-  grid-template-columns: minmax(0, 44%) minmax(0, 1fr) auto;
-  gap: clamp(10px, 1.2vw, 18px);
-}
-
-.room-decide__context {
-  margin-top: clamp(12px, 1.6vw, 20px);
-}
-
-.room-decide__clock {
-  justify-self: end;
-  text-align: right;
-}
-
-.room-decide__seconds {
-  display: block;
-  font-size: clamp(64px, 12vw, 180px);
-  font-weight: 800;
-  line-height: 0.9;
-  letter-spacing: -0.05em;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-clr);
-}
-
-.room-decide__clock[data-open="false"] .room-decide__seconds {
-  color: var(--deck-muted);
-}
-
-.room-decide__state {
-  margin-top: 10px;
-}
-
-.room-options {
-  list-style: none;
-  margin: clamp(24px, 3.4vw, 48px) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: clamp(12px, 1.6vw, 20px);
-}
-
-.room-options__row {
-  display: grid;
-  grid-template-columns: minmax(220px, 34%) 1fr auto;
-  gap: clamp(14px, 2vw, 28px);
-  align-items: center;
-}
-
-.room-options__track {
-  height: clamp(26px, 3.6vw, 44px);
-  border-radius: 8px;
-  border: 1px solid var(--deck-line);
-  background: color-mix(in srgb, var(--deck-clr) 10%, var(--deck-bg));
+  --pp-bg: #fffdf7;
+  --pp-card: #ffffff;
+  --pp-ink: #23201a;
+  --pp-muted: #6b6459;
+  --pp-line: #e8e2d4;
+  --pp-pioneer: #e4572e;
+  --pp-sprinter: #e9a820;
+  --pp-analyst: #2667c9;
+  --pp-guardian: #2e7d4f;
+
+  min-height: 100vh;
   overflow: hidden;
+  background: var(--pp-bg);
+  color: var(--pp-ink);
 }
 
-.room-options__fill {
-  height: 100%;
-  background: var(--deck-clr);
-  transition: width 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
-}
+[data-persona='pioneer'] { --pp-accent: var(--pp-pioneer); }
+[data-persona='sprinter'] { --pp-accent: var(--pp-sprinter); }
+[data-persona='analyst'] { --pp-accent: var(--pp-analyst); }
+[data-persona='guardian'] { --pp-accent: var(--pp-guardian); }
 
-.room-options__count {
-  min-width: 3ch;
-  text-align: right;
-  font-size: clamp(24px, 3.4vw, 44px);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+/* Bilingual renders .deck-bi spans; Thai is the only visible line. */
+.room-root .deck-bi { display: block; }
+.room-root .deck-bi__th { display: block; line-height: 1.5; }
+.room-root .deck-bi--hero .deck-bi__th {
+  font-size: min(clamp(22px, 2.4vw, 40px), 5.2vh);
+  font-weight: 700;
 }
-
-.room-decide__votes {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: clamp(20px, 2.6vw, 32px) 0 0;
-  font-size: clamp(22px, 3vw, 40px);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-}
-
-.room-decide__of {
-  color: var(--deck-muted);
+.room-root .deck-bi--label .deck-bi__th {
+  font-size: min(clamp(14px, 1.2vw, 20px), 2.8vh);
   font-weight: 600;
+  color: var(--pp-muted);
 }
 
-/* ── Outcome — the teaching screen ───────────────────────────────────────── */
+/* ── shared stage frame ─────────────────────────────────────────────────── */
 
-/*
- * THE HEIGHT BUDGET. This screen carries four things the room needs at once — the result, the
- * chain that produced it, the lesson, and the board. Stacked in a column they measured 2,100px
- * over a 900px projector and 2,574px over a 1366x768 one, which put the lesson and the board
- * below a fold that a projector cannot scroll past (docs/superpowers/findings/).
- *
- * After the shell's padding and the footer chrome there are roughly 540px to work with on the
- * smaller projector. So: two columns, not four rows. The board takes a full-height right rail
- * where its five rows cost nothing vertically, the words and the chain stack in the wider left
- * column, and the lesson runs across the bottom of both.
- *
- * The board sits beside the lesson deliberately. "My decision cost me rank" only lands while the
- * sentence explaining why is still on screen; a screen break between cause and effect loses it.
- *
- * `npm run check:projector` measures this. Do not adjust type here without re-running it.
- */
-.room-outcome {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
-  grid-template-areas:
-    "words  board"
-    "chain  chain"
-    "lesson lesson";
-  grid-template-rows: auto auto auto;
-  gap: clamp(12px, 1.6vh, 22px) clamp(20px, 2.4vw, 40px);
-  align-content: start;
-}
-
-.room-outcome__words { grid-area: words; }
-.room-outcome > .room-trace,
-.room-outcome > .room-fx { grid-area: chain; }
-.room-outcome > .room-lesson { grid-area: lesson; }
-.room-outcome > .room-board { grid-area: board; }
-
-/* The headline is the answer to the round and stays the biggest thing here, but it is now
-   scaled by height as well as width — on a short projector the width-only clamp alone spent
-   the budget three elements before the board. */
-.room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(30px, 3.4vw, 54px), 7.4vh);
-  line-height: 1.05;
-}
-
-
-.room-outcome__body {
-  margin-top: clamp(8px, 1.2vh, 16px);
-  max-width: none;
-}
-
-/* The host reads this paragraph aloud; on screen it is support, not the message. It is the
-   longest element on the stage in both scripts, so it gives up the most. */
-.room-slide .room-outcome__body .deck-bi__th {
-  max-width: 62ch;
-  font-size: min(clamp(11px, 1vw, 19px), 1.9vh);
-  line-height: 1.35;
-}
-
-.room-slide .room-outcome__body .deck-bi__th {
-  max-width: 66ch;
-  line-height: 1.4;
-}
-
-/*
- * The causal chain. Six figures in sequence, each one caused by the one before it: arrived →
- * could be made → served → walked out → still waiting → the wait itself. Sized to be legible
- * from the back row, which is why the numerals dominate and the sentences sit under them.
- */
-.room-trace {
-  padding: clamp(12px, 1.6vh, 24px) clamp(14px, 1.8vw, 26px);
-  border: 1px solid var(--deck-line);
-  border-radius: 22px;
-  background: var(--deck-card);
-}
-
-.room-trace__head {
+.pp-stage {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: min(4vh, 36px) min(clamp(24px, 4vw, 72px), 8vh) min(3vh, 28px);
+  gap: min(2.6vh, 24px);
 }
 
-.room-trace__staffing {
+.pp-strip {
+  display: flex;
+  align-items: baseline;
+  gap: min(clamp(16px, 2vw, 36px), 4vh);
+}
+
+.pp-strip__q {
+  font-size: min(clamp(18px, 1.6vw, 28px), 3.6vh);
+  font-weight: 800;
+}
+
+.pp-strip__clock {
+  font-size: min(clamp(26px, 2.6vw, 44px), 5.6vh);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--pp-pioneer);
+}
+
+.pp-strip__votes {
+  margin-left: auto;
+  font-size: min(clamp(16px, 1.4vw, 24px), 3.2vh);
+  color: var(--pp-muted);
+}
+
+.pp-strip__votes b {
+  color: var(--pp-ink);
+  font-size: 1.2em;
+}
+
+/* ── lobby ──────────────────────────────────────────────────────────────── */
+
+.pp-lobby {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.pp-lobby__title {
+  margin: 0;
+  font-size: min(clamp(48px, 6vw, 96px), 12vh);
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.pp-lobby__qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: min(1.6vh, 14px);
+}
+
+.pp-lobby__qr-box {
+  padding: min(2vh, 18px);
+  background: var(--pp-card);
+  border: 2px solid var(--pp-line);
+  border-radius: 20px;
+}
+
+.pp-lobby__qr-box svg {
+  width: min(30vh, 280px);
+  height: min(30vh, 280px);
+}
+
+.pp-lobby__hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pp-lobby__url {
+  font-size: min(clamp(16px, 1.4vw, 24px), 3.2vh);
+  font-weight: 700;
+  color: var(--pp-analyst);
+}
+
+.pp-lobby__count {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 0;
 }
 
-.room-trace__staffing b {
-  font-size: clamp(26px, 3.4vw, 44px);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-clr);
+.pp-lobby__count b {
+  font-size: min(clamp(36px, 4vw, 64px), 8vh);
+  font-weight: 900;
+  color: var(--pp-guardian);
 }
 
-/*
- * Six steps, one row, always. `auto-fit` with a 190px floor used to wrap them onto two and then
- * three rows as the column narrowed, which tripled the height of the tallest block on the stage.
- * Six explicit columns cannot wrap; the type below shrinks instead, which costs legibility in
- * proportion rather than costing the room the lesson underneath.
- */
-.room-trace__steps {
-  list-style: none;
-  margin: clamp(10px, 1.4vh, 20px) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: clamp(6px, 0.8vw, 14px);
-}
+/* ── ask ────────────────────────────────────────────────────────────────── */
 
-.room-trace__step {
-  position: relative;
-  min-width: 0;
-  padding: clamp(8px, 1vh, 14px) clamp(7px, 0.8vw, 12px);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--deck-clr) 7%, var(--deck-bg));
-  border: 1px solid color-mix(in srgb, var(--deck-clr) 22%, var(--deck-bg));
-}
-
-/* The two links the lesson turns on: the ones who left, and the wait that sent them. */
-.room-trace__step[data-tone="loss"] {
-  background: color-mix(in srgb, var(--deck-red) 9%, var(--deck-bg));
-  border-color: color-mix(in srgb, var(--deck-red) 34%, var(--deck-bg));
-}
-
-.room-trace__step[data-tone="loss"] .room-trace__value {
-  color: var(--deck-red);
-}
-
-.room-trace__step[data-tone="wait"] .room-trace__value {
-  color: var(--deck-muted);
-}
-
-.room-trace__idx {
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: var(--deck-clr);
-  color: var(--deck-bg);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-/* Still the largest figures on the stage after the headline, but bounded by height too: the
-   width-only clamp put a 112px numeral on a 768px-tall projector and pushed the board off it. */
-.room-trace__value {
-  display: block;
-  margin: 4px 0 2px;
-  font-size: min(clamp(26px, 3.2vw, 56px), 7vh);
-  font-weight: 800;
-  line-height: 0.95;
-  letter-spacing: -0.05em;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-clr);
-}
-
-.room-slide .room-trace__label .deck-bi__th {
-  max-width: none;
-  font-size: min(clamp(10px, 0.85vw, 14px), 1.9vh);
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.room-slide .room-trace__label .deck-bi__th {
-  max-width: none;
-  line-height: 1.25;
-}
-
-/* Nobody vanishes: the four counts are shown to add up, in arithmetic, on screen. */
-.room-trace__sum {
+.pp-hook {
   display: flex;
-  flex-wrap: wrap;
   align-items: baseline;
-  gap: 14px;
-  margin: clamp(8px, 1.2vh, 16px) 0 0;
-  padding-top: clamp(7px, 1vh, 13px);
-  border-top: 1px dashed var(--deck-line-strong);
-}
-
-.room-trace__eq {
-  font-size: min(clamp(15px, 1.6vw, 24px), 3.2vh);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
-
-/* Rounds 2 and 3: signed deltas, not bars — these values go negative. */
-/* Three options side by side and never stacked: rounds 2 and 3 are a comparison, and a column
-   that wraps puts the third option below the fold where it cannot be compared to anything. */
-.room-fx__list {
-  list-style: none;
-  margin: clamp(8px, 1.2vh, 16px) 0 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(8px, 1vw, 16px);
-}
-
-.room-fx__card {
-  min-width: 0;
-  padding: clamp(9px, 1.2vh, 16px) clamp(10px, 1.2vw, 18px);
-  border: 1px solid var(--deck-line);
+  gap: min(clamp(18px, 2.4vw, 40px), 5vh);
+  padding: min(2.4vh, 22px) min(clamp(20px, 2.4vw, 44px), 5vh);
+  background: var(--pp-card);
+  border: 2px solid var(--pp-line);
+  border-left: min(1.4vh, 12px) solid var(--pp-sprinter);
   border-radius: 18px;
-  background: var(--deck-card);
 }
 
-.room-slide .room-fx__label .deck-bi__th {
-  max-width: none;
-  font-size: min(clamp(10px, 1vw, 18px), 2vh);
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.room-slide .room-fx__label .deck-bi__th {
-  max-width: none;
-  line-height: 1.25;
-}
-
-.room-fx__deltas {
-  margin: clamp(6px, 0.9vh, 12px) 0 0;
-}
-
-.room-fx__delta {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding: clamp(2px, 0.4vh, 5px) 0;
-  border-top: 1px solid var(--deck-line);
-}
-
-.room-fx__delta dt {
-  display: flex;
-  flex-direction: column;
-  font-size: min(clamp(8px, 0.72vw, 13px), 1.5vh);
-  font-weight: 600;
-  color: var(--deck-muted);
-}
-
-.room-fx__delta dd {
+.pp-hook__figure {
   margin: 0;
-  font-size: min(clamp(12px, 1.3vw, 24px), 2.5vh);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-red);
-}
-
-.room-fx__delta[data-good="true"] dd {
-  color: var(--deck-green);
-}
-
-/* The teaching beat. Still set loudly — it is the sentence to remember — but across the full
-   width of both columns now, which buys the type back most of what the height cap takes. */
-.room-lesson {
-  margin: 0;
-  padding: min(clamp(7px, 1.1vh, 16px), 1.6vh) clamp(14px, 2vw, 28px);
-  border-left: 8px solid var(--deck-clr);
-  border-radius: 4px 18px 18px 4px;
-  background: color-mix(in srgb, var(--deck-clr) 8%, var(--deck-bg));
-}
-
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(17px, 2.3vw, 44px), 4.4vh);
-  line-height: 1.1;
-}
-
-
-.room-lesson__eyebrow {
-  color: var(--deck-clr);
-}
-
-/* ── Close ───────────────────────────────────────────────────────────────── */
-
-/*
- * Three columns, not two. The old right-hand column stacked the four archetypes ON TOP of the
- * full board and measured 1,553px against a 768px screen — the board, which is the last thing the
- * room looks at all session, sat entirely below the fold.
- */
-.room-close {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr) minmax(0, 1.05fr);
-  gap: clamp(16px, 2.4vw, 40px);
-  align-items: start;
-}
-
-.room-close__lead {
-  margin-top: min(clamp(8px, 1.4vw, 18px), 1.6vh);
-}
-
-.room-close__side {
-  display: contents;
-}
-
-.room-takeaways {
-  list-style: none;
-  margin: min(clamp(12px, 2vw, 28px), 2.4vh) 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: min(clamp(8px, 1.4vw, 20px), 1.8vh);
-}
-
-.room-takeaways__item {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-.room-takeaways__n {
-  font-size: min(clamp(20px, 2.4vw, 40px), 4.4vh);
-  font-weight: 800;
+  font-size: min(clamp(56px, 8vw, 130px), 16vh);
+  font-weight: 900;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  color: var(--deck-clr);
-  opacity: 0.5;
 }
 
-/* One column in the middle rail: `auto-fit` at a 240px floor put the four archetypes side by
-   side on a wide screen and stacked them into a 2x2 on a narrow one, and neither shape fits
-   beside a board. */
-.room-archetypes__list {
+.pp-hook__caption {
+  margin: 0;
+  font-size: min(clamp(20px, 2vw, 34px), 4.4vh);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.pp-scenario {
+  margin: 0;
+  font-size: min(clamp(22px, 2.2vw, 38px), 4.8vh);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.pp-choices {
   list-style: none;
-  margin: min(clamp(8px, 1.4vw, 18px), 1.6vh) 0 0;
+  margin: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: min(clamp(6px, 1vw, 14px), 1.2vh);
+  grid-template-columns: 1fr 1fr;
+  gap: min(1.8vh, 16px);
+  align-content: start;
 }
 
-.room-archetypes__item {
-  padding: min(clamp(8px, 1.1vw, 14px), 1.4vh) clamp(10px, 1.2vw, 16px);
-  border: 1px solid var(--deck-line);
+.pp-choice {
+  display: flex;
+  align-items: center;
+  gap: min(1.8vh, 16px);
+  padding: min(2vh, 18px) min(2.2vh, 20px);
+  background: var(--pp-card);
+  border: 2px solid var(--pp-line);
   border-radius: 16px;
-  background: var(--deck-card);
 }
 
-.room-archetypes__name {
+.pp-choice__letter {
+  flex: none;
+  width: min(5.2vh, 44px);
+  height: min(5.2vh, 44px);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pp-bg);
+  border: 2px solid var(--pp-ink);
+  font-weight: 900;
+  font-size: min(clamp(16px, 1.5vw, 24px), 3.2vh);
+}
+
+.pp-choice__label {
+  font-size: min(clamp(17px, 1.6vw, 27px), 3.6vh);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* ── reveal ─────────────────────────────────────────────────────────────── */
+
+.pp-split {
   display: flex;
   flex-direction: column;
-  font-size: min(clamp(13px, 1.4vw, 22px), 2.6vh);
-  font-weight: 800;
-  color: var(--deck-clr);
+  gap: min(1.8vh, 16px);
 }
 
-.room-archetypes__name [lang="th"] {
-  font-size: 0.72em;
-  font-weight: 600;
-  color: var(--deck-muted);
-}
-
-.room-archetypes__sting {
-  margin-top: 5px;
-}
-
-.room-slide .room-archetypes__sting .deck-bi__th {
-  max-width: none;
-  font-size: min(clamp(10px, 0.95vw, 15px), 1.9vh);
-  line-height: 1.25;
-}
-
-.room-slide .room-archetypes__sting .deck-bi__th {
-  max-width: none;
-  line-height: 1.3;
-}
-
-/* The board on the close stage keeps its KPI columns — this is the one screen with the width for
-   them, and the session ends on it. */
-.room-close .room-board__row {
-  padding: min(clamp(4px, 0.8vw, 11px), 1vh) 0;
-}
-
-.room-close .room-board__rank,
-.room-close .room-board__name {
-  font-size: min(clamp(14px, 1.5vw, 24px), 2.9vh);
-}
-
-.room-close .room-board__score b {
-  font-size: min(clamp(16px, 1.7vw, 28px), 3.2vh);
-}
-
-.room-close .room-board__kpi b {
-  font-size: min(clamp(11px, 1.1vw, 17px), 2.1vh);
-}
-
-/* ── The board ───────────────────────────────────────────────────────────── */
-
-.room-board {
-  padding: clamp(16px, 2vw, 26px);
-  border: 1px solid var(--deck-line);
-  border-radius: 20px;
-  background: var(--deck-card);
-}
-
-.room-board__title {
-  color: var(--deck-clr);
-}
-
-.room-board__list {
-  list-style: none;
-  margin: clamp(12px, 1.4vw, 18px) 0 0;
-  padding: 0;
-}
-
-.room-board__row {
+.pp-split__row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-columns: min(5vh, 42px) minmax(0, 5fr) minmax(0, 6fr) auto;
   align-items: center;
-  gap: clamp(12px, 1.6vw, 22px);
-  padding: clamp(8px, 1vw, 14px) 0;
-  border-top: 1px solid var(--deck-line);
+  gap: min(1.8vh, 16px);
 }
 
-.room-board__row:first-child {
-  border-top: 0;
+.pp-split__letter {
+  width: min(4.6vh, 40px);
+  height: min(4.6vh, 40px);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--pp-accent);
+  color: #ffffff;
+  font-weight: 900;
+  font-size: min(clamp(15px, 1.3vw, 21px), 2.9vh);
 }
 
-.room-board__rank {
-  min-width: 1.6ch;
-  font-size: clamp(22px, 2.6vw, 36px);
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-muted);
+.pp-split__label {
+  font-size: min(clamp(15px, 1.4vw, 24px), 3.2vh);
+  font-weight: 600;
+  line-height: 1.35;
 }
 
-/* The leader is the only row that gets the accent — a board where every row shouts ranks nothing. */
-.room-board__row[data-rank="1"] .room-board__rank,
-.room-board__row[data-rank="1"] .room-board__name {
-  color: var(--deck-clr);
-}
-
-.room-board__name {
-  font-size: clamp(19px, 2.2vw, 32px);
-  font-weight: 700;
+.pp-split__track {
+  display: block;
+  height: min(5.4vh, 46px);
+  background: var(--pp-card);
+  border: 2px solid var(--pp-line);
+  border-radius: 12px;
   overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.pp-split__bar {
+  display: block;
+  height: 100%;
+  background: var(--pp-accent);
+  border-radius: 9px;
+  transition: width 0.6s ease;
+}
+
+.pp-split__nums {
+  font-size: min(clamp(16px, 1.5vw, 26px), 3.4vh);
+  font-variant-numeric: tabular-nums;
+  color: var(--pp-muted);
   white-space: nowrap;
 }
 
-.room-board__kpis {
-  display: flex;
-  gap: clamp(10px, 1.4vw, 20px);
+.pp-split__nums b {
+  color: var(--pp-ink);
+  font-size: 1.25em;
 }
 
-.room-board__kpi {
+.pp-talk {
+  margin-top: auto;
+  padding: min(2.4vh, 22px) min(2.6vh, 24px);
+  background: var(--pp-card);
+  border: 2px solid var(--pp-line);
+  border-left: min(1.4vh, 12px) solid var(--pp-guardian);
+  border-radius: 18px;
+}
+
+.pp-talk__title {
+  margin: 0 0 min(1vh, 8px);
+  font-size: min(clamp(15px, 1.3vw, 22px), 3vh);
+  font-weight: 800;
+  color: var(--pp-guardian);
+}
+
+.pp-talk__body {
+  margin: 0;
+  font-size: min(clamp(18px, 1.8vw, 30px), 4vh);
+  line-height: 1.6;
+}
+
+/* ── result — the 2×2 map ───────────────────────────────────────────────── */
+
+.pp-result__title {
+  margin: 0;
+  text-align: center;
+  font-size: min(clamp(28px, 3vw, 52px), 6.4vh);
+  font-weight: 900;
+}
+
+.pp-map {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  padding: min(4.4vh, 40px) min(clamp(48px, 5vw, 90px), 10vh);
+}
+
+.pp-map__axis {
+  position: absolute;
+  font-size: min(clamp(13px, 1.1vw, 19px), 2.6vh);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--pp-muted);
+}
+
+.pp-map__axis--top { top: 0; left: 50%; transform: translateX(-50%); }
+.pp-map__axis--bottom { bottom: 0; left: 50%; transform: translateX(-50%); }
+.pp-map__axis--left {
+  left: 0;
+  top: 50%;
+  transform: translate(-40%, -50%) rotate(-90deg);
+}
+.pp-map__axis--right {
+  right: 0;
+  top: 50%;
+  transform: translate(40%, -50%) rotate(90deg);
+}
+
+.pp-map__grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  /* Hairline centre axes, drawn by the gap over the ink ground. */
+  gap: 2px;
+  background: var(--pp-line);
+  border: 2px solid var(--pp-line);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.pp-quadrant {
   display: flex;
   flex-direction: column;
-  font-size: clamp(10px, 0.9vw, 12px);
-  font-weight: 600;
-  color: var(--deck-muted);
+  gap: min(1vh, 8px);
+  padding: min(2vh, 18px) min(2.2vh, 20px);
+  background: var(--pp-card);
 }
 
-.room-board__kpi b {
-  font-size: clamp(14px, 1.4vw, 20px);
-  font-variant-numeric: tabular-nums;
-  color: var(--deck-ink);
-}
-
-.room-board__score {
+.pp-quadrant__head {
+  margin: 0;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  font-size: clamp(10px, 0.9vw, 12px);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--deck-muted);
+  align-items: baseline;
+  gap: min(1.2vh, 10px);
 }
 
-.room-board__score b {
-  font-size: clamp(22px, 2.6vw, 38px);
+.pp-quadrant__emoji {
+  font-size: min(clamp(20px, 2vw, 34px), 4.4vh);
+}
+
+.pp-quadrant__label {
+  font-size: min(clamp(20px, 2vw, 34px), 4.4vh);
+  font-weight: 900;
+  color: var(--pp-accent);
+}
+
+.pp-quadrant__count {
+  margin-left: auto;
+  font-size: min(clamp(26px, 2.6vw, 46px), 5.8vh);
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  color: var(--deck-ink);
 }
 
-.room-board__score-th {
-  text-transform: none;
-  letter-spacing: 0;
+.pp-quadrant__coffee {
+  margin: 0;
+  font-size: min(clamp(13px, 1.2vw, 20px), 2.8vh);
+  color: var(--pp-muted);
 }
 
-.room-board__empty {
-  margin-top: 10px;
+.pp-quadrant__dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: min(1vh, 8px);
+  align-content: flex-start;
 }
 
-/*
- * The board as a right-hand rail on an outcome stage.
- *
- * The three KPI columns are hidden here, not shrunk: at rail width they wrap to three lines per
- * row and turn a five-row board into a fifteen-line block, which is how the board ended up below
- * the fold in the first place. Rank, name and score are what the round is asking ("did my choice
- * move me?"), and the full profit / satisfaction / waste breakdown is still on the close stage,
- * where the board gets the width to show it.
- */
-.room-outcome .room-board {
-  align-self: start;
-  padding: clamp(12px, 1.4vw, 18px);
+.pp-dot {
+  width: min(2.6vh, 22px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pp-accent);
 }
 
-.room-outcome .room-board__kpis {
-  display: none;
+.pp-result__hint {
+  margin: 0;
+  text-align: center;
+  font-size: min(clamp(16px, 1.5vw, 26px), 3.4vh);
+  font-weight: 600;
+  color: var(--pp-muted);
 }
 
-.room-outcome .room-board__row {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: clamp(8px, 1vw, 14px);
-  padding: clamp(4px, 0.7vh, 9px) 0;
-}
-
-.room-outcome .room-board__list {
-  margin-top: clamp(6px, 0.9vh, 12px);
-}
-
-.room-outcome .room-board__rank {
-  font-size: min(clamp(14px, 1.4vw, 20px), 2.6vh);
-}
-
-.room-outcome .room-board__name {
-  font-size: min(clamp(13px, 1.35vw, 20px), 2.5vh);
-}
-
-.room-outcome .room-board__score b {
-  font-size: min(clamp(15px, 1.5vw, 22px), 2.8vh);
-}
-
-/* "SCORE / คะแนน" under every number turns a 40px row into an 84px one. The column is a board
-   and the big number in it is a score; the caption is not carrying its height. The close stage
-   keeps it, where there is room. */
-.room-outcome .room-board__score-k,
-.room-outcome .room-board__score-th {
-  display: none;
-}
-
-.room-outcome .room-board__title .deck-bi__th {
-  font-size: min(clamp(10px, 0.9vw, 14px), 1.8vh);
-}
-
-/* ── Host chrome (app/biz/page.tsx) ──────────────────────────────────────── */
+/* ── host chrome (deck tokens — deck.css loads first) ───────────────────── */
 
 /* Deliberately small and out of the way: the room should never notice it, and the host only
    touches it once, to type the token. Advancing is the arrow key. */
@@ -1016,18 +441,10 @@
   opacity: 1;
 }
 
-/*
- * Once the token is in, the bar collapses to the controls.
- *
- * Its width is a LAYOUT concern, not chrome: it is fixed over the top-right of the slide and the
- * storyboard strip runs the full width underneath it, so every pixel the bar is wide is a pixel
- * of a caption the room cannot read. The label is setup instruction — it earns its space while
- * the field is empty and is dead weight for the remaining fifteen minutes. It comes back the
- * moment the token is cleared or refused, which is exactly when a host needs to be told what the
- * box is for.
- *
- * The input keeps its accessible name either way: the <label> element still wraps it.
- */
+/* Once the token is in, the bar collapses to the controls. The label is setup instruction — it
+   earns its space while the field is empty and is dead weight for the rest of the workshop. It
+   comes back the moment the token is cleared or refused. The input keeps its accessible name
+   either way: the <label> element still wraps it. */
 .room-host[data-compact='true'] .room-host__label {
   position: absolute;
   width: 1px;
@@ -1088,7 +505,6 @@
 .room-host__btn [lang="th"] {
   font-size: 11px;
   font-weight: 500;
-  opacity: 0.9;
 }
 
 .room-alert {
@@ -1109,918 +525,4 @@
 
 .room-alert--error .deck-bi__th {
   color: var(--deck-red);
-}
-
-/* ── Narrow screens (a laptop mirroring, or a rehearsal on a phone) ──────── */
-
-@media (max-width: 1100px) {
-  .room-join,
-  .room-data,
-  .room-decide__head,
-  .room-decide[data-evidence="true"],
-  .room-close {
-    grid-template-columns: 1fr;
-  }
-
-  /* One column: the charts sit above the question rather than beside it, and the rule that
-     separated them becomes the rule beneath them. */
-  .room-evidence {
-    padding-right: 0;
-    padding-bottom: clamp(16px, 3vw, 26px);
-    border-right: none;
-    border-bottom: 2px solid var(--deck-line);
-  }
-
-  .room-decide[data-evidence="true"] .room-options__row {
-    grid-template-columns: 1fr auto;
-  }
-
-  .room-decide__clock {
-    justify-self: start;
-    text-align: left;
-  }
-
-  .room-options__row {
-    grid-template-columns: 1fr auto;
-  }
-
-  .room-options__track {
-    grid-column: 1 / -1;
-  }
-
-  .room-board__kpis {
-    display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .room-options__fill,
-  .room-host {
-    transition: none !important;
-  }
-}
-
-/* ── Final projector fit ─────────────────────────────────────────────────────
- *
- * The last two stages to come inside the fold, measured rather than guessed. Both were losing
- * their height to text wrapping, not to type size: bucket labels breaking onto two and three
- * lines in a 122px column, and the close stage's takeaways spaced for a screen twice as tall.
- *
- * `npm run check:projector` is the check.
- */
-
-/* A wider label column stops "UNDER 3 MINUTES" and its Thai from becoming five lines. */
-.room-data .room-bars__row {
-  grid-template-columns: minmax(92px, 34%) minmax(0, 1fr) auto;
-  gap: clamp(8px, 1vw, 14px);
-}
-
-.room-data .room-data-panel {
-  gap: min(1vh, 10px);
-}
-
-.room-data .room-placeholder-badge {
-  padding: 3px 10px;
-}
-
-.room-slide .room-data .room-placeholder-badge__text .deck-bi__th {
-  font-size: min(clamp(9px, 0.72vw, 12px), 1.5vh);
-  margin-top: 0;
-}
-
-/* The close stage runs three columns; its headline no longer needs full-deck scale. */
-.room-slide .room-close .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(20px, 2.6vw, 48px), 5vh);
-}
-
-
-.room-takeaways__item {
-  gap: 10px;
-}
-
-/* ── Fit, measured per stage ─────────────────────────────────────────────────
- *
- * `npm run check:projector` reported the tallest element on each stage that still ran past the
- * fold. In every case it was a bilingual paragraph inside a LIST — bullet points and takeaways
- * typeset as prose, three lines of English over two of Thai, ~100px per bullet. Bullets are
- * scanned, not read; the host reads the prose. So the lists drop a step below body copy while
- * the paragraphs they sit under keep theirs.
- */
-.room-slide .room-points__item .deck-bi__th,
-.room-slide .room-takeaways__item .deck-bi__th {
-  max-width: 46ch;
-  font-size: min(clamp(11px, 1.1vw, 20px), 1.85vh);
-  line-height: 1.3;
-}
-
-.room-slide .room-points__item .deck-bi__th,
-.room-slide .room-takeaways__item .deck-bi__th {
-  max-width: 50ch;
-  line-height: 1.35;
-}
-
-.room-points__item::before {
-  width: 10px;
-  height: 10px;
-}
-
-.room-points__item {
-  padding-left: 22px;
-}
-
-/* The outcome headline is the answer to the round, but at 46px over two lines plus its Thai it
-   was 176px — a third of the stage's whole height budget before anything else rendered. */
-.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(22px, 2.9vw, 54px), 5.2vh);
-}
-
-
-.room-slide .room-trace__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.8vw, 14px), 1.6vh);
-}
-
-
-/* The evidence charts on a decide stage: 40px per bar row across two panels was the last thing
-   over the edge there. */
-.room-evidence .room-bars {
-  gap: min(0.7vh, 7px);
-}
-
-.room-evidence .room-bars__track {
-  height: min(clamp(12px, 1.2vw, 24px), 2.4vh);
-}
-
-.room-slide .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
-  line-height: 1.15;
-}
-
-.room-slide .room-evidence .room-bars__label .deck-bi__th {
-  line-height: 1.2;
-}
-
-/*
- * The close stage's board, in a third of the screen.
- *
- * The row is a four-column grid (rank | name | KPIs | score) built for a full-width board. At
- * 371px those four columns squeeze until every caption wraps and a five-row board measures 938px
- * — taller than the projector, on the one screen the session ends on.
- *
- * So the row breaks into two lines here: the ranking on top, the three KPIs beneath it. Nothing
- * is dropped — this is the screen where the full profit / satisfaction / waste breakdown is the
- * point, unlike the outcome rail, which hides it.
- */
-.room-close .room-board__row {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    "rank name score"
-    "kpis kpis kpis";
-  gap: 2px clamp(8px, 1vw, 14px);
-  align-items: baseline;
-}
-
-.room-close .room-board__rank { grid-area: rank; }
-.room-close .room-board__name { grid-area: name; }
-.room-close .room-board__score { grid-area: score; }
-.room-close .room-board__kpis { grid-area: kpis; }
-
-/* The score caption goes inline beside the number rather than under it: stacked, it set the
-   height of every row on the board. */
-.room-close .room-board__score {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.room-close .room-board__score-th {
-  display: none;
-}
-
-.room-close .room-board__kpi {
-  flex-direction: row;
-  align-items: baseline;
-  gap: 5px;
-  font-size: min(clamp(9px, 0.8vw, 12px), 1.5vh);
-}
-
-.room-close .room-board__kpi-th {
-  display: none;
-}
-
-/* The archetypes are flavour beside the board, and were running 148px each. */
-.room-slide .room-archetypes__sting .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 14px), 1.6vh);
-}
-
-
-.room-slide .room-close .room-archetypes__name {
-  font-size: min(clamp(11px, 1.2vw, 18px), 2vh);
-}
-
-.room-archetypes__item {
-  padding: min(clamp(6px, 0.9vw, 11px), 1.1vh) clamp(8px, 1vw, 13px);
-}
-
-/* Rounds 2 and 3: four signed deltas per card, each a two-line label beside a number. */
-.room-fx__delta {
-  padding: 1px 0;
-}
-
-.room-slide .room-fx__delta dt {
-  font-size: min(clamp(8px, 0.7vw, 12px), 1.35vh);
-  line-height: 1.15;
-}
-
-.room-slide .room-fx__delta dd {
-  font-size: min(clamp(11px, 1.2vw, 22px), 2.2vh);
-}
-
-/* ── Last pass ───────────────────────────────────────────────────────────────
- * The outcome stages were the final three over the edge, all by 110–200px, spread evenly across
- * the headline, the chain and the lesson rather than concentrated anywhere. Trimmed in proportion.
- */
-.room-outcome {
-  gap: min(1.1vh, 14px) clamp(16px, 2vw, 32px);
-}
-
-.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(20px, 2.6vw, 54px), 4.6vh);
-}
-
-.room-slide .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(10px, 0.95vw, 19px), 1.7vh);
-}
-
-
-.room-trace {
-  padding: min(1.1vh, 14px) clamp(12px, 1.5vw, 22px);
-}
-
-.room-trace__steps {
-  margin-top: min(1.1vh, 14px);
-}
-
-.room-trace__value {
-  font-size: min(clamp(22px, 2.8vw, 56px), 5.6vh);
-}
-
-.room-trace__staffing b {
-  font-size: min(clamp(18px, 2.2vw, 44px), 3.6vh);
-}
-
-.room-trace__sum {
-  margin-top: min(0.9vh, 11px);
-  padding-top: min(0.8vh, 10px);
-}
-
-.room-lesson {
-  padding: min(1vh, 13px) clamp(12px, 1.8vw, 26px);
-}
-
-/* data-you and decide-staffing were the last two, ~40px each. */
-.room-data__panels {
-  gap: min(1.6vh, 20px);
-}
-
-.room-evidence {
-  gap: min(1.2vh, 15px);
-}
-
-/*
- * The shell's own reserve. `.deck-chrome` is absolutely positioned ~17px off the bottom and about
- * 51px tall, but deck.css reserves up to 118px of padding beneath it for a pitch slide's breathing
- * room. These stages do not have that to spare: 30px of reserve is 30px of board.
- */
-.room-slide {
-  padding-bottom: min(clamp(46px, 7vh, 92px), 8.4vh);
-}
-
-.room-slide .deck-eyebrow .deck-bi__th {
-  font-size: min(clamp(10px, 1vw, 16px), 1.7vh);
-}
-
-
-/* The last ~40px, off the outcome stage's three largest blocks in proportion. */
-.room-trace__value {
-  font-size: min(clamp(20px, 2.6vw, 56px), 5vh);
-}
-
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(16px, 2.1vw, 44px), 4vh);
-}
-
-.room-slide .room-data .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(20px, 2.8vw, 60px), 5.4vh);
-}
-
-/* Final calibration: outcome ~110px, close ~65px, taken proportionally rather than from any one
-   element, so nothing on either stage drops a size step relative to its neighbours. */
-.room-outcome {
-  gap: min(0.9vh, 12px) clamp(14px, 1.8vw, 30px);
-}
-
-.room-slide .room-outcome .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(18px, 2.4vw, 54px), 4vh);
-}
-
-.room-slide .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(10px, 0.9vw, 19px), 1.55vh);
-}
-
-
-.room-trace__value {
-  font-size: min(clamp(19px, 2.4vw, 56px), 4.4vh);
-}
-
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(15px, 1.9vw, 44px), 3.5vh);
-}
-
-
-.room-slide .room-fx__delta dd {
-  font-size: min(clamp(10px, 1.1vw, 22px), 2vh);
-}
-
-.room-slide .room-takeaways__item .deck-bi__th {
-  font-size: min(clamp(10px, 1vw, 20px), 1.7vh);
-}
-
-
-.room-slide .room-close .room-archetypes__name {
-  font-size: min(clamp(10px, 1.1vw, 18px), 1.8vh);
-}
-
-.room-slide .room-archetypes__sting .deck-bi__th {
-  font-size: min(clamp(8px, 0.78vw, 14px), 1.45vh);
-}
-
-
-/*
- * The close board, again — measured at 140px per row.
- *
- * Laying the three KPIs out horizontally to save a line backfired: "Happy customers" and its
- * neighbours wrap inside a 371px column, so each KPI became two or three lines anyway and the
- * row got taller than it was stacked. Back to a stacked caption over its value, but at label
- * scale, which is what a caption on a board actually needs to be.
- */
-.room-close .room-board__kpi {
-  flex-direction: column;
-  gap: 0;
-  font-size: min(clamp(8px, 0.72vw, 11px), 1.3vh);
-  line-height: 1.15;
-}
-
-.room-close .room-board__kpi b {
-  font-size: min(clamp(11px, 1vw, 16px), 1.9vh);
-}
-
-.room-close .room-board__kpis {
-  gap: clamp(8px, 1.2vw, 18px);
-}
-
-/* The lesson strip carries an eyebrow above its sentence; both were sized for a full slide. */
-.room-lesson {
-  padding: min(0.8vh, 10px) clamp(11px, 1.6vw, 24px);
-}
-
-.room-slide .room-lesson__eyebrow .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 13px), 1.4vh);
-}
-
-
-/* The accounting line proves nobody vanished; it does not need to be 58px to do that. */
-.room-trace__sum {
-  gap: 10px;
-  margin-top: min(0.7vh, 9px);
-  padding-top: min(0.6vh, 8px);
-}
-
-.room-trace__eq {
-  font-size: min(clamp(13px, 1.4vw, 24px), 2.6vh);
-}
-
-.room-slide .room-trace__sum .deck-bi__th {
-  font-size: min(clamp(8px, 0.75vw, 12px), 1.35vh);
-}
-
-/* The outcome rail board, one step tighter so row 1 stops setting the stage height. */
-.room-outcome .room-board__row {
-  padding: min(0.5vh, 6px) 0;
-}
-
-.room-outcome .room-board__rank,
-.room-outcome .room-board__name {
-  font-size: min(clamp(12px, 1.2vw, 20px), 2.2vh);
-}
-
-.room-outcome .room-board__score b {
-  font-size: min(clamp(13px, 1.3vw, 22px), 2.4vh);
-}
-
-/* Rounds 2 and 3: the three delta cards. */
-.room-fx__card {
-  padding: min(0.8vh, 11px) clamp(9px, 1.1vw, 16px);
-}
-
-.room-fx__deltas {
-  margin-top: min(0.7vh, 9px);
-}
-
-/* Round 1's chain, the last stage over the edge. Trimmed past the line rather than onto it, so a
-   longer player name or a fuller board does not put it back over. */
-.room-trace__step {
-  padding: min(0.7vh, 10px) clamp(6px, 0.7vw, 11px);
-}
-
-.room-trace__value {
-  font-size: min(clamp(18px, 2.2vw, 56px), 4vh);
-}
-
-.room-trace__head {
-  gap: 10px;
-}
-
-.room-slide .room-trace__head .deck-bi__th {
-  font-size: min(clamp(9px, 0.8vw, 13px), 1.4vh);
-}
-
-.room-trace__staffing b {
-  font-size: min(clamp(15px, 1.8vw, 44px), 3vh);
-}
-
-/*
- * The last 14px, and they do not come off the type — six rounds of that are already above.
- *
- * `outcome-staffing` was the single stage still overflowing 1366x768, by 14.5px, and the measured
- * cause was not content: the slide reserved 53.8px of bottom padding while `.deck-chrome` — which
- * is absolutely positioned — only ever occupies the bottom 25px of it. That is ~28px of empty
- * floor held back for a footer that does not reach it. Sizing the reserve off what the chrome
- * actually measures (plus a comfortable margin) returns it to the stage, at both projector shapes.
- *
- * Verified with `npm run check:projector`, which seats nine players so the leaderboard renders at
- * its tallest. Do not raise these without re-running it.
- */
-.room-slide {
-  padding-bottom: min(clamp(36px, 4.8vh, 92px), 8.4vh);
-}
-
-.room-lesson {
-  padding: min(0.7vh, 13px) clamp(12px, 1.8vw, 26px);
-}
-
-/*
- * ── Storyboards ─────────────────────────────────────────────────────────────────────────────
- *
- * The team's note after the 3 Aug run-through, for both workshops: a bilingual question reads as
- * a wall of text on a projector at the back of a hall. Two to four captioned frames do not.
- *
- * Sized off viewport HEIGHT, like everything else that shares a slide here. A storyboard is an
- * ADDITION to screens that already fit at 1366x768 — the decide stage carries a prompt, context,
- * a clock, charts and four vote buttons — so its whole job is to be legible while taking as
- * little vertical budget as it can. `npm run check:projector` is the gate; do not raise these
- * numbers without re-running it.
- *
- * `grid-auto-flow: column` with equal tracks keeps the frames the same width whatever the caption
- * lengths are, so the strip reads as a comic rather than as a ragged row of boxes.
- */
-/*
- * The strip clears the host bar, which is `position: fixed` at top-right and therefore paints
- * OVER it. Measured at 1366x768: the strip's first row ran y49-88 and the bar y12-65, so the
- * rightmost panel's opening line was struck through by the token field on every decide and data
- * stage. Nothing detects this — the fit check measures the fold, and an element covered by
- * fixed-position chrome is still perfectly inside it.
- *
- * The clearance is paid for out of the whitespace at the bottom of these stages, which is space
- * the Thai-only sweep freed and nothing else is using.
- */
-.room-story {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: clamp(8px, 1.2vw, 18px);
-  margin: min(3.4vh, 26px) 0 min(1.4vh, 14px);
-  padding: 0;
-  list-style: none;
-}
-
-.room-story__panel {
-  display: flex;
-  align-items: center;
-  gap: clamp(6px, 0.8vw, 12px);
-  padding: min(0.9vh, 12px) clamp(8px, 1vw, 14px);
-  border: 1px solid var(--deck-rule, rgba(255, 255, 255, 0.16));
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.room-story__art {
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-}
-
-/* The character, today. Capped by height so a three-panel strip cannot push a slide over. */
-.room-story__emoji {
-  font-size: min(clamp(20px, 2.6vw, 40px), 4.4vh);
-  line-height: 1;
-}
-
-/* Real artwork, when it arrives. Same height budget as the emoji it replaces, so dropping a file
- * into /public and pointing `art` at it cannot change whether the slide fits. */
-.room-story__img {
-  width: auto;
-  height: min(clamp(24px, 3vw, 46px), 5vh);
-  object-fit: contain;
-  display: block;
-}
-
-.room-story__caption {
-  min-width: 0;   /* let long captions wrap instead of widening the grid track */
-}
-
-.room-story__caption .deck-bi__th {
-  font-size: min(clamp(11px, 1.05vw, 17px), 2.1vh);
-  line-height: 1.25;
-}
-
-.room-story__caption .deck-bi__th {
-  line-height: 1.3;
-}
-
-/*
- * The phone. One column, not three: 390px of width divided by three frames is not a comic, it is
- * three columns of single words. The strip becomes a vertical run of captions, which is what a
- * storyboard degrades to gracefully.
- */
-.phone-root .room-story {
-  grid-auto-flow: row;
-  grid-auto-columns: auto;
-  gap: 6px;
-}
-
-/*
- * ── Absorbing a fourth option, and a storyboard above it ────────────────────────────────────
- *
- * Both are the team's asks from the run-through, and both cost vertical space on slides that were
- * already calibrated to the pixel. Measured with `npm run check:projector`; the numbers below are
- * what makes all twelve stages fit at 1366x768 with the storyboards and four options present.
- */
-
-/* The storyboard spans the full slide, rather than sitting in the half-width text column it is
- * written next to. In half a screen, three captions wrap to three lines each and cost ~200px;
- * across the full width they cost about a third of that and read as a strip rather than a stack. */
-/*
- * The strip must span the SLIDE, not the column it is written beside. It sits above
- * `.room-decide__head` rather than inside it because that header is `display: flex` further down
- * this sheet — `grid-column` is inert there, and the storyboard was being squeezed into a 582px
- * flex item, wrapping every caption to four lines and costing 295px instead of ~90px.
- *
- * `.room-data` IS a grid, so the data stage spans it the normal way.
- */
-.room-data > .room-story {
-  grid-column: 1 / -1;
-}
-
-/*
- * Direct child of `.room-decide`, spanning both of its columns. Not inside `.room-decide__vote`:
- * on a stage that carries evidence, that column is HALF the slide, and a three-frame strip in
- * half a slide wraps every caption and costs 295px instead of ~90px.
- */
-.room-decide > .room-story {
-  grid-column: 1 / -1;
-}
-
-/*
- * ONE ROW, whatever the option count. This was `repeat(3, ...)`, which silently wrapped the
- * moment round 3 gained a fourth option — putting it on a second row, 205px below the fold, where
- * the room could not compare it to the other three. The whole purpose of this panel is
- * side-by-side comparison, so the column count has to follow the content.
- */
-.room-fx__list {
-  grid-template-columns: none;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: clamp(6px, 0.7vw, 12px);
-}
-
-/* Four cards in the width that held three: the padding has to come back, or the text does. */
-.room-fx__card {
-  padding: min(1vh, 12px) clamp(7px, 0.8vw, 12px);
-}
-
-.room-slide .room-fx__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.85vw, 15px), 1.7vh);
-}
-
-
-/* Four vote rows instead of three, on a slide that also gained a storyboard. */
-.room-decide[data-evidence="true"] .room-options {
-  gap: min(0.7vh, 9px);
-}
-
-.room-decide[data-evidence="true"] .room-options__label .deck-bi__th {
-  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
-}
-
-
-/*
- * ── The last of the fourth-option / storyboard budget ───────────────────────────────────────
- *
- * What was still over, and why, measured rather than guessed:
- *
- *   - The storyboard strip cost 137px. It is an addition to slides that already fit, so it has to
- *     earn its place in about 90.
- *   - `mainFactor` is a FIVE-bucket chart with the longest labels in the project ("Convenience &
- *     location" / "ความสะดวกและทำเลที่ตั้ง"), rendered bilingually. At 258px it was two-thirds
- *     taller than the three-bucket `spend` chart beside it, and it appears on both `data-you` and
- *     `decide-price` — the two worst stages. Rows and labels come down; the bars stay
- *     proportional, which is the only thing the chart has to do from the back of a hall.
- *
- * Re-run `npm run check:projector` after touching any of this.
- */
-.room-story__panel {
-  padding: min(0.6vh, 8px) clamp(6px, 0.8vw, 11px);
-  gap: clamp(5px, 0.6vw, 9px);
-}
-
-.room-story__emoji {
-  font-size: min(clamp(17px, 2.1vw, 32px), 3.4vh);
-}
-
-.room-story__img {
-  height: min(clamp(20px, 2.4vw, 36px), 3.8vh);
-}
-
-.room-slide .room-story__caption .deck-bi__th {
-  font-size: min(clamp(10px, 0.92vw, 15px), 1.75vh);
-  line-height: 1.2;
-}
-
-.room-slide .room-story__caption .deck-bi__th {
-  line-height: 1.24;
-}
-
-/* Five buckets where the other charts have three or four. */
-.room-data .room-bars__row,
-.room-evidence .room-bars__row {
-  gap: min(0.5vh, 6px);
-}
-
-.room-data .room-bars,
-.room-evidence .room-bars {
-  gap: min(0.62vh, 8px);
-}
-
-.room-slide .room-data .room-bars__label .deck-bi__th,
-.room-slide .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.86vw, 15px), 1.72vh);
-  line-height: 1.18;
-}
-
-.room-slide .room-data .room-bars__label .deck-bi__th,
-.room-slide .room-evidence .room-bars__label .deck-bi__th {
-  line-height: 1.2;
-}
-
-/* The scripted points under the data headline: three sentences, bilingual, and the stage now
- * carries a storyboard above them saying some of the same work. */
-.room-slide .room-points__item .deck-bi__th {
-  font-size: min(clamp(11px, 1.05vw, 18px), 2vh);
-  line-height: 1.26;
-}
-
-.room-slide .room-points__item .deck-bi__th {
-  line-height: 1.3;
-}
-
-.room-points__item {
-  margin-bottom: min(0.7vh, 9px);
-}
-
-/*
- * The remaining budget, and it is all TEXT — the structure is settled by now.
- *
- * Round 1 was rewritten against the real survey and its copy is longer than what it replaced: the
- * outcome body has to say what the discount won, what it cost, AND why the discount was aimed at
- * the wrong thing, which the old two-clause sentence did not. `data-you` gained a third scripted
- * point naming the sample size out loud. Neither is padding — they are the argument — so the type
- * comes down instead of the words.
- *
- * Everything below is capped by viewport HEIGHT (`min(clamp(...), Nvh)`), which is the idiom this
- * whole sheet uses: a projector that is wide and short is the binding case, and Tailwind's
- * width-based breakpoints cannot see it. Measured at 1600x900 and 1366x768 with
- * `npm run check:projector`; do not raise them without re-running it.
- */
-/*
- * NOTE THE SELECTOR LENGTH, which is not decoration. `.room-slide .room-outcome .deck-bi--hero
- * .deck-bi__th` already exists further up this sheet at specificity 0,4,0; a rule written the
- * obvious way (`.room-slide .room-outcome__words .deck-bi__th`, 0,3,0) loses to it silently and
- * the headline keeps rendering at 4vh. That is exactly what happened on the first attempt here —
- * the stage got TALLER, because the line-height applied and the font-size did not.
- */
-.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(15px, 1.5vw, 26px), 2.75vh);
-  line-height: 1.14;
-}
-
-.room-slide .room-outcome .room-outcome__words .deck-bi--hero .deck-bi__th {
-  line-height: 1.22;
-}
-
-.room-slide .room-outcome .room-outcome__body .deck-bi__th {
-  font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
-  line-height: 1.24;
-}
-
-.room-slide .room-outcome .room-outcome__body .deck-bi__th {
-  line-height: 1.28;
-}
-
-.room-lesson {
-  padding: min(0.55vh, 10px) clamp(10px, 1.6vw, 22px);
-}
-
-.room-slide .room-lesson__text .deck-bi__th {
-  font-size: min(clamp(13px, 1.3vw, 23px), 2.5vh);
-}
-
-
-/* The data stage headline and lead, above three scripted points and two charts. */
-.room-slide .room-data__words > .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(15px, 1.5vw, 27px), 2.9vh);
-  line-height: 1.16;
-}
-
-.room-slide .room-data__words > .deck-bi--hero .deck-bi__th {
-  line-height: 1.24;
-}
-
-.room-slide .room-data__lead .deck-bi__th {
-  font-size: min(clamp(11px, 1vw, 17px), 1.9vh);
-  line-height: 1.26;
-}
-
-.room-slide .room-data__lead .deck-bi__th {
-  line-height: 1.3;
-}
-
-.room-data__lead {
-  margin-top: min(0.9vh, 12px);
-}
-
-/* The decide prompt and its context line, now above four options rather than three. */
-.room-slide .room-decide__head .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(14px, 1.42vw, 25px), 2.75vh);
-  line-height: 1.16;
-}
-
-.room-slide .room-decide__head .deck-bi--hero .deck-bi__th {
-  line-height: 1.24;
-}
-
-.room-slide .room-decide__context .deck-bi__th {
-  font-size: min(clamp(10px, 0.95vw, 16px), 1.85vh);
-  line-height: 1.24;
-}
-
-.room-slide .room-decide__context .deck-bi__th {
-  line-height: 1.28;
-}
-
-/* The multi-select caveat under a chart whose bars do not sum to the room. Small and quiet — it
- * is a footnote, not a finding — but it must be legible from the back, so it is height-capped
- * like everything else here rather than set in px. */
-.room-data-panel__note {
-  margin: min(0.5vh, 6px) 0 0;
-  opacity: 0.72;
-}
-
-.room-slide .room-data-panel__note .deck-bi__th {
-  font-size: min(clamp(8px, 0.72vw, 12px), 1.5vh);
-  line-height: 1.16;
-}
-
-.room-slide .room-data-panel__note .deck-bi__th {
-  line-height: 1.2;
-}
-
-/* The multi-select note is an addition to two decide stages that were passing with no margin, and
- * `decide-defend` went 46px over the moment it appeared. The note stays — an unlabelled 18/18 bar
- * is the misreading it exists to prevent — so the space comes from the charts around it. */
-.room-evidence {
-  gap: min(1vh, 13px);
-}
-
-.room-evidence .room-data-panel {
-  padding-bottom: min(0.5vh, 7px);
-}
-
-.room-data-panel__note {
-  margin-top: min(0.35vh, 4px);
-}
-
-/*
- * The evidence charts beside a decide question, at their tightest.
- *
- * `decide-defend` shows `mainFactor` (five buckets, the longest labels in the project) beside
- * `queuePatience` (four), under a storyboard, above four options — and it is the stage with the
- * least slack in the deck. These rules are what make it fit; the bars stay proportional, which is
- * the only thing the chart has to do from the back of a hall.
- *
- * NOTE THE SELECTOR LENGTH. `.room-evidence .room-bars__row` (0,2,0) loses to rules already in
- * this sheet; these carry `.room-slide` and `[data-evidence="true"]` so they actually win. A rule
- * that loses here fails silently — the stage simply stays too tall.
- */
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__row {
-  gap: min(0.34vh, 4px);
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars {
-  gap: min(0.46vh, 6px);
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__th {
-  font-size: min(clamp(9px, 0.8vw, 14px), 1.55vh);
-  line-height: 1.12;
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-bars__label .deck-bi__th {
-  line-height: 1.14;
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-evidence .room-data-panel {
-  padding-bottom: min(0.4vh, 5px);
-}
-
-/*
- * The last 14px on `decide-defend`, which is the tightest stage in the deck: a storyboard, two
- * charts (one of them the five-bucket `mainFactor` with its multi-select footnote), and four
- * options, all on one screen.
- *
- * It does NOT come off the type again — six rounds of that are already above, and the labels are
- * at the floor of what reads from the back of a hall. It comes off the gap between the storyboard
- * and the two columns below it, which is dead space, and off the vote rows' internal padding.
- *
- * Verified at 1600x900 and 1366x768 with `npm run check:projector`, which votes on every stage so
- * the tally bars are present. Do not raise these without re-running it.
- */
-.room-decide > .room-story {
-  margin-bottom: min(0.7vh, 8px);
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-options__row {
-  padding-top: min(0.35vh, 4px);
-  padding-bottom: min(0.35vh, 4px);
-}
-
-/*
- * The final 3-8px, on all three decide stages at 1366x768.
- *
- * Every decide stage now carries a storyboard and four options where it used to carry three, and
- * all three land within single digits of the fold. That margin is too thin to leave: a venue
- * projector one notch shorter, or a Thai glyph that wraps differently at a different font
- * fallback, and the last vote button is gone.
- *
- * Taken from the votes-cast strip under the options and the gap above it — chrome, not content.
- */
-.room-slide .room-decide[data-evidence="true"] .room-decide__votes {
-  margin-top: min(0.5vh, 6px);
-  padding: min(0.3vh, 4px) 0;
-}
-
-.room-slide .room-decide[data-evidence="true"] .room-options {
-  margin-top: min(0.6vh, 8px);
-}
-
-/*
- * `decide-defend`, and it alone, is still 8px over at 1366x768.
- *
- * It is the only stage carrying FOUR options beside the five-bucket `mainFactor` chart AND that
- * chart's multi-select footnote — one more row of each than any other decide stage. Rather than
- * trimming every stage again for one stage's sake, the last 8px come off this stage's storyboard,
- * which is its shortest element and the one with the least to lose from a tighter frame.
- */
-.room-decide[data-evidence="true"] .room-story__panel {
-  padding-top: min(0.4vh, 5px);
-  padding-bottom: min(0.4vh, 5px);
-}
-
-.room-decide[data-evidence="true"] > .room-story {
-  margin-bottom: min(0.5vh, 6px);
-}
-
-/*
- * `decide-defend` is the one stage where the EVIDENCE column, not the vote column, sets the
- * height: two charts stacked (273px + 213px) against 500px of question and options. Shaving type
- * again would be the seventh such pass and the labels are already at the floor of what reads from
- * the back of a hall, so the last few pixels come from the slide's own reserve instead.
- *
- * Safe because it is measured, not assumed: `.deck-chrome` is absolutely positioned and occupies
- * only the bottom ~25px of the padding this slide holds back — the same finding that fixed
- * `outcome-staffing` in an earlier pass. Scoped to decide stages so the outcome and close stages,
- * which are calibrated against the full reserve, are untouched.
- */
-.room-slide:has(.room-decide[data-evidence="true"]) {
-  padding-top: min(clamp(18px, 2.6vh, 40px), 3.6vh);
-  padding-bottom: min(clamp(30px, 4vh, 78px), 6.6vh);
 }
