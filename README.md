@@ -5,7 +5,7 @@
 | | Workshop | Projector | Phones | Length |
 |---|---|---|---|---|
 | 1 | [**AI Detective**](#ai-detective) — think with AI, not just trust AI | `/tv` | `/` | 9 questions, 8:03 |
-| 2 | [**The Decision Room**](#the-decision-room) — you are the dataset | `/biz` | `/play` | 15 min |
+| 2 | [**Café Persona**](#café-persona) — which coffee decides like you? | `/biz` | `/play` | 15–20 min |
 
 Shared, and worth reading whichever workshop you are running: [Run it](#run-it) ·
 [the LAN gotcha](#the-lan-gotcha-blank-unclickable-pages) ·
@@ -239,17 +239,19 @@ rather than scrolls and a status line that has fallen off the screen fails silen
 
 ---
 
-# The Decision Room
+# Café Persona
 
-*The second workshop.* Fifteen minutes. The audience runs a cafe using data **they supplied at event registration**, and
-competes on profit. Same app, same server, different routes.
+*The second workshop.* 15–20 minutes. The audience are the owner of a café whose market research is
+**their own registration data** — every question opens with one real figure from this room. Eight
+dilemmas, four defensible paths each, **no points and no winner**: each choice silently accumulates
+toward one of four decision-maker personas (THE PIONEER / SPRINTER / ANALYST / GUARDIAN — coffee
+drinks on a GUT↔DATA × MOVE FAST↔WAIT & SEE map). The finale shows your MBTI-style card on your
+phone and the room's 2×2 map on the projector. The engine enforces the message: **no `correct`
+field exists anywhere in the type system.**
 
-Three decisions, one tap each, four options each. Every player carries their own shop, and its
-numbers accumulate across all three rounds. The board ranks revenue, profit, satisfaction and
-waste — with **waste inverted**, so a player who pushes every bar upward loses. That inversion is
-the workshop's argument compressed into a scoreboard.
+Design intent and every knob: `docs/superpowers/specs/2026-08-20-cafe-persona-design.md`.
 
-## Run the Decision Room
+## Run Café Persona
 
 ```bash
 FACILITATOR_TOKEN='<your-token>' npm run start:lan     # after npm run build
@@ -331,30 +333,20 @@ needs no code change, just advance past it.
    The output path is optional and defaults to `content/audience.ts`, which is generated and meant
    to be overwritten. `IS_PLACEHOLDER` is set by the importer; you do not edit it by hand.
 
-   Every figure on screen is recomputed from the aggregate, and `content/room.test.ts` pins the
-   round 1 script to the simulator. **A failure there is the system working** — it means a sentence
-   on the projector no longer matches the data. Fix the sentence, don't relax the test.
-3. **Review the economics.** These are still unreviewed guesses and they decide whether the game is
-   interesting:
-   - `lib/pricing.ts` — `cogsPerDrinkBaht` (฿22) and `footfallPerDay` (120). Note which matters:
-     footfall scales every number on screen and **cannot change the winner**; cost-per-cup could in
-     principle, and a test asserts it does not across ฿10-40. Review footfall for plausibility,
-     cost for correctness.
-   - `content/room.ts` — the `fx` values on rounds 2 and 3. Their *ordering* is grounded in the
-     survey; their sizes are mine.
-4. **Run the projector check** after any content or layout edit (see below). The deck now fits at
-   1366×768 with only a few pixels to spare on the decide stages.
+   Every data-hook figure is recomputed from the aggregate, and `content/persona.test.ts`
+   re-derives each one. **A failure there is the system working** — it means a figure on the
+   projector no longer matches the data. Fix the content, don't relax the test.
+3. **Run the projector check** after any content or layout edit (see below).
 
 ## Things not to say on stage
 
-- **Never call the simulator AI, ML, or a model.** It is arithmetic over the audience's own
-  answers. A workshop about data honesty should not oversell its own machinery.
-- **Never present a multi-select bar as a share of the room.** "18 of 18 chose taste" does not mean
-  taste was the only thing anyone cared about — people could tick several. Both the projector and
-  the phone print that caveat under the chart automatically; don't contradict it.
-- **Say the sample size.** 18 people, and registrants rather than the room in front of you. The
-  script does this on `data-you`; deciding on a small sample is part of the lesson, not something
-  to smooth over.
+- **Never present a multi-select figure as a share of the room.** "18 of 18 named taste" does not
+  mean taste was the only thing anyone cared about — people could tick several (q1 and q7's hooks
+  both come from that multi-select).
+- **Say the sample size.** 18 people, and registrants rather than the room in front of you.
+  Deciding on a small sample is part of the lesson, not something to smooth over.
+- **Never announce anyone's type before the finale, and never rank the types.** The game's whole
+  argument is that there is no 0 or 1 — a "best persona" remark from the stage undoes it.
 
 ## A note on the survey that shipped
 
@@ -363,27 +355,20 @@ proposal. Queue patience thresholds are 5/10/15 minutes — **there was never a 
 `Bus` replaced BTS/MRT, and two questions were added (spend, and the multi-select deciding factor)
 that now carry round 1 entirely. `content/audience.ts` is the authoritative record.
 
-The original round 1 asked how many baristas to staff. On the real responses that round is
-unplayable: 8 people buy at 7-9, scaled by 6-of-18 coffee drinkers, is **three customers** against
-one barista's capacity of 25. No queue forms, nobody walks out, every option loses money.
-`lib/sim.ts` is kept and still tested — at a few hundred responses the round works again, and
-`lib/sim.test.ts` says so — but it is not currently in the deck.
+(The Decision Room era's staffing/pricing simulators were removed with that game on 20 Aug 2026 —
+the persona game quotes the audience's counts directly and needs no economic model.)
 
 ## Editing the workshop
 
-`content/room.ts` holds every stage and every word, bilingual (th/en), both languages rendered at
-once — there is no language toggle anywhere. `content/audience.ts` is the only file that knows
-about registration data, and it is **generated** — edit the CSV and re-import, never the numbers.
-`lib/pricing.ts` holds round 1's economics.
+`content/persona.ts` holds every word — the four persona cards and all eight questions, Thai copy
+with English persona/axis labels (framework language, by design). `content/audience.ts` is the only
+file that knows about registration data, and it is **generated** — edit the CSV and re-import,
+never the numbers.
 
-Decide and data stages take an optional `storyboard` of 2-4 frames, same shape as AI Detective's.
-Unlike AI Detective, The Decision Room renders both languages at once, so the two workshops share
-the `StoryPanel` **type** but not the renderer.
-
-`npx vitest run content/room.test.ts` validates the script: unique stage ids, every outcome points
-at a real decision, both languages present, the time budget fits fifteen minutes, round 3's
-recurring option still beats the flashy one, round 2's ordering matches the survey, and every
-figure quoted in the round 1 copy still matches what the simulator produces.
+`npx vitest run content/persona.test.ts lib/persona.test.ts` validates the content and the scoring:
+eight questions, each offering all four personas exactly once, choice order shuffled across
+questions, every data-hook figure re-derived from `content/audience.ts`, partners always diagonal,
+and the tie-break deterministic.
 
 ## Superseded / dead code
 
@@ -392,9 +377,9 @@ AI Detective's v1 free-roam flow (`app/reveal/`, `components/CaseScreen.tsx`,
 (`content/cases.ts`) are gone as of the v3 rebuild — nothing in `app/` or `content/` imports or
 routes to them any more.
 
-`lib/sim.ts` (the staffing simulator) is **not dead** and should not be deleted — see "A note on
-the survey that shipped" above. It is out of the deck because the sample is too small, not because
-it is wrong, and it is still tested.
+The Decision Room (the KPI/shop game that previously ran on `/biz` + `/play`: `content/room.ts`,
+`lib/sim.ts`, `lib/pricing.ts`, the leaderboard) was removed on 20 Aug 2026 when Café Persona
+replaced it. The join/poll/control plumbing survived; only the game changed.
 
 ## Development
 
@@ -427,7 +412,7 @@ suite passing and `next build` reporting success.
 
 It also walks **390×844** and reports how far a player must scroll to reach the last option. That
 one is a **warning, not a failure** — phones scroll — but an option someone has to hunt for inside a
-game's answer window collects fewer votes than it deserves (Decision Room's window is ~40-45s;
+game's answer window collects fewer votes than it deserves (Café Persona's countdown is a soft 30s;
 AI Detective's is a fixed 15s, so it has even less slack). Both phones currently reach every option
 without scrolling.
 
