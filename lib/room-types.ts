@@ -52,10 +52,23 @@ export const ChoiceSchema = z.object({
 })
 export type Choice = z.infer<typeof ChoiceSchema>
 
+export const AUDIENCE_FIELDS = [
+  'arrivalMode', 'wakeTime', 'firstDrink', 'buyTime', 'queuePatience', 'spend', 'mainFactor',
+] as const
+
 export const QuestionSchema = z.object({
   id: z.string().min(1),
-  /** figure is COMPUTED from AUDIENCE, never hand-typed — content/persona.test.ts re-derives it. */
-  dataHook: z.object({ figure: z.string().min(1), caption: z.string().min(1) }),
+  /**
+   * The ask stage PLOTS this field's full distribution from AUDIENCE — the projector renders a
+   * chart, never a lone figure. `highlight` names the bucket(s) the scenario turns on; every key
+   * must exist in that field (content/persona.test.ts checks). `caption` is the "so what" line
+   * under the chart — compute any number in it from AUDIENCE, never hand-type one.
+   */
+  dataHook: z.object({
+    field: z.enum(AUDIENCE_FIELDS),
+    highlight: z.array(z.string().min(1)).min(1),
+    caption: z.string().min(1),
+  }),
   scenario: z.string().min(1),
   choices: z.tuple([ChoiceSchema, ChoiceSchema, ChoiceSchema, ChoiceSchema]),
   /** The reveal beat: one Thai paragraph honoring at least two paths. */

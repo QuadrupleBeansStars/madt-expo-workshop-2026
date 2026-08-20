@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { AUDIENCE } from '@/content/audience'
+import { BUCKET_LABELS, FIELD_TITLES } from '@/content/audience-labels'
 import { PERSONAS, QUESTIONS } from '@/content/persona'
 import { UI } from '@/content/room-labels'
 import { Stages, type RoomFrame } from '@/components/room/Stages'
@@ -70,18 +71,35 @@ describe('lobby', () => {
 })
 
 describe('ask', () => {
-  it('renders the derived data hook, scenario, and all four choices without persona attributes', () => {
+  it('plots the full distribution, scenario, and all four choices without persona attributes', () => {
     renderStages(askFrame)
-    // The figure is computed from AUDIENCE — assert the derivation, not a hand-typed string.
-    expect(screen.getByTestId('data-figure'))
-      .toHaveTextContent(`${AUDIENCE.mainFactor.taste}/${AUDIENCE.respondents}`)
+    // q1 charts mainFactor: the survey question is the title, every bucket is a bar with its
+    // real count, the scenario's bucket is highlighted, and the multi-select caveat shows.
+    expect(screen.getByText(new RegExp(FIELD_TITLES.mainFactor.th))).toBeInTheDocument()
+    expect(screen.getByText(/ตอบได้หลายข้อ/)).toBeInTheDocument()
+    for (const [key, count] of Object.entries(AUDIENCE.mainFactor)) {
+      const bar = screen.getByTestId(`chart-bar-${key}`)
+      expect(bar).toHaveTextContent(BUCKET_LABELS.mainFactor[key].th)
+      expect(bar).toHaveTextContent(String(count))
+      expect(bar).toHaveAttribute('data-highlight', key === 'taste' ? 'true' : 'false')
+    }
     expect(screen.getByText(QUESTIONS[0].dataHook.caption)).toBeInTheDocument()
     expect(screen.getByText(QUESTIONS[0].scenario)).toBeInTheDocument()
     for (const c of QUESTIONS[0].choices) expect(screen.getByText(c.label)).toBeInTheDocument()
-    // No mapping leak mid-question: choice cards carry no persona attribute during ask.
+    // No mapping leak mid-question: nothing on an ask screen carries a persona attribute.
     for (const card of screen.getAllByTestId(/^ask-choice-/)) {
       expect(card).not.toHaveAttribute('data-persona')
     }
+    expect(screen.getByTestId('data-chart').querySelector('[data-persona]')).toBeNull()
+  })
+
+  it('a multi-highlight chart marks every named bucket (q2: under5 + under10)', () => {
+    renderStages({ ...askFrame, stageIndex: 2, questionId: 'q2', questionIndex: 1 })
+    expect(screen.getByTestId('chart-bar-under5')).toHaveAttribute('data-highlight', 'true')
+    expect(screen.getByTestId('chart-bar-under10')).toHaveAttribute('data-highlight', 'true')
+    expect(screen.getByTestId('chart-bar-any')).toHaveAttribute('data-highlight', 'false')
+    // Single-select field: no multi-select caveat.
+    expect(screen.queryByText(/ตอบได้หลายข้อ/)).toBeNull()
   })
 
   it('shows the question counter, vote counter and the soft countdown', () => {

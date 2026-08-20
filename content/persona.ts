@@ -50,8 +50,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q1',
     dataHook: {
-      figure: `${AUDIENCE.mainFactor.taste}/${N}`,
-      caption: 'ของห้องนี้บอกว่า “รสชาติ” คือตัวตัดสินใจซื้อ',
+      field: 'mainFactor',
+      highlight: ['taste'],
+      caption: `“รสชาติ” มีผลกับทั้ง ${AUDIENCE.mainFactor.taste} จาก ${N} คนในห้องนี้ — มากกว่าราคาเสียอีก`,
     },
     scenario: 'ซัพพลายเออร์รายใหม่เสนอเมล็ดกาแฟถูกลง 20% แต่รสชาติต่างจากเดิมเล็กน้อย — เอายังไงดี?',
     choices: [
@@ -67,8 +68,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q2',
     dataHook: {
-      figure: `${AUDIENCE.queuePatience.under5 + AUDIENCE.queuePatience.under10}/${N}`,
-      caption: 'ของห้องนี้เลิกต่อคิวภายใน 10 นาที',
+      field: 'queuePatience',
+      highlight: ['under5', 'under10'],
+      caption: `${AUDIENCE.queuePatience.under5 + AUDIENCE.queuePatience.under10} จาก ${N} คนเลิกต่อคิวภายใน 10 นาที`,
     },
     scenario: 'คิวหน้าร้านตอนเช้ายาวถึง 15 นาที ลูกค้าเริ่มเดินหนี — ทำยังไง?',
     choices: [
@@ -84,8 +86,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q3',
     dataHook: {
-      figure: `${AUDIENCE.spend['50to100']}/${N}`,
-      caption: 'ของห้องนี้จ่ายค่าเครื่องดื่มแก้วละ ฿50–100',
+      field: 'spend',
+      highlight: ['50to100'],
+      caption: `${AUDIENCE.spend['50to100']} จาก ${N} คนจ่ายอยู่ในช่วง ฿50–100`,
     },
     scenario: 'ร้านกำลังจะเปิดตัวเมนู signature ใหม่ — ตั้งราคาที่เท่าไหร่ดี?',
     choices: [
@@ -101,8 +104,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q4',
     dataHook: {
-      figure: `${AUDIENCE.firstDrink.water}/${N}`,
-      caption: 'ของห้องนี้ เครื่องดื่มแก้วแรกของวันคือ “น้ำเปล่า” — มากกว่ากาแฟ',
+      field: 'firstDrink',
+      highlight: ['water'],
+      caption: `แก้วแรกของวันคือ “น้ำเปล่า” ${AUDIENCE.firstDrink.water} คน — ชนะกาแฟที่ ${AUDIENCE.firstDrink.coffee} คน`,
     },
     scenario: 'ข้อมูลบอกว่าคนตื่นมาดื่มน้ำเปล่ามากกว่ากาแฟ — ร้านเราควรเพิ่มเมนู non-coffee ไหม?',
     choices: [
@@ -118,8 +122,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q5',
     dataHook: {
-      figure: `${AUDIENCE.arrivalMode.car}/${N}`,
-      caption: 'ของห้องนี้ขับรถยนต์มา',
+      field: 'arrivalMode',
+      highlight: ['car'],
+      caption: `${AUDIENCE.arrivalMode.car} จาก ${N} คนขับรถยนต์มา`,
     },
     scenario: 'ห้องข้าง ๆ ร้านว่างพอดี เจ้าของตึกเสนอให้เช่าทำที่จอดรถ — เอาไหม?',
     choices: [
@@ -135,8 +140,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q6',
     dataHook: {
-      figure: `${AUDIENCE.buyTime['7to9']}/${N}`,
-      caption: 'ของห้องนี้ซื้อเครื่องดื่มช่วง 7–9 โมงเช้า — ช่วงบ่ายร้านแทบร้าง',
+      field: 'buyTime',
+      highlight: ['7to9', 'never'],
+      caption: `ยอดขายกระจุกช่วง 7–9 โมง (${AUDIENCE.buyTime['7to9']} คน) — และมีคน “ไม่ซื้อเลย” ถึง ${AUDIENCE.buyTime.never} คน`,
     },
     scenario: 'ยอดขายกระจุกตอนเช้า ช่วงบ่ายร้านเงียบมาก — จัดการยังไง?',
     choices: [
@@ -152,8 +158,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q7',
     dataHook: {
-      figure: `${AUDIENCE.mainFactor.price}/${N}`,
-      caption: 'ของห้องนี้บอกว่า “ราคา” มีผลต่อการซื้อ',
+      field: 'mainFactor',
+      highlight: ['price', 'promotion'],
+      caption: `“ราคา” มีผลกับ ${AUDIENCE.mainFactor.price} คน “โปรโมชัน” อีก ${AUDIENCE.mainFactor.promotion} คน — แต่รสชาตินำทุกอย่าง`,
     },
     scenario: 'ร้านคู่แข่งเปิดฝั่งตรงข้าม พร้อมโปรลด 50% ทั้งสัปดาห์ — สู้ยังไง?',
     choices: [
@@ -169,8 +176,9 @@ export const QUESTIONS: Question[] = [
   {
     id: 'q8',
     dataHook: {
-      figure: `${AUDIENCE.wakeTime.before6}/${N}`,
-      caption: 'ของห้องนี้ตื่นก่อน 6 โมงเช้า',
+      field: 'wakeTime',
+      highlight: ['before6'],
+      caption: `${AUDIENCE.wakeTime.before6} จาก ${N} คนตื่นก่อน 6 โมงเช้า`,
     },
     scenario: 'มีเสียงเรียกร้องให้ร้านเปิดเร็วขึ้นเป็น 6:30 — เปิดไหม?',
     choices: [

@@ -6,6 +6,8 @@
 // choice cards are neutral, or the room could reverse-engineer the choice→type mapping by q3.
 
 import { QRCodeSVG } from 'qrcode.react'
+import { AUDIENCE } from '@/content/audience'
+import { BUCKET_LABELS, FIELD_TITLES, MULTI_SELECT_FIELDS, ORDINAL_FIELDS } from '@/content/audience-labels'
 import { PERSONAS, QUESTIONS } from '@/content/persona'
 import { UI } from '@/content/room-labels'
 import { Bilingual } from '@/components/deck/Bilingual'
@@ -103,10 +105,7 @@ function AskView({
         </span>
       </header>
 
-      <div className="pp-hook">
-        <p className="pp-hook__figure" data-testid="data-figure">{question.dataHook.figure}</p>
-        <p className="pp-hook__caption" lang="th">{question.dataHook.caption}</p>
-      </div>
+      <DataChart hook={question.dataHook} />
 
       <p className="pp-scenario" lang="th">{question.scenario}</p>
 
@@ -120,6 +119,51 @@ function AskView({
         ))}
       </ol>
     </section>
+  )
+}
+
+/**
+ * The full distribution, plotted — the room reads a graph and decides, never just a headline
+ * figure. Bars derive from AUDIENCE at render, so a survey re-import updates every chart.
+ * Highlighted buckets take the data accent; the rest stay muted. Ordinal fields keep the form's
+ * bucket order (a time axis sorted by popularity is nonsense); categorical fields sort by count.
+ */
+function DataChart({ hook }: { hook: Question['dataHook'] }) {
+  const dist = AUDIENCE[hook.field] as Record<string, number>
+  const labels = BUCKET_LABELS[hook.field]
+  const entries = Object.entries(dist)
+  const ordered = ORDINAL_FIELDS.has(hook.field) ? entries : [...entries].sort((a, b) => b[1] - a[1])
+  const max = Math.max(1, ...entries.map(([, v]) => v))
+  const multi = MULTI_SELECT_FIELDS.has(hook.field)
+
+  return (
+    <div className="pp-chart" data-testid="data-chart">
+      <p className="pp-chart__title" lang="th">
+        {FIELD_TITLES[hook.field].th}
+        <span className="pp-chart__meta" lang="th">
+          {/* The multi-select caveat is mandatory: without it "18 of 18" reads as "everyone and
+              only this", which is not what a tick-several question measured. */}
+          {multi ? 'ตอบได้หลายข้อ · ' : ''}N={AUDIENCE.respondents}
+        </span>
+      </p>
+      <div className="pp-chart__rows">
+        {ordered.map(([key, count]) => (
+          <div
+            className="pp-chart__row"
+            data-testid={`chart-bar-${key}`}
+            data-highlight={hook.highlight.includes(key) ? 'true' : 'false'}
+            key={key}
+          >
+            <span className="pp-chart__label" lang="th">{labels[key]?.th ?? key}</span>
+            <span className="pp-chart__track">
+              <span className="pp-chart__bar" style={{ width: `${(count / max) * 100}%` }} />
+            </span>
+            <span className="pp-chart__count">{count}</span>
+          </div>
+        ))}
+      </div>
+      <p className="pp-chart__caption" lang="th">{hook.caption}</p>
+    </div>
   )
 }
 

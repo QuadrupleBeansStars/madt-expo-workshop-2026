@@ -43,20 +43,37 @@ describe('questions', () => {
     expect(orders.size).toBeGreaterThan(1)
   })
 
-  // The honesty rule: figures are re-derived from AUDIENCE, so a survey re-import updates them.
-  it('data-hook figures derive from AUDIENCE', () => {
-    const n = AUDIENCE.respondents
-    expect(n).toBe(bucketTotal(AUDIENCE.queuePatience))
-    const expected: Record<string, string> = {
-      q1: `${AUDIENCE.mainFactor.taste}/${n}`,
-      q2: `${AUDIENCE.queuePatience.under5 + AUDIENCE.queuePatience.under10}/${n}`,
-      q3: `${AUDIENCE.spend['50to100']}/${n}`,
-      q4: `${AUDIENCE.firstDrink.water}/${n}`,
-      q5: `${AUDIENCE.arrivalMode.car}/${n}`,
-      q6: `${AUDIENCE.buyTime['7to9']}/${n}`,
-      q7: `${AUDIENCE.mainFactor.price}/${n}`,
-      q8: `${AUDIENCE.wakeTime.before6}/${n}`,
+  // The honesty rule: every chart plots a real AUDIENCE field and highlights real buckets, so a
+  // survey re-import updates every chart and caption automatically.
+  it('data-hook charts point at real AUDIENCE fields and buckets', () => {
+    expect(AUDIENCE.respondents).toBe(bucketTotal(AUDIENCE.queuePatience))
+    for (const q of QUESTIONS) {
+      const dist = AUDIENCE[q.dataHook.field] as Record<string, number>
+      expect(dist).toBeTypeOf('object')
+      for (const key of q.dataHook.highlight) {
+        expect(dist, `${q.id} highlights unknown bucket "${key}"`).toHaveProperty(key)
+      }
     }
-    for (const q of QUESTIONS) expect(q.dataHook.figure).toBe(expected[q.id])
+  })
+
+  it('captions quote figures that exist in the highlighted distribution', () => {
+    // Every number in a caption must be derivable from AUDIENCE — a hand-typed figure would
+    // survive a survey re-import and lie on the projector. Weak but real guard: each caption's
+    // standalone numbers must all appear among the field's counts, their sums, or N.
+    for (const q of QUESTIONS) {
+      const dist = AUDIENCE[q.dataHook.field] as Record<string, number>
+      const counts = Object.values(dist)
+      const legal = new Set<number>([...counts, AUDIENCE.respondents,
+        q.dataHook.highlight.reduce((sum, k) => sum + (dist[k] ?? 0), 0)])
+      // Only numbers that read as PEOPLE-counts: "<n> คน" or "<n> จาก <m>". Clock words
+      // ("10 นาที", "7–9 โมง") and prices ("฿50–100") are copy, not data claims.
+      const numbers = [
+        ...[...q.dataHook.caption.matchAll(/(\d+)\s*(?:จาก\s*\d+\s*)?คน/g)].map((m) => Number(m[1])),
+        ...[...q.dataHook.caption.matchAll(/(\d+)\s*จาก\s*(\d+)/g)].flatMap((m) => [Number(m[1]), Number(m[2])]),
+      ]
+      for (const v of numbers) {
+        expect(legal.has(v), `${q.id} caption quotes ${v}, not derivable from ${q.dataHook.field}`).toBe(true)
+      }
+    }
   })
 })
