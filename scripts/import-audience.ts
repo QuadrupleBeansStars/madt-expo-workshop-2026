@@ -411,7 +411,7 @@ function renderModule(aggregate: AudienceAggregate): string {
 //     Nobody was ever offered three minutes.
 //   - \`Bus\` replaced \`BTS / MRT\`.
 //   - Two questions were ADDED — what people usually SPEND, and what actually DECIDES their
-//     purchase. Those two now carry round 1 (see lib/pricing.ts); they have far more signal than
+//     purchase. Those two now carry the data hooks (see content/persona.ts); they have far more signal than
 //     the five they were added to.
 //   - \`nothing\` is no longer offered as a first drink. Kept in the type, so a zero is honest
 //     and the option can return, but nobody can currently land in it.
@@ -426,7 +426,7 @@ export type AudienceAggregate = {
   queuePatience: Record<'under5' | 'under10' | 'under15' | 'any', number>
   /**
    * What they say they usually pay for a drink, ฿. Round 1 reads the TOP of each band as that
-   * person's ceiling, which is what puts the profit optimum where it is — see lib/pricing.ts.
+   * person's ceiling. Kept for context; the persona game quotes counts, not a price model.
    */
   spend: Record<'under50' | '50to100' | '101to200', number>
   /**

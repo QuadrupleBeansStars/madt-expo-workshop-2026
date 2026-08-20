@@ -9,7 +9,7 @@ If you disagree with a question, this is the file to argue with. Every section e
 edit** and **what not to break** — the second one matters more, because most of these questions have
 one load-bearing property and a lot of cosmetic text around it.
 
-> Facts come from `content/questions.ts`, `content/room.ts` and `lib/`. If you change those, change
+> Facts come from `content/questions.ts`, `content/persona.ts` and `lib/`. If you change those, change
 > this.
 
 ---
@@ -176,112 +176,12 @@ If you want speed to matter more, that is a real design conversation — but cha
 
 ---
 
-# Workshop 2 — The Decision Room
+# Workshop 2 — Café Persona
 
-Three decisions, 40–45 seconds each. Every player runs their own cafe; the KPIs carry across rounds.
+The Decision Room (three KPI rounds, a simulator, a leaderboard) was **replaced on 20 Aug 2026**
+by Café Persona — a four-persona typing game with no points and no winner. Its design intent,
+per-question rationale and every knob to turn live in:
 
-## Round 1 — Price one cup (45s) — *this one is decided by the room's own data*
-
-**What we are doing to them:** a competitor puts a ฿45 sign up across the road. Every instinct says
-match it. **The data on screen — the room's own registration answers — says holding at ฿85 wins.**
-
-**The numbers, from 18 real responses:**
-
-| Price | Buyers (of 120) | Profit |
-|---|---|---|
-| ฿45 | 120 | ฿2,760 |
-| ฿65 | 113 | ฿4,719 |
-| **฿85** | **113** | **฿6,979** |
-| ฿120 | 27 | ฿786 |
-
-**The beat the host says out loud:** dropping ฿85 → ฿45 wins **7 customers** and costs **฿4,219**.
-
-**Why it works:** 13 of 18 people said they normally spend ฿50–100, so almost nobody was priced out
-at ฿85 in the first place. And 18 named *taste* as their main factor against 11 for *price* — the
-discount was aimed at the wrong thing. **This is the answer to the question the team raised: why
-cutting price doesn't buy the customers you think it does.**
-
-**Honesty constraint — say this out loud:** ฿85 is the best price *on the board*, not the optimal
-price. The survey's highest band tops out at ฿100, so the model cannot see past it. Claiming ฿85 is
-optimal overstates what 18 answers support.
-
-**Where to edit:** `content/room.ts` → `decide-price`; the model is `lib/pricing.ts`.
-**Do not break:** two tests assert the winning price is unchanged across the whole plausible cost
-range and every footfall, but **does** move when the spend answers move. Those tests are what let a
-host say "your own answers decided this." Without them it is a claim the code cannot support.
-
-## Round 2 — How do you defend the shop? (40s) — *hand-tuned*
-
-**What we are doing to them:** offering the four things a real cafe owner would consider, ranked by
-what the room actually said matters.
-
-| Option | Score | Why |
-|---|---|---|
-| Beat them on taste | **1,560** | 18 people named taste — the most-cited factor |
-| Run a promotion | 440 | 8 named promotions; buys volume, costs margin |
-| Race them on speed | −160 | 6 named convenience, and speed here costs satisfaction |
-| Match their price | −320 | 11 named price, but discounting every cup is how you lose money |
-
-**The trap:** *price* is the second-most-named factor in the data, so matching feels evidence-based.
-It still comes last, because "people care about price" and "cutting price is the right move" are
-different claims. Same lesson as round 1, arrived at from the other direction.
-
-**Where to edit:** `content/room.ts` → `decide-defend`, the `fx` values.
-**Be honest about this one:** the **ordering** is grounded in the `mainFactor` counts. The
-**magnitudes** are my hand-chosen guesses. If they feel wrong to someone who runs a shop, they
-probably are — this is the most adjustable thing in either workshop.
-
-## Round 3 — ฿20,000, where does it go? (45s) — *hand-tuned*
-
-**What we are doing to them:** making the boring recurring investment beat the exciting one-off.
-
-| Option | Score | Why |
-|---|---|---|
-| A better grinder | **3,000** | Cuts waste every single day, forever |
-| A loyalty card | 1,680 | Recurring, and satisfaction is weighted heavily |
-| A marketing campaign | 740 | Big revenue, one month, then it stops |
-| A year of deeper stock | **−460** | **The trap** |
-
-**The deliberate trap:** deeper stock sounds prudent — you never sell out. It scores worst because
-**waste subtracts** from shop value, and stock you don't sell is waste. Players who pick it are
-optimising for never running out instead of for the money.
-
-**Leave with:** the money is in the decision that repeats, not the one that ships once.
-
-**Where to edit:** `content/room.ts` → `decide-invest`.
-**Do not break:** the grinder must stay ahead of the campaign — that ordering *is* the workshop's
-closing lesson, and the `fx` values are tuned against the exact weights in `SHOP_VALUE_WEIGHTS`.
-Reweighting scoring silently flips the ending.
-
-## Scoring
-
-`shopValue()` in `lib/room-store.ts`, weights in `lib/room-types.ts`:
-`revenue ×0.2 + profit ×1 + satisfaction ×20 − waste ×1`.
-
-**Waste subtracts.** That inversion is what makes round 3's trap work and what stops a player
-winning by pushing every bar upward.
-
----
-
-# If you want to change something
-
-| You want to… | Edit | What breaks if you're careless |
-|---|---|---|
-| Reword a question, answer or lesson | `content/questions.ts`, `content/room.ts` | `content/questions.test.ts` re-checks length caps and the highlight-inside-duckSays invariant; Decision Room's copy tests still check figures against the model |
-| Change a take-home line | `tell` on a question, or `atWork` on an act, in `content/questions.ts` | Both are required by schema; `tell` ≤160 chars, `atWork` ≤160 chars |
-| Make a question easier | Its wording, **not** the answer key | Moving a `pass` off orders 2/5/8, or letting three `reject` questions run in a row, breaks the anti-guess invariant `content/questions.test.ts` enforces |
-| Retune round 2 or 3 | `fx` in `content/room.ts` | Round 3's grinder must stay ahead of the campaign |
-| Change how much speed matters | `lib/scoring.ts` | A test enforces `ROUND_COUNT * MAX_SPEED_BONUS < BASE_POINTS`, so speed can never overturn a correct answer |
-| Change timings | `lib/game.ts` (`READING_MS`, `QUESTION_MS`, `REVEAL_MS`) | Currently a 5s reading beat, a 15s answer window and a 12s auto-advancing reveal — re-derive the 8:03 budget in README if you do |
-| Add a tenth question | `content/questions.ts` | Schema requires exactly 9, in 3 acts of 3; the verdict/order invariants and the projector check must all be re-run |
-
-**After any content edit, run both:**
-
-```bash
-npx vitest run
-npm run build && FACILITATOR_TOKEN=<token> npm run start:lan &
-FACILITATOR_TOKEN=<token> npm run check:projector
-```
-
-The second one is not optional. Longer text is the single most common way to push the host's own
-buttons off the bottom of a projector, and no unit test can see it — jsdom performs no layout.
+- Spec: [`docs/superpowers/specs/2026-08-20-cafe-persona-design.md`](superpowers/specs/2026-08-20-cafe-persona-design.md)
+- Content (all copy, team-editable): [`content/persona.ts`](../content/persona.ts)
+- Validation: `npx vitest run content/persona.test.ts lib/persona.test.ts`
