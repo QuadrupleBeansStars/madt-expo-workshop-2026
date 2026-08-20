@@ -515,8 +515,7 @@ async function checkPhones(browser, failures) {
 
   const context = await browser.newContext({ viewport: PHONE_VIEWPORT, isMobile: true, hasTouch: true })
 
-  /* The Decision Room's phone, on its first decide stage — the one that now carries a storyboard,
-   * an evidence strip and four options. */
+  /* Café Persona's phone, on its first ask stage — scenario plus four choice buttons. */
   try {
     await post('/api/room/reset')
     const joined = await post('/api/room/join', { name: 'ผู้เล่น' })
@@ -529,13 +528,13 @@ async function checkPhones(browser, failures) {
 
     for (let i = 0; i < 20; i++) {
       const state = await roomState()
-      if (state.stageKind === 'decide') break
+      if (state.stageKind === 'ask') break
       await post('/api/room/control', { action: 'advance' })
       await page.waitForTimeout(150)
     }
     await page.reload({ waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(1500)
-    await measureLastOption(page, '/play  decide', warnings)
+    await measureLastOption(page, '/play  ask', warnings)
   } catch (err) {
     console.log(`  ! /play could not be measured: ${err.message}`)
   }
@@ -774,18 +773,14 @@ async function main() {
     await checkDetectiveTv(browser, failures)
     await checkReducedMotion(browser, motionFailures)
 
-    console.log('\n\n## The Decision Room  /biz')
+    console.log('\n\n## Café Persona  /biz')
     for (const viewport of VIEWPORTS) {
       await post('/api/room/reset')
 
-      /* Players matter to the measurement: an empty leaderboard is short, and the board is the
-       * tallest thing on both the outcome and the close stage. Measuring an empty room would
-       * clear a layout that breaks the moment anyone joins.
-       *
-       * MORE PLAYERS THAN THE BOARD SHOWS, deliberately. `Leaderboard` defaults to `limit = 8`
-       * and the close stage takes that default, so a nine-player room is what renders the tallest
-       * board this deck can ever produce. Seating five — which this script used to do — measured a
-       * five-row board and would have passed a close stage that overflows in a real room. */
+      /* Players matter to the measurement: reveal bars only have height once someone voted, and
+       * the result map's dot field only exists for typed players. Nine players, spread across all
+       * four choices below, renders every quadrant non-empty — an empty room would clear a layout
+       * that breaks the moment anyone joins. */
       const players = []
       const NAMES = ['ปุ๊ก', 'Beam', 'Nott', 'Mint', 'Ohm', 'Fern', 'Guide', 'Pim', 'Tar']
       for (const name of NAMES) {
@@ -807,17 +802,17 @@ async function main() {
       const MAX_STAGES = 40
       for (let i = 0; i < MAX_STAGES; i++) {
         const state = await roomState()
-        const stage = state.stageId ?? state.phase
+        const stage = state.questionId ? `${state.stageKind}:${state.questionId}` : state.phase
 
-        /* Vote before measuring. Tally bars and the player's own KPI row only exist once someone
-         * has decided, and both add height. */
-        if (state.votingOpen && Array.isArray(state.tallies)) {
-          const options = state.tallies.map((t) => t.optionId)
+        /* Vote before measuring. Reveal bars and result dots only exist once someone has voted.
+         * k % 4 spreads nine players across all four choices, so every bar and every quadrant
+         * renders with content — the tall case. */
+        if (state.votingOpen && state.questionId) {
           for (let k = 0; k < players.length; k++) {
             await post('/api/room/vote', {
               playerId: players[k],
-              stageId: state.stageId,
-              optionId: options[Math.min(k, options.length - 1)],
+              questionId: state.questionId,
+              choiceIndex: k % 4,
             })
           }
         }

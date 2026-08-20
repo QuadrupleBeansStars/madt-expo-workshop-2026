@@ -23,8 +23,10 @@
   --pp-analyst: #2667c9;
   --pp-guardian: #2e7d4f;
 
+  /* NO overflow:hidden here, deliberately: scripts/check-projector-fit.mjs measures /biz by
+     scrollHeight, and clipping would pin it to clientHeight — the exact blindness that let /tv
+     ship a cut-off panel. A stage that outgrows the screen must GROW the document. */
   min-height: 100vh;
-  overflow: hidden;
   background: var(--pp-bg);
   color: var(--pp-ink);
 }
@@ -61,6 +63,9 @@
   display: flex;
   align-items: baseline;
   gap: min(clamp(16px, 2vw, 36px), 4vh);
+  /* The host bar is FIXED over the top-right corner and does not affect layout — without this
+     reservation it paints straight over the vote counter, invisibly to any fit metric. */
+  padding-right: min(25vw, 350px);
 }
 
 .pp-strip__q {

@@ -12,6 +12,7 @@ import { AXIS, AXIS_LABELS } from '@/lib/room-types'
 import type { PublicRoomState } from '@/lib/room-store'
 import type { PersonaId, Question } from '@/lib/room-types'
 import type { LocalizedText } from '@/lib/types'
+import './phone.css'
 
 export type PhoneFrame = PublicRoomState
 

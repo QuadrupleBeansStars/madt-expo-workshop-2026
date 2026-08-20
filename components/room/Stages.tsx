@@ -12,6 +12,9 @@ import { Bilingual } from '@/components/deck/Bilingual'
 import { AXIS_LABELS } from '@/lib/room-types'
 import type { PersonaId, Question } from '@/lib/room-types'
 import type { PublicRoomState } from '@/lib/room-store'
+// LAST import, deliberately: under cssChunking:'strict' sheet order is import order, and this
+// sheet must land AFTER app/biz/deck.css (imported first by app/biz/page.tsx) to win its ties.
+import './stages.css'
 
 export type RoomFrame = PublicRoomState
 
