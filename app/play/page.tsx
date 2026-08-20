@@ -37,7 +37,7 @@ const REQ_TIMEOUT_MS = 5000
 
 /** Identity ONLY. The shop's numbers live on the server, never in this phone's storage. */
 type Identity = { playerId: string; name: string }
-type QueuedVote = { playerId: string; stageId: string; optionId: string }
+type QueuedVote = { playerId: string; questionId: string; choiceIndex: number }
 
 function loadIdentity(): Identity | null {
   try {
@@ -91,7 +91,7 @@ export default function PlayPage() {
   const [ready, setReady] = useState(false)
   const [identity, setIdentity] = useState<Identity | null>(null)
   const [frame, setFrame] = useState<PhoneFrame | null>(null)
-  const [picks, setPicks] = useState<Record<string, string>>({})
+  const [picks, setPicks] = useState<Record<string, number>>({})
   const [notice, setNotice] = useState<LocalizedText | null>(null)
   const [offline, setOffline] = useState(false)
   const [joining, setJoining] = useState(false)
@@ -102,8 +102,8 @@ export default function PlayPage() {
   const receivedAtRef = useRef(0)
   /** One flush at a time: a flush still in flight when the next poll fires would double-post. */
   const flushingRef = useRef(false)
-  /** The stage the notice on screen belongs to. */
-  const stageIdRef = useRef<string | null>(null)
+  /** The stage (phase:index) the notice on screen belongs to. */
+  const stageKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     setIdentity(loadIdentity())
@@ -174,10 +174,11 @@ export default function PlayPage() {
       // was reset. Leave now, on a holding screen, rather than mid-round on a failed tap.
       if (!next.you) { returnToJoin(PHONE.roomReset); return }
 
-      // A notice belongs to the round it happened in. "Too late" must not ride along on the
-      // holding screens of the next three stages, under a live role="status".
-      if (next.stageId !== stageIdRef.current) {
-        stageIdRef.current = next.stageId
+      // A notice belongs to the stage it happened in. "Too late" must not ride along on the
+      // holding screens of later stages, under a live role="status".
+      const stageKey = `${next.phase}:${next.stageIndex}:${next.stageKind ?? ''}`
+      if (stageKey !== stageKeyRef.current) {
+        stageKeyRef.current = stageKey
         setNotice(null)
       }
 
@@ -221,25 +222,25 @@ export default function PlayPage() {
     }
   }, [joining])
 
-  const vote = useCallback(async (stageId: string, optionId: string) => {
+  const vote = useCallback(async (questionId: string, choiceIndex: number) => {
     if (!identity) return
-    const queued: QueuedVote = { playerId: identity.playerId, stageId, optionId }
-    setPicks((p) => ({ ...p, [stageId]: optionId }))   // optimistic, until the server confirms
+    const queued: QueuedVote = { playerId: identity.playerId, questionId, choiceIndex }
+    setPicks((p) => ({ ...p, [questionId]: choiceIndex }))   // optimistic, until the server confirms
     setNotice(null)
     try {
       const res = await postJson('/api/room/vote', queued)
       if (res.status === 400) { returnToJoin(PHONE.roomReset); return }
       if (res.status === 409) {
-        // Rule 4. The round is closed. Drop the optimistic pick so the phone stops showing a vote
-        // that never landed, and never re-queue this one.
-        setPicks((p) => { const next = { ...p }; delete next[stageId]; return next })
+        // Rule 4. The question is closed. Drop the optimistic pick so the phone stops showing a
+        // vote that never landed, and never re-queue this one.
+        setPicks((p) => { const next = { ...p }; delete next[questionId]; return next })
         setNotice(PHONE.tooLate)
         return
       }
       if (!res.ok) throw new Error('bad status')
     } catch {
-      // One queued vote per stage: a player who taps twice queues their latest answer, not both.
-      writePending([...readPending().filter((v) => v.stageId !== stageId), queued])
+      // One queued vote per question: a player who taps twice queues their latest answer, not both.
+      writePending([...readPending().filter((v) => v.questionId !== questionId), queued])
     }
   }, [identity, returnToJoin])
 
@@ -263,8 +264,8 @@ export default function PlayPage() {
       name={identity.name}
       frame={frame}
       remainingMs={remainingMs}
-      picked={frame?.stageId ? (picks[frame.stageId] ?? null) : null}
-      onVote={(stageId, optionId) => void vote(stageId, optionId)}
+      picked={frame?.questionId ? (picks[frame.questionId] ?? null) : null}
+      onVote={(questionId, choiceIndex) => void vote(questionId, choiceIndex)}
       notice={notice}
       offline={offline}
     />
@@ -316,7 +317,6 @@ function JoinScreen({
           data-testid="join-button"
           disabled={joining}
         >
-          {' · '}
           <span lang="th">{joining ? PHONE.joining.th : PHONE.joinButton.th}</span>
         </button>
       </form>

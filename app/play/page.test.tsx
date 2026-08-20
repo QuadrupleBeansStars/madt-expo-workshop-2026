@@ -44,8 +44,10 @@ describe('play page join surface', () => {
 
     // Thai must also not have absorbed the English string into the same node — the failure this
     // would look like is one run of text reading "ScoreคะแนนRank" rather than a missing element.
+    // The game's brand name is deliberately Latin ("Café Persona") and is exempt.
     for (const node of th) {
-      expect(node.textContent ?? '').not.toMatch(/[A-Za-z]{4,}/)
+      const text = (node.textContent ?? '').replace(/Caf\u00e9 Persona/g, '')
+      expect(text).not.toMatch(/[A-Za-z]{4,}/)
     }
   })
 })

@@ -1,224 +1,140 @@
-/*
- * The phone (app/play, components/room/PhoneBody.tsx).
+/* Café Persona — the phone (`/play`). Bright, warm, one-hand-at-arm's-length sizing.
  *
- * Its own token space, `--phone-` / `.phone-` prefixed, so it collides with neither the deck
- * (`--deck-*`) nor the AI Detective CRT theme sharing this origin. Dark by default and dark in
- * both colour schemes on purpose: this screen is held in a dim lecture hall for fifteen minutes,
- * and a white phone in a dark room is the thing people put face-down.
+ * Single-theme by design: event phones in a lit hall, colors painted explicitly. The persona
+ * palette appears ONLY on the final card (`.phone-card[data-persona]`) — choice buttons stay
+ * neutral so the choice→type mapping never leaks mid-game.
  *
- * FONTS: never the pixel display face. It carries no Thai glyphs, so Thai falls back mid-line and
- * renders small and misaligned — a live defect on the sibling app. Sarabun (--font-thai) covers
- * both scripts, so one stack serves the whole page.
- *
- * TOUCH: no interactive element is under 56px tall. A mis-tap here costs a player a whole round.
- */
+ * `.phone-root` hangs every --phone-* token AND the .deck-bi stacking rules. The join screen
+ * (app/play/page.tsx) reuses the same root class for the same reason. */
 
 .phone-root {
-  --phone-bg: #101109;
-  --phone-card: #1a1b12;
-  --phone-ink: #f2f1e8;
-  --phone-muted: #a4a598;
-  --phone-line: #2c2d21;
-  --phone-clr: #ffab3d;
-  --phone-good: #2fb877;
-  --phone-warn: #f0655a;
+  --phone-bg: #fffdf7;
+  --phone-card: #ffffff;
+  --phone-ink: #23201a;
+  --phone-muted: #6b6459;
+  --phone-line: #e8e2d4;
+  --phone-clr: #b4550f;
+  --phone-pioneer: #e4572e;
+  --phone-sprinter: #e9a820;
+  --phone-analyst: #2667c9;
+  --phone-guardian: #2e7d4f;
 
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  gap: clamp(14px, 3.5vw, 22px);
-  padding: clamp(14px, 4vw, 24px) clamp(14px, 4.5vw, 26px) clamp(22px, 6vw, 34px);
+  gap: 12px;
+  padding: 16px;
   background: var(--phone-bg);
   color: var(--phone-ink);
-  font-family: var(--font-thai), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  font-size: clamp(16px, 4.2vw, 19px);
-  line-height: 1.35;
-  -webkit-text-size-adjust: 100%;
 }
 
-/* Thai only. This used to stack English over a muted Thai subline; the room is Thai-speaking, so
-   the English line was spending phone height nobody was reading. Mirrors the deck's treatment
-   without importing deck.css, so this page stands alone. */
+/* Bilingual renders .deck-bi spans; on the phone the Thai line is the only line. */
 .phone-root .deck-bi {
   display: block;
 }
 .phone-root .deck-bi__th {
   display: block;
-  /* Not `--phone-muted` any more: this line was the subtitle and is now the only line. */
-  color: inherit;
+  line-height: 1.5;
 }
 .phone-root .deck-bi--hero .deck-bi__th {
-  font-size: clamp(24px, 6.6vw, 32px);
+  font-size: 24px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.4;
 }
 .phone-root .deck-bi--label .deck-bi__th {
-  font-size: 0.86em;
+  font-size: 13px;
+  font-weight: 600;
   color: var(--phone-muted);
 }
 
-/* ── chrome ──────────────────────────────────────────────────────────────── */
+/* ── chrome ─────────────────────────────────────────────────────────────── */
 
 .phone-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-bottom: 1px solid var(--phone-line);
-  padding-bottom: 10px;
 }
 
 .phone-head__name {
   font-weight: 700;
-  font-size: 1.05em;
-  overflow-wrap: anywhere;
+  font-size: 15px;
 }
 
 .phone-head__offline {
-  color: var(--phone-warn);
-  text-align: right;
-  max-width: 55%;
+  font-size: 12px;
+  color: var(--phone-clr);
 }
 
 .phone-notice {
-  border: 1px solid color-mix(in srgb, var(--phone-clr) 45%, transparent);
-  background: color-mix(in srgb, var(--phone-clr) 12%, var(--phone-bg));
-  border-radius: 12px;
-  padding: 10px 14px;
-}
-
-.phone-main {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(14px, 3vw, 20px);
-}
-
-/* ── holding / final ─────────────────────────────────────────────────────── */
-
-.phone-hold {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: clamp(18px, 6vw, 40px) 0;
-  text-align: center;
-}
-
-.phone-hold__sub {
-  color: var(--phone-muted);
-}
-
-/* ── decide ──────────────────────────────────────────────────────────────── */
-
-.phone-decide {
-  display: flex;
-  flex-direction: column;
-  gap: clamp(10px, 2.6vw, 16px);
-}
-
-.phone-decide__head {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-/* The context is read once, at the top; the options are read under time pressure. When the
-   evidence strip is on screen this paragraph gives up the room, not the buttons. */
-.phone-decide__context .deck-bi__th {
-  font-size: 0.86em;
-  line-height: 1.4;
-  color: var(--phone-muted);
-}
-
-.phone-clock {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.phone-clock b {
-  font-size: clamp(26px, 8vw, 34px);
-  font-variant-numeric: tabular-nums;
-  color: var(--phone-warn);
-  line-height: 1;
-}
-
-.phone-clock[data-open='true'] b {
-  color: var(--phone-clr);
-}
-
-/*
- * The evidence strip. Deliberately compact — one horizontal row of counts, not charts: everything
- * added here pushes four tappable options toward the fold, and a player who has to scroll to vote
- * loses the round.
- *
- * Measured in Chrome at 390x844 on the four-option staffing stage: the fourth button ends at 759,
- * at 814 with the offline badge up, and at 834 with the "too late" notice — the only notice that
- * can appear on a decide screen (`roomReset` returns the player to the join screen). The strip
- * costs about 75px, which is why the sizes here, the option padding and the gaps below were all
- * taken down a step to pay for it.
- */
-.phone-evidence {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
+  padding: 8px 12px;
   border: 1px solid var(--phone-line);
-  border-left: 3px solid var(--phone-clr);
-  border-radius: 12px;
+  border-left: 4px solid var(--phone-clr);
+  border-radius: 8px;
   background: var(--phone-card);
 }
 
-.phone-evidence__head {
+.phone-main {
+  flex: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.phone-evidence__title .deck-bi__th {
-  font-size: 11px;
-  line-height: 1.2;
-}
+/* ── holding screens (lobby / reveal) ───────────────────────────────────── */
 
-.phone-evidence .room-placeholder-badge {
-  align-self: center;
-  padding: 3px 8px;
-}
-
-.phone-evidence .room-placeholder-badge__text .deck-bi__th {
-  font-size: 9px;
-}
-
-
-.phone-evidence__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.phone-evidence__item {
+.phone-hold {
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  gap: 7px;
-  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
 }
 
-.phone-evidence__value {
+.phone-yourpick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.phone-yourpick__label {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.phone-late {
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* ── ask ────────────────────────────────────────────────────────────────── */
+
+.phone-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.phone-ask__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phone-ask__scenario {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.phone-clock {
+  align-self: flex-end;
   font-size: 22px;
   font-weight: 800;
-  line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--phone-clr);
-}
-
-.phone-evidence__label .deck-bi__th {
-  font-size: 11.5px;
-  line-height: 1.2;
 }
 
 .phone-options {
@@ -227,186 +143,169 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 2.2vw, 12px);
+  gap: 10px;
 }
 
 .phone-option {
-  /* The whole point of this page. Full width, tall, and impossible to miss in the dark. */
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  min-height: 72px;
-  padding: 13px 16px;
+  padding: 14px;
   text-align: left;
-  border: 2px solid var(--phone-line);
-  border-radius: 16px;
-  background: var(--phone-card);
-  color: inherit;
   font: inherit;
-  cursor: pointer;
-  touch-action: manipulation;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+  color: var(--phone-ink);
+  background: var(--phone-card);
+  border: 2px solid var(--phone-line);
+  border-radius: 14px;
 }
 
-.phone-option:active:not(:disabled) {
+.phone-option:active {
   transform: scale(0.985);
 }
 
 .phone-option[aria-pressed='true'] {
-  border-color: var(--phone-clr);
-  background: color-mix(in srgb, var(--phone-clr) 16%, var(--phone-card));
+  border-color: var(--phone-ink);
+  box-shadow: 0 0 0 1px var(--phone-ink);
 }
 
-.phone-option:disabled {
-  opacity: 0.45;
-  cursor: default;
+.phone-option__letter {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--phone-bg);
+  border: 1px solid var(--phone-line);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.phone-option__label {
+  font-size: 16px;
+  line-height: 1.45;
 }
 
 .phone-picked {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  border-top: 1px solid var(--phone-line);
-  padding-top: 12px;
-}
-
-.phone-picked--empty {
-  color: var(--phone-muted);
-}
-
-/* ── the player's own shop ───────────────────────────────────────────────── */
-
-.phone-shop {
-  border: 1px solid var(--phone-line);
-  border-radius: 16px;
-  background: var(--phone-card);
-  padding: clamp(12px, 3.5vw, 18px);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.phone-shop--empty {
   text-align: center;
 }
 
-.phone-shop__top {
+/* ── the persona card ───────────────────────────────────────────────────── */
+
+.phone-card {
+  --phone-accent: var(--phone-clr);
+  flex: 1;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 2px solid var(--phone-accent);
+  background: var(--phone-card);
+  text-align: center;
 }
 
-.phone-shop__score b,
-.phone-shop__rank b {
-  font-size: clamp(22px, 6vw, 28px);
-  font-variant-numeric: tabular-nums;
-  color: var(--phone-clr);
+.phone-card[data-persona='pioneer'] { --phone-accent: var(--phone-pioneer); }
+.phone-card[data-persona='sprinter'] { --phone-accent: var(--phone-sprinter); }
+.phone-card[data-persona='analyst'] { --phone-accent: var(--phone-analyst); }
+.phone-card[data-persona='guardian'] { --phone-accent: var(--phone-guardian); }
+
+.phone-card__emoji {
+  font-size: 44px;
+  line-height: 1;
 }
 
-.phone-shop__score,
-.phone-shop__rank {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.phone-shop__score-k,
-.phone-shop__rank-k {
-  color: var(--phone-muted);
-  font-size: 0.8em;
-}
-
-.phone-kpis {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+.phone-card__label {
   margin: 0;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--phone-accent);
 }
 
-.phone-kpis__item {
+.phone-card__coffee {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.phone-card__axis {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--phone-muted);
+}
+
+.phone-card__desc {
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: left;
+  margin-top: 6px;
+}
+
+.phone-card__facts {
+  margin: 8px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.phone-card__facts > div {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--phone-line);
 }
 
-.phone-kpis__item dt {
-  color: var(--phone-muted);
-  font-size: 0.76em;
-}
-
-.phone-kpis__item dt span[lang='th'] {
-  display: block;
-}
-
-.phone-kpis__item dd {
+.phone-card__facts dd {
   margin: 0;
-  font-size: 1.15em;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  line-height: 1.55;
 }
 
-/* ── join ────────────────────────────────────────────────────────────────── */
+/* ── join screen (app/play/page.tsx) ────────────────────────────────────── */
 
 .phone-join {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
   justify-content: center;
-  gap: clamp(16px, 4vw, 26px);
-  padding: clamp(20px, 7vw, 44px) clamp(16px, 5vw, 30px);
-  background: var(--phone-bg, #101109);
-  color: var(--phone-ink, #f2f1e8);
-  font-family: var(--font-thai), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  gap: 20px;
+  text-align: center;
 }
 
 .phone-join__form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  text-align: left;
 }
 
 .phone-join__input {
-  width: 100%;
-  min-height: 62px;
-  padding: 14px 16px;
-  /* 16px minimum, or iOS Safari zooms the whole page on focus and the room loses its place. */
-  font-size: 18px;
-  font-family: inherit;
-  color: inherit;
-  background: var(--phone-card, #1a1b12);
-  border: 2px solid var(--phone-line, #2c2d21);
-  border-radius: 14px;
+  padding: 12px 14px;
+  font: inherit;
+  font-size: 17px;
+  color: var(--phone-ink);
+  background: var(--phone-card);
+  border: 2px solid var(--phone-line);
+  border-radius: 12px;
 }
 
 .phone-join__input:focus {
-  outline: none;
-  border-color: var(--phone-clr, #ffab3d);
+  outline: 2px solid var(--phone-clr);
+  outline-offset: 1px;
 }
 
 .phone-join__btn {
-  min-height: 68px;
-  width: 100%;
-  border: none;
-  border-radius: 16px;
-  background: var(--phone-clr, #ffab3d);
-  color: #16170f;
+  padding: 14px;
   font: inherit;
-  font-size: 1.15em;
+  font-size: 17px;
   font-weight: 700;
-  cursor: pointer;
-  touch-action: manipulation;
+  color: #fffdf7;
+  background: var(--phone-ink);
+  border: none;
+  border-radius: 12px;
 }
 
 .phone-join__btn:disabled {
   opacity: 0.6;
-  cursor: default;
-}
-
-/* Same caveat as the projector's, at arm's length. See DataPanel's `multiSelect` prop. */
-.phone-evidence__note {
-  margin: 4px 0 0;
-  opacity: 0.7;
-  font-size: 11px;
-  line-height: 1.25;
 }

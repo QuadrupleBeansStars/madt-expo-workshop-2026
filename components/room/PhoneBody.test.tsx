@@ -1,438 +1,140 @@
-// The Decision Room — the phone.
-//
-// Two layers are tested here, because the phone is two things:
-//   1. `PhoneBody` — the pure renderer. No network, no timers, no storage.
-//   2. `app/play/page.tsx` — identity, the poll loop, the vote queue. Tested through a mocked
-//      `fetch`, because every bug this file exists to prevent is a network bug.
-//
-// The test that matters most is "an unknown player is ejected from the poll, not from a vote":
-// AI Detective's phone only discovers a room reset when a vote fails with 400, which strands the
-// player on a dead screen and then ejects them mid-round. That must not happen here.
-
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
-import { act, fireEvent, render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { AUDIENCE, IS_PLACEHOLDER } from '@/content/audience'
-import { STAGES } from '@/content/room'
-import type { Kpi } from '@/lib/room-types'
-import { PhoneBody, type PhoneFrame } from './PhoneBody'
-import PlayPage from '@/app/play/page'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { describe, expect, it, vi } from 'vitest'
+import { PHONE } from '@/content/room-labels'
+import { PERSONAS, QUESTIONS } from '@/content/persona'
+import { PhoneBody, type PhoneFrame } from '@/components/room/PhoneBody'
 
-const ZERO: Kpi = { revenue: 0, profit: 0, satisfaction: 0, waste: 0 }
-
-function frame(over: Partial<PhoneFrame> = {}): PhoneFrame {
-  return {
-    seq: 1,
-    phase: 'stage',
-    stageIndex: 0,
-    stageId: 'intro-join',
-    stageKind: 'intro',
-    votingOpen: false,
-    remainingMs: 0,
-    playerCount: 12,
-    voteCount: 0,
-    tallies: [],
-    ...over,
-  }
+const baseFrame: PhoneFrame = {
+  seq: 1,
+  phase: 'lobby',
+  stageIndex: 0,
+  stageKind: null,
+  questionId: null,
+  questionIndex: null,
+  votingOpen: false,
+  remainingMs: 0,
+  playerCount: 3,
+  voteCount: 0,
 }
 
-const YOU = { kpi: { ...ZERO, profit: 1700, satisfaction: 40, waste: 200 }, score: 2300, rank: 3, votedOptionId: null }
-
-function decideFrame(over: Partial<PhoneFrame> = {}): PhoneFrame {
-  return frame({
-    stageId: 'decide-price',
-    stageKind: 'decide',
-    stageIndex: 2,
-    votingOpen: true,
-    remainingMs: 30_000,
-    you: YOU,
-    ...over,
-  })
+const askFrame: PhoneFrame = {
+  ...baseFrame,
+  phase: 'stage',
+  stageKind: 'ask',
+  questionId: 'q1',
+  questionIndex: 0,
+  votingOpen: true,
+  remainingMs: 30_000,
+  you: { answeredCount: 0, pickedChoiceIndex: null, persona: null },
 }
 
-// ── the pure renderer ───────────────────────────────────────────────────────
+function renderBody(frame: PhoneFrame, extra: Partial<Parameters<typeof PhoneBody>[0]> = {}) {
+  const onVote = vi.fn()
+  render(
+    <PhoneBody
+      name="สมชาย"
+      frame={frame}
+      remainingMs={frame.remainingMs}
+      picked={null}
+      onVote={onVote}
+      {...extra}
+    />,
+  )
+  return { onVote }
+}
 
-describe('PhoneBody', () => {
-  it('never blanks the screen when no frame has arrived yet', () => {
-    render(<PhoneBody name="Ada" frame={null} picked={null} onVote={() => {}} />)
+describe('lobby', () => {
+  it('holds with the wait-for-host line', () => {
+    renderBody(baseFrame)
     expect(screen.getByTestId('phone-holding')).toBeInTheDocument()
-  })
-
-  it('shows the player their own KPI, score and rank between decisions', () => {
-    render(
-      <PhoneBody
-        name="Ada"
-        frame={frame({ stageId: 'data-you', stageKind: 'data', you: YOU })}
-        picked={null}
-        onVote={() => {}}
-      />,
-    )
-    const shop = screen.getByTestId('your-shop')
-    expect(shop).toBeInTheDocument()
-    expect(screen.getByTestId('you-score')).toHaveTextContent('2,300')
-    expect(screen.getByTestId('you-rank')).toHaveTextContent('3')
-    expect(screen.getByTestId('kpi-profit')).toHaveTextContent('1,700')
-    expect(screen.getByTestId('kpi-waste')).toHaveTextContent('200')
-    // The holding screen points at the big screen; it never tries to be the projector.
-    expect(screen.getByTestId('phone-holding')).toBeInTheDocument()
-  })
-
-  it('renders one large button per option on a decide stage, labelled in Thai', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-    for (const id of ['p45', 'p65', 'p85', 'p120']) {
-      expect(screen.getByTestId(`option-${id}`)).toBeInTheDocument()
-    }
-    expect(screen.getByText('85 บาท — ยืนราคาเดิมไว้')).toBeInTheDocument()
-    expect(screen.queryByText('฿85 — hold your price')).toBeNull()
-  })
-
-  // The phone must carry the evidence too — but as figures, never as charts, and never at the
-  // cost of pushing the options off the screen.
-  it('shows the evidence figures AND keeps every option button on the same screen', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    const strip = screen.getByTestId('phone-evidence')
-
-    // The two figures round 1 turns on: what most people pay, and what most people decide on.
-    // Read from the aggregate rather than pasted, so a CSV re-import moves the test with the copy.
-    expect(strip).toHaveTextContent(String(AUDIENCE.spend['50to100']))
-    expect(strip).toHaveTextContent('50–100 บาท')
-    expect(strip).toHaveTextContent(String(AUDIENCE.mainFactor.taste))
-    expect(strip).toHaveTextContent('รสชาติ')
-    // Both languages, as everywhere else in this workshop.
-    expect(strip).toHaveTextContent('50–100 บาท')
-    expect(strip).toHaveTextContent('รสชาติ')
-
-    // Figures, not charts: a bar track on a 390px screen is what pushes the vote below the fold.
-    expect(strip.querySelector('.room-bars')).toBeNull()
-
-    for (const id of ['p45', 'p65', 'p85', 'p120']) {
-      expect(screen.getByTestId(`option-${id}`)).toBeEnabled()
-    }
-  })
-
-  it('never shows audience figures on the phone without the placeholder guard', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    // The real CSV is imported, so the badge is off. Kept inverted rather than deleted: if a
-    // future import ever sets the flag again, the guard must still be wired to the phone strip.
-    expect(IS_PLACEHOLDER).toBe(false)
-    expect(screen.getByTestId('phone-evidence').querySelector('.room-placeholder-badge')).toBeNull()
-  })
-
-  it('quotes the same figures the projector charts — never a second set of numbers', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    const strip = screen.getByTestId('phone-evidence')
-    // Read straight out of the aggregate the big screen draws from, so a CSV import moves both.
-    expect(strip).toHaveTextContent(String(AUDIENCE.spend['50to100']))
-    expect(strip).toHaveTextContent(String(AUDIENCE.mainFactor.taste))
-  })
-
-  // A stage that names ONE distribution shows that distribution's two largest buckets, not one.
-  // This is the only non-obvious branch in `evidenceFigures`, and the round it serves is the one
-  // about demand nobody is meeting yet — a single figure would not show a gap.
-  it('shows two figures when a decision rests on a single distribution', () => {
-    const invest = STAGES.findIndex((s) => s.id === 'decide-invest')
-    render(
-      <PhoneBody
-        name="Ada"
-        frame={decideFrame({ stageId: 'decide-invest', stageIndex: invest })}
-        picked={null}
-        onVote={() => {}}
-      />,
-    )
-    const items = screen.getByTestId('phone-evidence').querySelectorAll('.phone-evidence__item')
-    expect(items).toHaveLength(2)
-    expect(screen.getByTestId('phone-evidence-buyTime-7to9'))
-      .toHaveTextContent(String(AUDIENCE.buyTime['7to9']))
-    expect(screen.getByTestId('phone-evidence-buyTime-never'))
-      .toHaveTextContent(String(AUDIENCE.buyTime.never))
-  })
-
-  it('calls onVote exactly once with the stage and option tapped', () => {
-    const onVote = vi.fn()
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={onVote} />)
-    fireEvent.click(screen.getByTestId('option-p85'))
-    expect(onVote).toHaveBeenCalledTimes(1)
-    expect(onVote).toHaveBeenCalledWith('decide-price', 'p85')
-  })
-
-  it('disables every option once the timer has expired, even while the frame still says open', () => {
-    render(
-      <PhoneBody name="Ada" frame={decideFrame()} remainingMs={0} picked={null} onVote={() => {}} />,
-    )
-    for (const id of ['p45', 'p65', 'p85', 'p120']) {
-      expect(screen.getByTestId(`option-${id}`)).toBeDisabled()
-    }
-  })
-
-  it('does not fire onVote after the timer has expired', () => {
-    const onVote = vi.fn()
-    render(<PhoneBody name="Ada" frame={decideFrame()} remainingMs={0} picked={null} onVote={onVote} />)
-    fireEvent.click(screen.getByTestId('option-p65'))
-    expect(onVote).not.toHaveBeenCalled()
-  })
-
-  it('disables every option when voting is closed', () => {
-    render(
-      <PhoneBody name="Ada" frame={decideFrame({ votingOpen: false })} picked={null} onVote={() => {}} />,
-    )
-    expect(screen.getByTestId('option-p45')).toBeDisabled()
-  })
-
-  it('shows the player what they picked, from the server answer', () => {
-    render(
-      <PhoneBody
-        name="Ada"
-        frame={decideFrame({ you: { ...YOU, votedOptionId: 'p85' } })}
-        picked={null}
-        onVote={() => {}}
-      />,
-    )
-    expect(screen.getByTestId('your-pick')).toHaveTextContent('85 บาท — ยืนราคาเดิมไว้')
-    expect(screen.getByTestId('option-p85')).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('falls back to the local pick while the vote is still in flight', () => {
-    render(<PhoneBody name="Ada" frame={decideFrame()} picked="p45" onVote={() => {}} />)
-    expect(screen.getByTestId('your-pick')).toBeInTheDocument()
-    expect(screen.getByTestId('option-p45')).toHaveAttribute('aria-pressed', 'true')
-  })
-
-  it('holds in the lobby and closes on the final phase', () => {
-    const { rerender } = render(
-      <PhoneBody name="Ada" frame={frame({ phase: 'lobby', stageId: null, stageKind: null })} picked={null} onVote={() => {}} />,
-    )
-    expect(screen.getByTestId('phone-holding')).toBeInTheDocument()
-
-    rerender(
-      <PhoneBody name="Ada" frame={frame({ phase: 'done', stageId: null, stageKind: null, you: YOU })} picked={null} onVote={() => {}} />,
-    )
-    expect(screen.getByTestId('phone-final')).toBeInTheDocument()
-    expect(screen.getByTestId('you-rank')).toHaveTextContent('3')
-  })
-
-  it('never uses the pixel font — it carries no Thai glyphs', () => {
-    const { container } = render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    expect(container.innerHTML).not.toContain('Press Start 2P')
-    expect(container.innerHTML).not.toContain('--font-pixel')
-  })
-
-  it('never calls the round 1 simulation anything cleverer than it is', () => {
-    const { container } = render(<PhoneBody name="Ada" frame={decideFrame()} picked={null} onVote={() => {}} />)
-    const html = container.innerHTML.toLowerCase()
-    for (const word of ['machine learning', ' ai ', 'a model', 'ปัญญาประดิษฐ์']) {
-      expect(html).not.toContain(word)
-    }
+    expect(screen.getByText(PHONE.waitHost.th)).toBeInTheDocument()
   })
 })
 
-// ── the page: identity, poll loop, vote queue ───────────────────────────────
-
-const PLAYER_KEY = 'decisionroom.player'
-const PENDING_KEY = 'decisionroom.pending'
-
-type Call = { url: string; init?: RequestInit }
-
-function jsonResponse(body: unknown, status = 200) {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => body,
-  } as unknown as Response
-}
-
-/** What the mocked server will answer with next, per route. */
-let stateBody: unknown
-let stateStatus = 200
-let stateThrows = false
-let joinBody: unknown
-let voteStatus = 200
-let voteThrows = false
-let calls: Call[] = []
-
-function installFetch() {
-  const impl = vi.fn(async (url: string, init?: RequestInit) => {
-    calls.push({ url, init })
-    if (url.startsWith('/api/room/state')) {
-      if (stateThrows) throw new Error('network down')
-      return jsonResponse(stateBody, stateStatus)
+describe('ask', () => {
+  it('renders the scenario and all four choices, and votes by (questionId, index)', async () => {
+    const user = userEvent.setup()
+    const { onVote } = renderBody(askFrame)
+    expect(screen.getByText(QUESTIONS[0].scenario)).toBeInTheDocument()
+    for (const c of QUESTIONS[0].choices) {
+      expect(screen.getByText(c.label)).toBeInTheDocument()
     }
-    if (url.startsWith('/api/room/join')) return jsonResponse(joinBody, 200)
-    if (url.startsWith('/api/room/vote')) {
-      if (voteThrows) throw new Error('network down')
-      return jsonResponse(voteStatus === 200 ? { ok: true } : { error: 'nope' }, voteStatus)
+    await user.click(screen.getByText(QUESTIONS[0].choices[2].label))
+    expect(onVote).toHaveBeenCalledWith('q1', 2)
+  })
+
+  it('choice buttons carry NO persona attribute mid-game (no mapping leak)', () => {
+    renderBody(askFrame)
+    for (const btn of screen.getAllByRole('button')) {
+      expect(btn).not.toHaveAttribute('data-persona')
     }
-    throw new Error(`unexpected fetch: ${url}`)
-  })
-  vi.stubGlobal('fetch', impl)
-  return impl
-}
-
-const votes = () => calls.filter((c) => c.url.startsWith('/api/room/vote'))
-const stateCalls = () => calls.filter((c) => c.url.startsWith('/api/room/state'))
-const bodyOf = (c: Call) => JSON.parse(String(c.init?.body))
-
-/** Let the poll interval fire and every promise it chains settle. */
-async function tick(ms = 1200) {
-  await act(async () => { await vi.advanceTimersByTimeAsync(ms) })
-}
-
-describe('the phone (app/play)', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    calls = []
-    // The default server answer knows this player — `you` present. Its ABSENCE is the reset
-    // signal, so it must never be missing by accident in a test that is not about a reset.
-    stateBody = frame({ you: YOU })
-    stateStatus = 200
-    stateThrows = false
-    joinBody = { player: { id: 'p-1', name: 'Ada' } }
-    voteStatus = 200
-    voteThrows = false
-    installFetch()
-    vi.useFakeTimers()
   })
 
-  afterEach(() => {
-    vi.useRealTimers()
-    vi.unstubAllGlobals()
+  it('shows the saved notice once a pick is confirmed, and buttons stay enabled at 0s', () => {
+    renderBody(
+      { ...askFrame, remainingMs: 0, you: { answeredCount: 1, pickedChoiceIndex: 1, persona: null } },
+    )
+    expect(screen.getByText(PHONE.picked.th)).toBeInTheDocument()
+    // Display-only timer: 0 remaining must NOT disable voting (the host closes it, not the clock).
+    for (const btn of screen.getAllByRole('button')) expect(btn).toBeEnabled()
+  })
+})
+
+describe('reveal', () => {
+  it('shows watch-screen and what you picked', () => {
+    renderBody({
+      ...askFrame,
+      stageKind: 'reveal',
+      votingOpen: false,
+      remainingMs: 0,
+      you: { answeredCount: 1, pickedChoiceIndex: 3, persona: null },
+    })
+    expect(screen.getByTestId('phone-reveal')).toBeInTheDocument()
+    expect(screen.getByText(PHONE.watchScreen.th)).toBeInTheDocument()
+    expect(screen.getByText(PHONE.youPicked.th)).toBeInTheDocument()
+    expect(screen.getByText(QUESTIONS[0].choices[3].label)).toBeInTheDocument()
+  })
+})
+
+describe('done', () => {
+  it('renders the persona card with English label, Thai coffee, strengths and partner', () => {
+    renderBody({
+      ...baseFrame,
+      phase: 'done',
+      you: { answeredCount: 8, pickedChoiceIndex: null, persona: 'analyst' },
+    })
+    const card = screen.getByTestId('persona-card')
+    expect(card).toHaveAttribute('data-persona', 'analyst')
+    expect(screen.getByText('THE ANALYST')).toBeInTheDocument()
+    expect(screen.getByText(/โคลด์บริว/)).toBeInTheDocument()
+    expect(screen.getByText(PERSONAS.analyst.description)).toBeInTheDocument()
+    expect(screen.getByText(PERSONAS.analyst.strength)).toBeInTheDocument()
+    expect(screen.getByText(PERSONAS.analyst.caution)).toBeInTheDocument()
+    // Partner is the diagonal: THE PIONEER.
+    expect(screen.getByText(/THE PIONEER/)).toBeInTheDocument()
+    // Axis line in English framework language.
+    expect(screen.getByText(/DATA/)).toBeInTheDocument()
+    expect(screen.getByText(/WAIT & SEE/)).toBeInTheDocument()
   })
 
-  it('joins with a display name and remembers who you are', async () => {
-    render(<PlayPage />)
-    await tick(0)
-
-    expect(screen.getByTestId('phone-join')).toBeInTheDocument()
-    fireEvent.change(screen.getByTestId('name-input'), { target: { value: 'Ada' } })
-    fireEvent.click(screen.getByTestId('join-button'))
-    await tick(0)
-
-    const join = calls.find((c) => c.url.startsWith('/api/room/join'))!
-    expect(join).toBeDefined()
-    expect(bodyOf(join).name).toBe('Ada')
-
-    expect(JSON.parse(localStorage.getItem(PLAYER_KEY)!)).toMatchObject({ playerId: 'p-1', name: 'Ada' })
-    expect(screen.queryByTestId('phone-join')).not.toBeInTheDocument()
+  it('a zero-answer player gets the graceful late state, never a card', () => {
+    renderBody({
+      ...baseFrame,
+      phase: 'done',
+      you: { answeredCount: 0, pickedChoiceIndex: null, persona: null },
+    })
+    expect(screen.queryByTestId('persona-card')).toBeNull()
+    expect(screen.getByText(PHONE.lateJoiner.th)).toBeInTheDocument()
   })
+})
 
-  it('rejoins itself from storage when the phone wakes up, and polls with its player id', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-
-    expect(screen.queryByTestId('phone-join')).not.toBeInTheDocument()
-    expect(stateCalls()[0].url).toContain('playerId=p-9')
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-  })
-
-  it('posts a vote exactly once when an option is tapped', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-
-    fireEvent.click(screen.getByTestId('option-p85'))
-    await tick(0)
-    expect(votes()).toHaveLength(1)
-    expect(bodyOf(votes()[0])).toEqual({ playerId: 'p-9', stageId: 'decide-price', optionId: 'p85' })
-
-    // Several polls later it is still one vote — nothing re-posts a vote the server accepted.
-    await tick(5000)
-    expect(votes()).toHaveLength(1)
-  })
-
-  it('returns to the join screen the moment a poll comes back without a player — no failed vote needed', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-
-    // The host reset the room: the server no longer knows this id, so `you` is absent.
-    stateBody = frame({ seq: 9, phase: 'lobby', stageId: null, stageKind: null, playerCount: 0 })
-    await tick(1200)
-
-    expect(screen.getByTestId('phone-join')).toBeInTheDocument()
-    expect(screen.getByTestId('phone-notice')).toBeInTheDocument()
-    expect(localStorage.getItem(PLAYER_KEY)).toBeNull()
-    // The bug being guarded against: this must NOT have taken a failed vote to discover.
-    expect(votes()).toHaveLength(0)
-  })
-
-  it('never re-queues a vote the server rejected with 409', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-
-    voteStatus = 409
-    fireEvent.click(screen.getByTestId('option-p65'))
-    await tick(0)
-    expect(votes()).toHaveLength(1)
-
-    await tick(6000)
-    expect(votes()).toHaveLength(1)
-    expect(JSON.parse(localStorage.getItem(PENDING_KEY) ?? '[]')).toHaveLength(0)
-  })
-
-  it('drops the "too late" notice when the room moves to the next stage', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-
-    voteStatus = 409
-    fireEvent.click(screen.getByTestId('option-p65'))
-    await tick(0)
-    expect(screen.getByTestId('phone-notice')).toBeInTheDocument()
-
-    stateBody = frame({ seq: 30, stageId: 'outcome-price', stageKind: 'outcome', you: YOU })
-    await tick(1200)
-    expect(screen.queryByTestId('phone-notice')).not.toBeInTheDocument()
-  })
-
-  it('queues a vote the network dropped and retries it', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-
-    voteThrows = true
-    fireEvent.click(screen.getByTestId('option-p65'))
-    await tick(0)
-    expect(JSON.parse(localStorage.getItem(PENDING_KEY)!)).toHaveLength(1)
-
-    voteThrows = false
-    await tick(1200)
-    expect(votes().length).toBeGreaterThan(1)
-    expect(JSON.parse(localStorage.getItem(PENDING_KEY)!)).toHaveLength(0)
-  })
-
-  it('keeps the last good frame when a poll fails, and never blanks', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame()
-    render(<PlayPage />)
-    await tick(0)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-
-    stateThrows = true
-    await tick(2500)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-    expect(screen.queryByTestId('phone-join')).not.toBeInTheDocument()
-    expect(localStorage.getItem(PLAYER_KEY)).not.toBeNull()
-  })
-
-  it('discards a frame older than the one already on screen', async () => {
-    localStorage.setItem(PLAYER_KEY, JSON.stringify({ playerId: 'p-9', name: 'Bee' }))
-    stateBody = decideFrame({ seq: 20 })
-    render(<PlayPage />)
-    await tick(0)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
-
-    // A replayed, older frame from a different stage must not move the phone backwards.
-    stateBody = frame({ seq: 4, stageId: 'data-you', stageKind: 'data', you: YOU })
-    await tick(1200)
-    expect(screen.getByTestId('phone-decide')).toBeInTheDocument()
+describe('chrome', () => {
+  it('shows the player name, offline badge and a notice', () => {
+    renderBody({ ...baseFrame }, { notice: PHONE.tooLate, offline: true })
+    expect(screen.getByTestId('player-name')).toHaveTextContent('สมชาย')
+    expect(screen.getByTestId('phone-offline')).toBeInTheDocument()
+    expect(screen.getByTestId('phone-notice')).toHaveTextContent(PHONE.tooLate.th)
   })
 })
