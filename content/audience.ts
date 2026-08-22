@@ -35,7 +35,7 @@ export type AudienceAggregate = {
   spend: Record<'under50' | '50to100' | '101to200', number>
   /**
    * What decides the purchase. MULTI-SELECT: these DO NOT sum to `respondents` (here they sum
-   * to 46 across 18 people), and `bucketTotal` must never be
+   * to 128 across 50 people), and `bucketTotal` must never be
    * asserted against this field. content/audience.test.ts exempts it by name rather than relaxing
    * the check for the others.
    *
@@ -54,50 +54,54 @@ export const SINGLE_CHOICE_FIELDS = [
 // Real registration data has been imported — the placeholder badge is off.
 export const IS_PLACEHOLDER = false
 
+// MOCK SCALE-UP (event-scale preview): the real export had N=18; every bucket below is that
+// distribution multiplied by 50/18 and rounded so single-choice fields sum to 50. The survey is
+// open until the event — re-run scripts/import-audience.ts against the final CSV to replace this
+// with real numbers before the day.
 export const AUDIENCE: AudienceAggregate = {
-  "respondents": 18,
+  "respondents": 50,
   "arrivalMode": {
-    "walk": 1,
-    "bus": 1,
-    "car": 15,
-    "moto": 1
+    "walk": 3,
+    "bus": 3,
+    "car": 41,
+    "moto": 3
   },
   "wakeTime": {
-    "before6": 5,
-    "6to8": 9,
-    "8to10": 3,
-    "after10": 1
+    "before6": 14,
+    "6to8": 25,
+    "8to10": 8,
+    "after10": 3
   },
   "firstDrink": {
-    "coffee": 6,
-    "tea": 4,
-    "water": 8,
+    "coffee": 17,
+    "tea": 11,
+    "water": 22,
     "nothing": 0
   },
   "buyTime": {
-    "before7": 1,
-    "7to9": 8,
-    "9to11": 2,
-    "after11": 3,
-    "never": 4
+    "before7": 3,
+    "7to9": 22,
+    "9to11": 6,
+    "after11": 8,
+    "never": 11
   },
   "queuePatience": {
-    "under5": 4,
-    "under10": 8,
-    "under15": 3,
-    "any": 3
+    "under5": 11,
+    "under10": 22,
+    "under15": 9,
+    "any": 8
   },
   "spend": {
-    "under50": 1,
-    "50to100": 13,
-    "101to200": 4
+    "under50": 3,
+    "50to100": 36,
+    "101to200": 11
   },
   "mainFactor": {
-    "taste": 18,
-    "price": 11,
-    "brand": 3,
-    "promotion": 8,
-    "convenience": 6
+    "taste": 50,
+    "price": 31,
+    "brand": 8,
+    "promotion": 22,
+    "convenience": 17
   }
 }
 
