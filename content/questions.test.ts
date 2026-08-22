@@ -19,10 +19,10 @@ function rejectRuns(qs: Question[]): number[] {
 }
 
 describe('QUESTIONS', () => {
-  it('has exactly 9 questions ordered 1..9 with unique ids', () => {
-    expect(QUESTIONS).toHaveLength(9)
-    expect(byOrder().map((q) => q.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9])
-    expect(new Set(QUESTIONS.map((q) => q.id)).size).toBe(9)
+  it('has exactly 10 questions ordered 1..10 with unique ids', () => {
+    expect(QUESTIONS).toHaveLength(10)
+    expect(byOrder().map((q) => q.order)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    expect(new Set(QUESTIONS.map((q) => q.id)).size).toBe(10)
   })
 
   it('every question is schema-valid (implies highlight is inside duckSays)', () => {
@@ -40,9 +40,9 @@ describe('QUESTIONS', () => {
    * still passes while the anti-guess arrangement quietly disappears. The sequence is not
    * decorative — see the run test below for what each ตีกลับ run is worth.
    */
-  it('runs pass reject reject reject reject reject reject pass reject', () => {
+  it('runs pass reject reject reject pass reject reject reject pass reject', () => {
     const expected: Verdict[] = [
-      'pass', 'reject', 'reject', 'reject', 'reject', 'reject', 'reject', 'pass', 'reject',
+      'pass', 'reject', 'reject', 'reject', 'pass', 'reject', 'reject', 'reject', 'pass', 'reject',
     ]
     const actual = byOrder()
     expected.forEach((verdict, i) => {
@@ -51,34 +51,34 @@ describe('QUESTIONS', () => {
   })
 
   /*
-   * THE ANTI-GUESS ARRANGEMENT — what replaced v3's "never three consecutive rejects".
+   * THE ANTI-GUESS ARRANGEMENT, and what it still costs.
    *
-   * v3 had THREE จริง cases and could keep every reject run to two, so a player tapping ตีกลับ
-   * nine times never reached the ×3 multiplier at all. The team's set has TWO, and no arrangement
-   * of two can do it: with `p` จริง answers the `9 − p` rejects fall into at most `p + 1` runs, so
-   * the shortest possible longest run is `ceil((9 − p) / (p + 1))` — 3 at p=2, 2 at p=3.
+   * The third จริง case landed at order 5 and cut the six-case ตีกลับ run in half: the runs are
+   * [3, 3, 1] where they were [6, 1], and an always-reject player fell from 70% of a perfect game
+   * to 54%. The arithmetic is on the always-reject test in `lib/scoring.test.ts`.
    *
-   * So the assertion below is the OPTIMALITY of the arrangement, not the old guarantee: the runs
-   * are as short as two จริง cases allow, and ×3 is reachable exactly once. The team's own
-   * numbering scored 6/1 here. Add a third จริง case and this test tightens to 2 by itself, which
-   * is exactly the point at which `lib/scoring.test.ts` can go back to promising the strong rule.
+   * A RUN OF THREE IS THE FLOOR WHILE CASE 1 IS จริง, and that is the assertion below rather than
+   * a preference. With `p` จริง answers among `n` cases the rejects fall into at most `p + 1` runs,
+   * so at n=10, p=3 runs of two are arithmetically available — but only for arrangements whose
+   * FIRST จริง case sits at order 3 or later, because a จริง case at order 1 opens no reject run
+   * and wastes one of the four dividers. Case 1 is the room's warm-up, a joke about a comedy trio,
+   * and the team has now kept it there through two rounds of exactly this trade.
+   *
+   * DO NOT "fix" this by moving the warm-up. Runs of [2,2,2,1] need order 1 to be a lie, which is
+   * a content decision the team has twice declined. Fix the content, never the test.
    */
-  /*
-   * This asserts what the arrangement COSTS, not that it is optimal — because it is not, and that
-   * was a deliberate trade. Case 1 is the room's warm-up, a joke about a comedy trio, and the team
-   * chose opening on it over 400 points of guessing resistance. Reordering to orders 4 and 7 would
-   * give runs of [3,2,2] and drop an always-reject player from 1600 to 1200; DO NOT make that
-   * change here to turn this green. The fix is a third จริง case, which makes runs of [2,2,2]
-   * possible with case 1 still first — and this test then fails loudly, asking to be updated.
-   */
-  it('pays for opening on the warm-up with one long reject run', () => {
+  it('keeps every reject run to three, the floor while the warm-up opens', () => {
     const qs = byOrder()
     const passCount = qs.filter((q) => q.verdict === 'pass').length
     const runs = rejectRuns(qs)
 
-    expect(passCount, 'a third จริง case is what restores the ×3 guarantee').toBe(2)
-    expect(runs).toEqual([6, 1])
-    expect(Math.max(...runs)).toBeGreaterThan(Math.ceil((qs.length - passCount) / (passCount + 1)))
+    expect(passCount).toBe(3)
+    expect(runs).toEqual([3, 3, 1])
+
+    // The arithmetic floor ignores where the จริง cases sit, so it is one shorter than what an
+    // opening จริง case allows. Asserted as the gap, so it stays true if `n` changes again.
+    expect(Math.ceil((qs.length - passCount) / (passCount + 1))).toBe(2)
+    expect(qs[0].verdict, 'the warm-up is why the real floor is 3, not 2').toBe('pass')
   })
 
 

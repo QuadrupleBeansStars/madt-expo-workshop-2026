@@ -799,6 +799,16 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The `text-overflow` above never fires on its own: the tab's text lives in child spans, so a
+   codename longer than the tab is clipped mid-glyph with nothing to say it was. The NAME is the
+   part that truncates — never the face ahead of it, which is one character wide and is how the
+   player finds themselves in a leaderboard of a hundred. Flex items are blockified, which is what
+   lets `text-overflow` apply to a `<span>` here at all.
+
+   A CLASS, not `> span:last-child`. The join screen wears the same tab with the fixed word
+   `แฟ้มใหม่` in that slot, and a truncation rule has no business on a string this app chose
+   itself — only on the up-to-40-character one a player types. */
+.det .det-ftab-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /*
  * The sheet. Square TOP-LEFT corner, so the tab above and this read as one folder, and a HARD
@@ -973,6 +983,39 @@ body {
   color: #7a6a52;
 }
 .det .det-fcount .det-num { font-family: var(--font-retro), monospace; font-variant-numeric: tabular-nums; }
+
+/*
+ * CASE CLOSED, on the player's own last screen — the SAME OBJECT the projector stamps onto the
+ * podium (components/game/Podium.tsx): pixel face, that red ink, a box drawn in the same red, and
+ * tilted off square so it reads as pressed onto the sheet rather than typeset on it. The room and
+ * the hand close the file with one gesture instead of two.
+ *
+ * ITS OWN CLASS, not more inline style on `.det-fhd`. That header is the plain file kicker on
+ * every other screen the phone shows, and this is the single screen where it is a stamp — sharing
+ * the class would make every case number in the game turn red the next time someone edits it.
+ *
+ * The rotation costs no layout: a transform leaves the element's box where it was, so the sheet's
+ * flex column distributes exactly as it did before. Latin only, like every `--font-pixel` string
+ * in this app: Press Start 2P has no Thai glyphs at all.
+ */
+.det .det-fstamp {
+  align-self: center;
+  font-family: var(--font-pixel), monospace;
+  /* Same 16px floor as `.det-fhd` (spec §7), and larger than it: a stamp that reads as small
+     print is not a stamp. */
+  font-size: max(16px, 2.2cqh);
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+  color: rgba(206, 46, 46, 0.92);
+  border: 0.4cqh solid rgba(206, 46, 46, 0.88);
+  border-radius: 0.8cqh;
+  padding: 1.1cqh 4cqw;
+  white-space: nowrap;
+  transform: rotate(-6deg);
+  /* The tilt costs no layout, which is the problem: the rotated bottom corner reaches lower than
+     the box the sheet's flex column is spacing against, and landed on the score under it. */
+  margin-bottom: 1.4cqh;
+}
 
 /* The reveal and the last screen: one big mark, the points under it, then the rank block. */
 .det .det-fmark { font-family: var(--font-retro), monospace; font-size: 12cqh; line-height: 1; }

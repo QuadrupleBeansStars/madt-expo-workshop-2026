@@ -69,7 +69,7 @@ const roomState = () => fetch(`${BASE}/api/room/state`).then((r) => r.json())
  */
 async function checkDetectiveTv(browser, failures) {
   console.log('\n\n## AI Detective  /tv')
-  console.log('(walks all 9 readings/questions/reveals, all 3 act cards, the tally and the podium — every phase measured, not sampled)')
+  console.log('(walks every reading/question/reveal in content/questions.ts, all 3 act cards, the tally and the podium — every phase measured, not sampled)')
 
   await post('/api/reset')
 
@@ -343,9 +343,10 @@ async function checkDetectiveTv(browser, failures) {
     /* Cap on phases, not on questions: adding a question to content/questions.ts must extend this
      * walk on its own rather than silently leave the new one unmeasured. v3.1 added a SEVENTH
      * phase — the five-second `reading` beat before every answer window — so the arithmetic is now
-     * 9 questions × 3 phases + the rules screen + 3 act cards + tally + podium = 33 real
-     * transitions; 80 leaves
-     * headroom for the re-checks below without masking a runaway loop.
+     * 10 questions × 3 phases + the rules screen + 3 act cards + tally + podium = 36 real
+     * transitions at the current content; 80 leaves headroom for the re-checks below without
+     * masking a runaway loop. It is a CAP, not a count — the walk follows real room state, so a
+     * new question extends it by itself and only a runaway loop hits this number.
      *
      * That extra phase is also why every branch below must EXIST. A phase with no branch falls
      * through to the bottom of the loop with nothing awaited and re-polls at fetch speed, so nine

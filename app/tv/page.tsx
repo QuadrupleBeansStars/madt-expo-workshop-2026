@@ -34,6 +34,16 @@ type RoomStats = {
   playerCount: number
 }
 
+/**
+ * How many of the nine cases the duck could NOT have answered "รู้ได้ยังไง" for — the ones whose
+ * correct action is ตีกลับ. The closing screen states this out loud to a hundred people, so it is
+ * COUNTED from the content and never typed: `content/questions.ts` carries a live decision to add a
+ * third true case, and the day it lands this number changes by itself instead of quietly becoming
+ * a lie on the projector. Safe to derive here and not on the phone — /tv is the host's screen and
+ * already holds the whole answer key (see `PHONE_CASE_COUNT` for the side that must not).
+ */
+const UNBACKED_COUNT = QUESTIONS_IN_ORDER.filter((q) => q.verdict === 'reject').length
+
 const HOST_TOKEN_KEY = 'aidet.hostToken'
 const STATE_POLL_MS = 1000
 const STATS_POLL_MS = 1500
@@ -57,15 +67,42 @@ const STATS_POLL_MS = 1500
  * 3.0vh are the ONE sanctioned exception (§1) — short proper nouns, not running text, and the size
  * is what buys the board its capacity.
  *
- * A label that cannot justify 3.1vh is DELETED, not shrunk. `คำถาม / สถานการณ์:` and
- * `เจ้าเป็ด AI ตอบว่า:` measured 14.6px and are gone: the dossier's own structure already says
- * what each field is, and a label nobody can read is worse than no label.
+ * A label that cannot justify its size is DELETED, not shrunk — but the defect was always the
+ * UNIT and not the label. `คำถาม / สถานการณ์:` and `เจ้าเป็ด AI ตอบว่า:` both measured a flat
+ * 14.6px, which is 1/74 of a 1080p screen and 1/148 of a 4K one, and both were cut. The
+ * QUESTION'S label stayed cut: a sheet holding one sentence with a question mark on it does not
+ * need to be told it is holding a question.
+ *
+ * THE DUCK'S CAME BACK, as `เป็ด AI ตอบว่า` at 2.9vh — see `CaseBoard`, which is where the reason
+ * lives. 2.9 is knowingly a shade under the floor, and it is the second sanctioned exception after
+ * the lobby's name cards, for the same kind of reason they are: two words of attribution over the
+ * sentence they attribute is not running text, and at the floor the label starts competing with
+ * the answer it is labelling. What was actually wrong at 14.6px is fixed either way — 2.9vh is a
+ * fraction of the SCREEN, so it grows with the projector instead of shrinking against it.
  *
  * `components/game/type-scale.test.ts` is the source-level guard that no px-ceilinged tier — and
  * no fixed-pixel Tailwind text class — comes back.
  */
 const TYPE = {
-  /** The question the room is judging. */
+  /**
+   * The question the room is judging, and the largest type on the paper.
+   *
+   * IT WENT 5.7 -> 4.8 AND BACK, and the round trip is worth a sentence because the reasoning that
+   * dropped it was sound and still wrong. The case sheet gained three things — the
+   * `เป็ด AI ตอบว่า` label, the answer in a thought bubble, and a 23vh duck in the corner — the
+   * sheet's height is fixed by the room behind it, so something had to yield, and the question
+   * looked like the line that could: the room reads it once, while the ANSWER is the line it
+   * re-reads hunting for the lie.
+   *
+   * What that misses is WHERE the reading happens. Both lines are read from the back of a hall, at
+   * whatever distance the venue's seating puts a person at, and the question is the one that has
+   * to land BEFORE the eight-second clock starts. Buying layout room by shrinking it spends the
+   * only budget that cannot be topped up. The room the sheet actually needed came from the stamp's
+   * column and from `pb-[16vh]` -> `pb-[10.7vh]`, neither of which costs anyone legibility.
+   *
+   * Two lines is the normal case at this size and that is fine — it is a case file, not a headline
+   * — and `textWrap: 'balance'` below is what stops the second one being a single orphaned word.
+   */
   question: '5.7vh',
   /** The duck's answer, on the paper. */
   answer: '4.6vh',
@@ -727,6 +764,65 @@ function StageFrame({
   )
 }
 
+/**
+ * THE CLOCK BAR'S HEIGHT, HELD OPEN WHEN THERE IS NO CLOCK IN IT.
+ *
+ * `reading` and `question` are ONE SCENE HELD FOR TWO BEATS — same sheet, same question, same
+ * answer, same duck — and the only intended differences are that the beat has no clock (answering
+ * is impossible, so a running bar would be a lie) and no answered counter (nobody can have
+ * answered, and a row of zeroes reads as a fault). Anything else that moves between them is a
+ * fault, because the room is looking straight at it when the host presses ถัดไป.
+ *
+ * `foot: reading ? null : <TimerBar/>` moved the whole stage. `StageFrame` is a 95vh flex column
+ * whose middle takes the slack, so removing the bar handed its 1.8vh to the case sheet for the
+ * length of the beat and took it back the instant the question opened — the sheet grew, then
+ * snapped up by 1.8vh at the exact moment attention was highest. Reserving the space instead
+ * costs nothing and the sheet does not move at all.
+ *
+ * NOT `visibility: hidden` ON A LIVE `<TimerBar>`: that would leave a real countdown mounted and
+ * tweening behind an invisible box during a beat where no clock is supposed to exist, and any
+ * assertion asking "is there a timer on this phase" would find one. This is an empty box.
+ *
+ * 1.8vh IS COPIED FROM `components/game/TimerBar.tsx`, which declares its own height inline, and
+ * the two have to stay in step: if the bar's height changes there and not here, the jump this
+ * exists to remove comes back at the difference. It is not asserted in a test on purpose — the
+ * owner has banned size assertions, and a test on this number would go red for a redesign rather
+ * than for a defect.
+ */
+function FootSpacer() {
+  return <div aria-hidden="true" className="w-full shrink-0" style={{ height: '1.8vh' }} />
+}
+
+/**
+ * THE ANSWERED COUNTER'S HEIGHT, HELD OPEN THE SAME WAY — and this one was the LARGER half of the
+ * jump, which is only visible from a measurement.
+ *
+ * `.det-status` (app/globals.css) has no height of its own: it is a flex row and its height is
+ * whatever its tallest child needs. During `reading` that is the 3.1vh Thai line on the left;
+ * during `question` the counter arrives on the right with a 4.6vh numeral in it and the whole band
+ * grows. Measured on the render: the band went 46.7px → 64.0px at 1366x768 and 52.9px → 73.1px at
+ * 1600x900, and because `StageFrame`'s middle takes the slack, every one of those pixels came out
+ * of the case sheet. Reserving the clock bar's 1.8vh alone left 17.3px of the jump still there.
+ *
+ * ZERO-WIDTH SPACES, in the counter's own two faces at the counter's own two sizes. A line box
+ * takes its height from the font metrics of the inline boxes on it, not from the glyphs, so an
+ * empty box in Sarabun-3.1vh beside an empty box in VT323-4.6vh, baseline-aligned exactly as the
+ * real counter is, reserves exactly the height the real counter will need — at any projector size,
+ * with no number copied from anywhere and nothing to keep in step.
+ *
+ * NOT the real counter hidden: `tv.test.tsx` asserts that `ตอบแล้ว` is absent during the beat, and
+ * it should stay absent. Nothing here claims to be a counter — there is no text to read, and it is
+ * `aria-hidden` besides.
+ */
+function CounterSpacer() {
+  return (
+    <>
+      <span aria-hidden="true" className="det-thai text-[3.1vh]">{'\u200B'}</span>
+      <span aria-hidden="true" className="det-term text-[4.6vh]">{'\u200B'}</span>
+    </>
+  )
+}
+
 /** The HUD's plate: `CASE 04 / 09`. Latin and numerals ONLY — this is Press Start 2P and it
  *  carries no Thai glyphs at all. ONE text node, so it cannot collide with any bare-number
  *  assertion elsewhere on the same screen. */
@@ -801,9 +897,12 @@ function Stage({
       /* THE CLOCK IS A CYAN BAR ALONG THE VERY BOTTOM EDGE (the artifact's `.tbar`), the full width
          of the screen — not a framed badge in the top-left corner. It is the one affordance that
          means "you may answer now", it reads from the back of a hall without being read, and at
-         full width the room cannot miss it starting. `reading` deliberately has none. */
-      foot: reading ? null : <TimerBar remainingMs={state.remainingMs} totalMs={QUESTION_MS} />,
-      statusRight: reading ? null : (
+         full width the room cannot miss it starting. `reading` deliberately has no clock — but it
+         KEEPS THE BAR'S HEIGHT, as an empty box. See `FootSpacer`: this slot used to be `null` on
+         the beat, and the 1.8vh it gave back to the stage made the case sheet grow for ten seconds
+         and then snap up the moment the question opened. */
+      foot: reading ? <FootSpacer /> : <TimerBar remainingMs={state.remainingMs} totalMs={QUESTION_MS} />,
+      statusRight: reading ? <CounterSpacer /> : (
         /*
          * THE ANSWERED COUNTER (spec §9) — `ตอบแล้ว 84/103`, bottom-right. Without it the host
          * cannot tell whether the room is still deciding or has finished and is waiting on them.
@@ -814,6 +913,10 @@ function Stage({
          * VT323 has no Thai glyphs and Sarabun is not the numeral face. Rendered ONLY during
          * `question` — nobody can have answered during the reading beat, and a row of zeroes for
          * ten seconds reads as a fault rather than as a beat.
+         *
+         * ITS HEIGHT IS RESERVED ON THE BEAT ANYWAY (`CounterSpacer`). `.det-status` is sized by
+         * its tallest child, so the 4.6vh numeral arriving here grew the whole band and pulled the
+         * case sheet up with it — the same defect as the clock bar's, and the bigger half of it.
          */
         <>
           <span className="det-thai text-[3.1vh]">{t('answered', 'th')}</span>
@@ -855,6 +958,8 @@ function Stage({
       children: (
         <Tally
           accuracy={stats?.roomAccuracy ?? { correct: 0, wrong: 0 }}
+          caseCount={QUESTION_COUNT}
+          unbacked={UNBACKED_COUNT}
           closing={CLOSING_LINES}
         />
       ),
@@ -1486,6 +1591,42 @@ function FileHeader({ text }: { text: string }) {
 }
 
 /**
+ * `เป็ด AI ตอบว่า` — who is talking. A component rather than two copies of five declarations,
+ * because it renders on BOTH cream sheets: the case board, over the duck's answer in its bubble,
+ * and the reveal, over the same sentence with the lie marked in it. Same size, same ink, same
+ * dashed rule, one definition — and on the reveal it is the ONLY thing that says whose sentence is
+ * being marked up, because that sheet carries no duck and no bubble.
+ *
+ * 2.9vh, knowingly under the 3.1vh floor. The reasoning is in `CaseBoard`'s comment below.
+ *
+ * `det-thai` is not optional: `body` is `Arial, Helvetica, sans-serif` and nothing between it and
+ * this span sets a face, so without the class the label falls out of the Thai webfont every other
+ * Thai string on the paper is set in. `#8c593b` is `.det-dossier-label`'s ink, written inline
+ * because the size and letter-spacing have to be inline anyway and splitting one label's five
+ * declarations across two files helps nobody read it.
+ *
+ * The rule beside it is `aria-hidden` and drawn as a repeating gradient rather than a `border`:
+ * it is the dashes of a form field waiting to be filled in, and a screen reader announcing a
+ * separator after the label would be describing a structure that is not on the page. The dash
+ * period is in px like `.det-dossier-rule`'s own `2px dashed` — a dash pattern is texture, not
+ * type, and a texture that scaled with the projector would be a different texture on every wall.
+ */
+function DuckSaysLabel() {
+  return (
+    <div className="flex items-center gap-[1.2vh]">
+      <span className="det-thai" style={{ fontSize: '2.9vh', fontWeight: 800, letterSpacing: '0.04em', color: '#8c593b' }}>
+        เป็ด AI ตอบว่า
+      </span>
+      <span
+        aria-hidden="true"
+        className="flex-1"
+        style={{ height: '0.25vh', background: 'repeating-linear-gradient(90deg,#d4c1ad 0 6px,transparent 6px 12px)' }}
+      />
+    </div>
+  )
+}
+
+/**
  * `reading` and `question`, which are the same scene — the room gets the question and the duck's
  * answer in full, and the ONLY differences are in the frame around them (spec §2): during the beat
  * there is no clock bar, because answering is impossible, and no answered counter, because nobody
@@ -1500,66 +1641,223 @@ function FileHeader({ text }: { text: string }) {
  *  - NO `FILE 01 / 09 — AI STATEMENT` HEADER. The HUD says `CASE 01 / 09` two inches above it.
  *  - THE QUESTION IS PLAIN INK ON PAPER, not text inside a tinted block. A tinted block reads as
  *    a form field; the question is the sentence typed on the sheet.
- *  - THE DUCK'S ANSWER IS A PALE BLUE BOX WITH A CYAN BAR DOWN ITS LEFT EDGE (`#eef4ff`), not a
- *    dark navy screen with a portrait beside it. On cream paper the dark panel read as a hole cut
- *    in the sheet, and the portrait duplicated the duck already walking the floor below.
+ *  - THE DUCK'S ANSWER IS PALE BLUE ON CREAM (`#eef4ff`), not a dark navy screen with a portrait
+ *    beside it. On cream paper the dark panel read as a hole cut in the sheet.
  *
- * THE TWO FIELD LABELS STAY GONE (spec §1). `คำถาม / สถานการณ์:` and `เจ้าเป็ด AI ตอบว่า:`
- * measured 14.6px, and raising them to the 3.1vh floor would have eaten the question's own space.
+ * THE ANSWER IS A THOUGHT BUBBLE NOW, AND THE DUCK SITS IN THE CORNER OF THE SHEET.
+ *
+ * The cyan rule down the left edge is gone, and no scalloped edge replaced it — scallops were
+ * drawn and rejected. What carries the meaning is the TAIL: two circles shrinking out of the
+ * bubble's bottom-left corner toward the duck's head, which is the one convention that says
+ * "this is what that character said" with no type doing the saying. The quotation marks went with
+ * the box for the same reason — a thought bubble is already marked as speech by its own shape, and
+ * quote marks inside one read as the duck quoting somebody else.
+ *
+ * The duck is 23vh and ABSOLUTELY POSITIONED in the sheet's bottom-left corner, which is the only
+ * reason it can be that big. In the flow at 7.4vh it was a thumbnail paying for itself out of the
+ * sentence's width; out of the flow it costs the sentence nothing, so the answer spans the sheet
+ * at the size the back of the hall needs AND the duck is three times what it was. Yes, it repeats
+ * the duck walking the floor below, and that repetition is the point: the sheet has to say who is
+ * talking, and a figure strolling along the bottom of the room is scenery, not attribution.
+ *
+ * THE QUESTION'S OWN LABEL STAYS GONE (spec §1). `คำถาม / สถานการณ์:` measured 14.6px, and the
+ * question is obviously the question.
+ *
+ * THE DUCK'S LABEL CAME BACK, as `เป็ด AI ตอบว่า`. It was deleted alongside the other one and the
+ * owner asked for it back: a room that walks in mid-case cannot tell who is speaking, and nothing
+ * else on the sheet says. It returns at 2.9vh rather than at the flat 14.6px that got it deleted —
+ * a fraction of the screen, so it grows with the projector — and knowingly a shade under the 3.1vh
+ * floor, because two words of attribution over the sentence they attribute are not running text
+ * and at the floor they start competing with the answer. Latin `AI`, never `เอไอ`.
  */
 function CaseBoard({ question }: { question: Question }) {
   return (
     /*
-     * `pb-[16vh]` IS THE ROOM'S HEADROOM, and the number is arithmetic rather than taste.
+     * `pb-[10.7vh]` LANDS THE PAPER ON THE DETECTIVE'S HAT, and the number came off the render,
+     * because the arithmetic route to it gives an answer that is 3.7vh wrong.
      *
-     * MEASURED FROM THIS BOX, NOT FROM THE SCREEN — which is what I got wrong twice. This wrapper
-     * ends at 86.9vh, because the status band below it takes the rest, so its padding is subtracted
-     * from there and not from 100. The detective's hat tops out at 72.5vh (feet 92.5, height 20),
-     * so the sheet must end just above that: 86.9 − 16 = 70.9vh, clear by about 1.5vh. At 27 the
-     * paper stopped at 60vh and left a band of empty wall the size of the characters themselves.
+     * THE ARITHMETIC ROUTE, and why it does not work. `components/game/Patrol.tsx` stands the man
+     * with his feet at `MAN.feetFrac` (92.5%) of a canvas that is `inset-0` over the whole
+     * viewport and `MAN.hFrac` (20%) of it tall, and `TvPage` mounts it with no `floor` override —
+     * so his sprite's BOX tops out at 72.5vh. But `drawSherlockSprite` does not fill that box: it
+     * translates to the box's centre and then paints in the reference's own scene units, and its
+     * topmost rect is the hat brim at local y = −44 of a box that is ±67.5 tall. The drawn hat
+     * therefore starts about 3.4vh BELOW the line the fractions predict, and a sheet stopped at
+     * 72.5vh leaves a visible band of bare wall — the exact band this change exists to remove.
+     *
+     * SO IT WAS MEASURED INSTEAD. The canvas is transparent except for the two figures, so the
+     * topmost opaque pixel on it IS the top of the hat. Scanned over forty frames (he bounces
+     * `sin(frame * 0.22) * 3`), it sits at 75.89–76.78vh at 1600x900 and 75.91–76.69vh at
+     * 1366x768 — the same line on both, which is what a fraction-of-the-stage sprite should do.
+     * At `pb-[10.7vh]` the paper's bottom border lands at 75.91vh and 75.59vh respectively: on the
+     * hat at one shape, two and a half pixels above it at the other, and `.det-dossier`'s hard 6px
+     * offset shadow closes that on both. It reads as the paper resting on him, which is the ask.
+     *
+     * (The residual 0.3vh between the two shapes is `.det-hud` and `.det-status`, which pad and
+     * rule themselves in px — 8 + 3 each — so the band above the stage is a slightly larger share
+     * of a 768px screen than of a 900px one. Both are inside the hat's own 0.9vh of bounce.)
+     *
+     * IT WAS 16, which stopped the paper at 70.9vh. That clearance was deliberate and closing it
+     * is the owner's call, for the scene rather than for the arithmetic: a file and a man with a
+     * strip of bare wall between them are two objects on a screen, and a man walking directly
+     * under the file he is working on is one picture. (At 27 the paper stopped at 60vh and left a
+     * band of empty wall the size of the characters themselves.)
+     *
+     * WHAT THIS COSTS: the sheet is ~5.3vh taller than it was, its body is `justify-center`, and
+     * the duck is pinned to its floor — so everything on the paper moved down with it and was
+     * re-checked at both projector shapes rather than assumed.
      *
      * `px` in vh rather than vw on purpose: every other measurement on this stage is a fraction of
      * HEIGHT, and mixing the two makes the layout a different shape on a 16:10 panel than on 16:9
      * — which is the one thing the projector is not allowed to do.
      */
-    <div className="flex min-h-0 flex-1 flex-col px-[7vh] pt-[2vh] pb-[16vh]">
-      {/* `pt-[10vh]` on the BODY clears the CLASSIFIED rubber stamp, which `.det-dossier::before`
-          pins to the paper's own top-right corner at -11 degrees. Vertically rather than with a
-          right-hand `padding`: a reserve on the right narrows every line on the sheet, for the
-          whole height of it, to miss a mark that sits above all of them. */}
-      <Dossier className="min-h-0 w-full flex-1" bodyClassName="flex min-h-0 flex-1 flex-col justify-center gap-[2.4vh] pt-[10vh]">
-        <p className="det-thai" style={{ fontSize: TYPE.question, lineHeight: 1.3 }}>
+    <div className="flex min-h-0 flex-1 flex-col px-[7vh] pt-[2vh] pb-[9.6vh]">
+      {/* THERE IS NO `pt-[Nvh]` HERE ANY MORE, AND THAT IS NOT AN OVERSIGHT — it never did
+          anything. This body used to carry `pt-[10vh]` with a comment saying it cleared the
+          CLASSIFIED stamp. Measured on the render, `.det-dossier`'s computed `padding-top` is 16px
+          at every projector size: the class and `.det-dossier` have equal specificity, `.det-dossier`
+          is deliberately UNLAYERED in app/globals.css (that file says so in as many words, twice)
+          and Tailwind's utilities live in `@layer utilities`, so the stylesheet wins on order and
+          the utility is dead. Ten, seven, any number — all of them were dead. It is gone rather
+          than made `!`-important because the number would not have solved the problem anyway; see
+          the question's own `paddingRight` below for what actually does.
+
+          `relative` is belt-and-braces and deliberately so: `.det-dossier` already declares
+          `position: relative` for the stamp's sake, and the duck below is positioned against it.
+          Naming the dependency here is what stops a future edit to app/globals.css — a file this
+          pass is not allowed to touch — from silently dropping the duck into the corner of the
+          SCREEN instead of the corner of the sheet. (Every other utility in `bodyClassName` DOES
+          apply: `.det-dossier` declares no display, no flex and no gap, so only `padding` collides.) */}
+      <Dossier className="min-h-0 w-full flex-1" bodyClassName="relative flex min-h-0 flex-1 flex-col justify-center gap-[2.4vh]">
+        {/*
+          * `paddingRight` IS THE CLASSIFIED STAMP'S OWN COLUMN, and it is on the QUESTION rather
+          * than on the sheet because the question is the only thing that ever reaches it.
+          *
+          * `.det-dossier::before` pins the stamp to the paper's top-right corner and rotates it
+          * -11deg. Measured from the pseudo-element's own computed box, its left edge lands 287px
+          * in from the question's right edge at 1366x768 and 339px in at 1600x900 — 37.4vh and
+          * 37.7vh, the same column on both, which is what a `vh`-and-`vw` stamp should do. 38vh
+          * clears it at both with a little to spare.
+          *
+          * WHY NOT CLEAR IT FROM ABOVE, which is what this sheet did before. Two reasons, and the
+          * first is embarrassing: the `pt-[10vh]` that claimed to do it was never applied at all
+          * (see the note above). The second is that it could not have. The stamp's painted bottom
+          * sits 11.4vh below the paper's inner top; this body is `justify-center` and case 09's
+          * question runs to two lines, which leaves under 10vh of slack in the whole sheet — there
+          * is no arrangement of top padding that puts a two-line question below the stamp and
+          * still fits the label, the bubble and the duck underneath it.
+          *
+          * WHAT IT COSTS: a question longer than about 870px at 1366 wraps a line earlier than it
+          * otherwise would. That is the same trade `FileHeader` already makes on this same sheet
+          * with `pr-[35vh]`, for the same stamp, and it is paid by the question's own lines only —
+          * the label, the bubble and the duck all keep the full width of the paper.
+          */}
+        {/*
+          * THE STAMP GETS A FLOAT, NOT A PADDING — and the difference is the whole point.
+          *
+          * `paddingRight: '38vh'` reserved the CLASSIFIED stamp's column on EVERY line of the
+          * question, for the full height of the paragraph. But the stamp is one object in the
+          * top-right corner: measured on the render its rotated box ends 120px down at 1600x900,
+          * which is inside the FIRST line and nothing else. Every line after it was being held
+          * back from a corner of paper that is empty. On `mum-teng-nong` — the room's first case —
+          * line one ended with 792px of blank sheet to its right and still wrapped.
+          *
+          * A right float is the mechanism CSS already has for this: it shortens the line boxes it
+          * overlaps and no others. So line one steps around the stamp and every line below it gets
+          * the whole width of the paper.
+          *
+          * ITS HEIGHT IS ONE LINE, deliberately. `1.3em` is this paragraph's own `lineHeight`, so
+          * the reserve is exactly the line that sits beside the stamp and cannot leak into the
+          * next one at any projector size or any font-size change — the two cannot drift, because
+          * one is written in terms of the other. Measured, the stamp's rotated box clears line
+          * one's bottom by ~7px and never reaches line two.
+          *
+          * `34vh` is the stamp's own reach, not a round number: the pseudo-element is 292.4px wide
+          * at 1600x900 and rotated -11deg, so its bounding box is 292.4·cos11 + 57.3·sin11 ≈ 298px
+          * ≈ 33.1vh, and 34 clears it with a little to spare at both projector shapes.
+          *
+          * `textWrap: 'pretty'` REPLACES `'balance'`, which caused the very problem this comment
+          * is about. `balance` equalises the lengths of ALL lines, so a question needing 1.15
+          * lines was rendered as two lines at 58% width each and read as breaking early for no
+          * reason. `pretty` only refuses to leave the LAST line a single orphaned word — which is
+          * the actual defect it was brought in for (`ครับ?` alone under a full line) — and leaves
+          * every other line to fill the width it has. Unsupported, text wraps greedily, which is
+          * merely today's behaviour; there is no fallback to write.
+          */}
+        <p className="det-thai" style={{ fontSize: TYPE.question, lineHeight: 1.3, textWrap: 'pretty' }}>
+          <span aria-hidden="true" style={{ float: 'right', width: '34vh', height: '1.3em' }} />
           {question.ask}
         </p>
 
+        <DuckSaysLabel />
+
         {/*
-          * The duck's answer, quoted onto the sheet. Pale blue with a cyan rule down the left edge
-          * — a quotation on paper, in the one screen-palette colour that survives on cream because
-          * it is a BORDER rather than a field of type. The duck is an emoji at the head of its own
-          * sentence, which is where a quotation's speaker belongs; the walking duck on the floor
-          * below is the same character and does not need repeating at the same depth.
+          * THE DUCK'S ANSWER, AS A THOUGHT BUBBLE — and the two margins are the whole layout.
+          *
+          * `32vh` on the left is THE DUCK'S LANE, `8vh` on the bottom is the tail's headroom, and
+          * the two circles run leftward along the corridor between them. Nothing here is
+          * `justify`-ed against the duck, because the duck is out of the flow entirely: the lane
+          * is what keeps them apart, and it has to be arithmetic rather than eye, because the two
+          * are positioned from OPPOSITE edges — the duck from the sheet's floor, the bubble from
+          * wherever `justify-center` leaves it.
+          *
+          * THE CLEARANCE IS SIDEWAYS, NOT DOWNWARD, and that is the part worth writing down. At
+          * 1366x768, where 1vh = 7.68px and the sheet is at its tightest:
+          *
+          *   duck   — `bottom: 1.4vh` + 23vh tall, so it tops out 24.4vh above the sheet's inner
+          *            floor. Its BOX ends 2.6 + 23 = 25.6vh across; its drawn art ends sooner, at
+          *            viewBox x=59 of 64 — the magnifying glass — which is 2.6 + 21.2 = 23.8vh.
+          *   bubble — its left edge is 32vh from the sheet's CONTENT edge, which `.det-dossier`'s
+          *            own `padding: 16px 20px` already holds 20px further in.
+          *
+          * So the duck's head at 24.4vh and the bubble's underside at 14–18vh OVERLAP in height,
+          * by design and unavoidably: the sheet is 57.7vh tall at 768 and a 12.2vh bubble cannot
+          * be stacked above a 24.4vh duck inside it. The bird is beside its thought, not under it,
+          * and the two never touch because 32 − 25.6 = 6.4vh (plus that 20px) of paper runs
+          * between them at every height.
+          *
+          * THE LANE WIDENED FROM 26 TO 32 BECAUSE OF THE TAIL, not because of the bubble. At 26
+          * the corridor between the magnifying glass (23.8vh) and the bubble (26vh) was 2.2vh and
+          * the two circles are 5.2vh of diameter between them, so they had to be threaded past the
+          * duck vertically — and `justify-center` moves the bubble 3.1vh DOWN the moment a
+          * question runs to two lines, which case 09 (`einstein-fish`) does at both projector
+          * shapes. Measured: at 26 the small circle landed in the middle of the magnifying glass
+          * on that one case and nowhere else. At 32 the corridor is 8.2vh, both circles sit inside
+          * it — 24.4→26.4vh and 27.4→30.6vh — and no bubble height can put either on the bird.
+          *
+          * The 8vh bottom margin is what keeps the lower circle off the sheet's bottom border.
           */}
-        {/* THE DUCK IS DRAWN, not typed. This was the 🦆 emoji, which renders as whatever face the
-            projector laptop happens to ship — a different bird on Windows, Android and macOS, and
-            on the one screen a hundred people look at, the character speaking should not change
+        <div className="relative" style={{ margin: '0 0 8vh 32vh' }}>
+          {/* The two tail circles, shrinking toward the duck's head — LEFTWARD and barely
+              descending, because the head is beside the bubble rather than under it (see the
+              arithmetic above). `aria-hidden`: they are the punctuation of the bubble, and there is
+              no reading of "circle, circle" that helps anyone. */}
+          <span aria-hidden="true" style={{ position: 'absolute', left: '-4.6vh', bottom: '-2.4vh', width: '3.2vh', height: '3.2vh',
+                borderRadius: '50%', background: '#eef4ff', border: '0.4vh solid var(--det-cyan)' }} />
+          <span aria-hidden="true" style={{ position: 'absolute', left: '-7.6vh', bottom: '-2.8vh', width: '2vh', height: '2vh',
+                borderRadius: '50%', background: '#eef4ff', border: '0.4vh solid var(--det-cyan)' }} />
+          {/* NO QUOTATION MARKS. A thought bubble is already marked as speech by its own shape, and
+              quote marks inside one read as the duck quoting somebody else — which is the exact
+              wrong claim on a screen where the room is deciding whether the duck made it up. */}
+          <p className="det-thai" style={{ background: '#eef4ff', border: '0.4vh solid var(--det-cyan)', borderRadius: '2.4vh',
+                width: 'fit-content', maxWidth: '100%', padding: '3.6vh 4vh', fontSize: TYPE.answer, lineHeight: 1.35 }}>
+            {question.duckSays}
+          </p>
+        </div>
+
+        {/* THE DUCK, OUT OF THE FLOW, in the sheet's bottom-left corner.
+            It is drawn, not typed: this was the 🦆 emoji, which renders as whatever face the
+            projector laptop happens to ship — a different bird on Windows, Android and macOS — and
+            on the one screen a hundred people look at, the character speaking must not change
             between venues. `components/game/Duck.tsx` is the pixel duck the rest of the game uses:
             yellow, deerstalker, magnifying glass raised.
 
-            `items-start` so the duck sits against the first line of a two-line answer instead of
-            floating in the middle of it. */}
-        <div
-          className="det-thai flex items-start gap-[2.8vh]"
-          style={{
-            background: '#eef4ff',
-            borderLeft: '0.9vh solid var(--det-cyan)',
-            borderRadius: '0 0.6vh 0.6vh 0',
-            padding: '2.2vh 2.6vw',
-            fontSize: TYPE.answer,
-            lineHeight: 1.35,
-          }}
-        >
-          <Duck size="7.4vh" />
-          <p>&ldquo;{question.duckSays}&rdquo;</p>
+            `absolute` is what makes 23vh affordable. At 7.4vh in the flow it was a thumbnail, and
+            every pixel of it was taken out of the sentence's width; out of the flow it takes
+            nothing, so the answer is as big as the back of the hall needs AND the bird is three
+            times the size. */}
+        <div className="absolute" style={{ left: '2.6vh', bottom: '1.4vh' }}>
+          <Duck size="23vh" />
         </div>
       </Dossier>
     </div>
@@ -1635,7 +1933,28 @@ function RevealStage({
 
       {/* The evidence: the duck's own sentence with the lie marked in it, and what was actually
           true. On the cream sheet, because it IS the case file's findings. */}
-      <Dossier className="min-h-0 flex-1" bodyClassName="flex min-h-0 flex-1 flex-col justify-center gap-[1.4vh] pt-[9vh]">
+      {/* `paddingTop` INLINE, NOT `pt-[9vh]`. The utility that used to sit here never applied:
+          `.det-dossier` is deliberately unlayered in app/globals.css and Tailwind's utilities live
+          in `@layer utilities`, so at equal specificity the stylesheet wins on source order and
+          every `pt-*` on this element — nine, ten, any number — was dead. The sheet has been
+          rendering with `.det-dossier`'s own flat 16px all along. An inline declaration is not a
+          utility and does not lose that fight.
+
+          9vh is what the CLASSIFIED stamp needs cleared: `.det-dossier::before` pins it to the
+          paper's top-right corner at -11deg, and this sheet's first line is the duck's own
+          sentence with the lie marked in it — the one line on the reveal nothing may sit over. */}
+      <Dossier
+        className="min-h-0 flex-1"
+        bodyClassName="flex min-h-0 flex-1 flex-col justify-center gap-[1.4vh]"
+        bodyStyle={{ paddingTop: '9vh' }}
+      >
+        {/* The same `เป็ด AI ตอบว่า` label the case board carries, and it is needed MORE here: this
+            sheet renders the duck's sentence with no duck, no bubble and no question above it, so
+            without the label the marked-up line is an unattributed quotation the room is being
+            asked to judge. The bubble and the bird deliberately do NOT come with it — this sheet
+            already holds the evidence, the rule, the truth label and the truth, and its job is the
+            marked-up sentence rather than the scene the sentence was said in. */}
+        <DuckSaysLabel />
         <p className="det-thai" style={{ fontSize: '3.6vh', lineHeight: 1.35 }}>
           <HighlightedDuckLine text={question.duckSays} highlight={question.highlight} />
         </p>

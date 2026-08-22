@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { readFileSync, renameSync, writeFileSync } from 'node:fs'
 import type { Answer, GameState, Player, PublicGameState, Verdict } from './types'
 import { avatarFor } from './avatars'
+import { codenamePool, randomCodename } from './codenames'
 import { scorePlayer } from './scoring'
 import {
   LOBBY_STATE, NEXT_GUARD_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState,
@@ -10,6 +11,8 @@ import {
 
 export interface RoomStore {
   join(codename: string, now: number): Player
+  /** A codename from the pool nobody in this room currently holds. See the implementation. */
+  dealCodename(): string
   recordAnswer(input: { playerId: string; questionId: string; verdict: Verdict }, now: number): AnswerResult
   getPlayers(): Player[]
   getAnswers(): Answer[]
@@ -145,11 +148,19 @@ export class MemoryRoomStore implements RoomStore {
    */
   join(codename: string, now: number): Player {
     const id = randomUUID()
+    /* RESOLVED FIRST, then the face is derived FROM THE RESOLVED NAME. These two lines used to sit
+     * in the object literal below as `codename: this.uniqueCodename(codename)` and
+     * `avatar: avatarFor(id)`, which was fine while the face came from the id and is wrong now
+     * that it comes from the name: the second `นักสืบราเมง` is stored as `นักสืบราเมง 2`, and
+     * looking up the face from what was PASSED IN rather than from what was STORED would silently
+     * diverge the moment a name is repeated. `avatarFor` strips the suffix itself, so it wants the
+     * stored string. */
+    const resolved = this.uniqueCodename(codename)
     const player: Player = {
       id,
-      codename: this.uniqueCodename(codename),
+      codename: resolved,
       joinedAt: now,
-      avatar: avatarFor(id),
+      avatar: avatarFor(resolved),
       /* `rules` counts as pre-game. v3.2 put a host-advanced rules screen between the lobby and
        * the first question, which opens a window of ~30 seconds — and before this line changed,
        * everyone who finished typing their codename during that window joined as a scoreless
@@ -194,6 +205,48 @@ export class MemoryRoomStore implements RoomStore {
     let n = 2
     while (taken.has(`${wanted} ${n}`)) n++
     return `${wanted} ${n}`
+  }
+
+  /**
+   * DEAL A NAME FROM THE POOL — the server half of the 🎲 button, and the reason the projector
+   * never shows `นักสืบราเมง 2` in a room that used it.
+   *
+   * WHY THE ROOM HAS TO BE ASKED. The phone could draw locally, and used to: 15 nouns, one
+   * `Math.random()`, no request. But independent draws collide. At 100 players drawing from 150
+   * names with no knowledge of each other you would expect 150 x (1 - (149/150)^100) ~= 73
+   * distinct names — about 27 people watching the board under a numbered name they did not choose.
+   * The room is the only thing that knows what is already taken, so the room deals.
+   *
+   * POOL MINUS TAKEN, and `taken` is `this.players`, NOT `activePlayers()`. Spectators hold their
+   * names: they appear in the room's own lists (the lobby cards, the phone's own tab) and a
+   * repeated name there is exactly as confusing as one on the leaderboard. Same reasoning as
+   * `uniqueCodename` above, which counts them for the same reason.
+   *
+   * UNIFORM OVER THE FREE SET, never "the first one free". Taking the head of the list would give
+   * the first twenty players twenty ครัวไทย names in group order, and a room where everyone is
+   * named after Thai food while seven other themes go unused looks broken rather than themed.
+   *
+   * AT PLAYER 151 THE POOL IS EMPTY and this returns a plain random draw instead — the pre-pool
+   * behaviour, which `uniqueCodename` then suffixes on join (`นักสืบราเมง 2`). It does NOT throw
+   * and does NOT block the join: a 151st person at the booth must still get in, and a numbered
+   * name is a cosmetic cost paid only by rooms 50% larger than the largest one planned for.
+   *
+   * A NAME HANDED OUT IS NOT RESERVED. Two phones pressing 🎲 in the same second can both be told
+   * `นักสืบราเมง`, and only the second `join()` discovers it — where `uniqueCodename` makes it
+   * `นักสืบราเมง 2`, exactly as if both players had typed it. That is deliberate, not a gap: the
+   * store is the ONLY place uniqueness is decided, and it stays that way. A reservation here would
+   * have to expire, because most dice presses are followed by more typing and some by no join at
+   * all — and a reservation nobody redeems leaks a name out of a pool of 150 for the rest of the
+   * session, which is a worse failure than the occasional suffix it would prevent.
+   *
+   * THAI ONLY. The join screen is Thai-only by decision (see components/CodenameScreen.tsx's
+   * header); the English pool stays alive in lib/codenames.ts but nothing deals from it.
+   */
+  dealCodename(): string {
+    const taken = new Set(this.players.map((p) => p.codename))
+    const free = codenamePool('th').filter((c) => !taken.has(c))
+    if (free.length === 0) return randomCodename('th')
+    return free[Math.floor(Math.random() * free.length)]
   }
 
   recordAnswer(input: { playerId: string; questionId: string; verdict: Verdict }, now: number): AnswerResult {

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
 /**
  * The case file itself: a sheet of paper lying on the desk, under a folder tab.
@@ -21,7 +21,7 @@ import type { ReactNode } from 'react'
  * invisible on cream (see `.det-dossier-head` / `.det-dossier-label` for the paper's own inks).
  */
 export function Dossier({
-  tab, children, className, bodyClassName,
+  tab, children, className, bodyClassName, bodyStyle,
 }: {
   /** The folder tab's label. Latin and numerals only — VT323 has no Thai.
    *  OMIT IT for a plain sheet: the approved artifact's case board is a sheet with no tab at all,
@@ -33,6 +33,19 @@ export function Dossier({
   className?: string
   /** On the paper itself, for how its contents are laid out inside the sheet. */
   bodyClassName?: string
+  /**
+   * Inline styles on the paper. THIS EXISTS BECAUSE `bodyClassName` CANNOT SET PADDING.
+   *
+   * `.det-dossier` (app/globals.css) declares its own `padding` and is deliberately UNLAYERED —
+   * that file says so in as many words — while Tailwind's utilities live in `@layer utilities`.
+   * At equal specificity an unlayered rule beats a layered one, so every `pt-[Nvh]` ever put on
+   * this element was dead and the sheet rendered with a flat 16px regardless. Two callers spent
+   * a long time believing they had a clearance they did not have, and nothing errored.
+   *
+   * An inline declaration outranks both, so padding overrides come through here. Everything that
+   * does NOT collide with `.det-dossier` — display, flex, gap — still belongs in `bodyClassName`.
+   */
+  bodyStyle?: CSSProperties
 }) {
   return (
     <div className={`flex min-h-0 flex-col ${className ?? ''}`}>
@@ -43,7 +56,7 @@ export function Dossier({
           a flat 18px, which is below the 3.1vh floor on every projector at or above 1080p, and
           that file is out of bounds for this pass. An inline declaration outranks it. */}
       {tab ? <div className="det-dossier-tab self-start" style={{ fontSize: '3.1vh' }}>📁 {tab}</div> : null}
-      <div className={`det-dossier ${tab ? '' : 'det-dossier-plain'} ${bodyClassName ?? ''}`}>{children}</div>
+      <div className={`det-dossier ${tab ? '' : 'det-dossier-plain'} ${bodyClassName ?? ''}`} style={bodyStyle}>{children}</div>
     </div>
   )
 }

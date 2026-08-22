@@ -46,7 +46,11 @@ export type Verdict = z.infer<typeof VerdictSchema>
  */
 export const QuestionSchema = z.object({
   id: z.string().min(1),
-  order: z.number().int().min(1).max(9),
+  /* The cap is the SET's size, and it moves with the set: it was 9, and the third จริง case
+     (`coffee-sleep-source`, content/questions.ts) took the game to ten. It is not a projector budget like
+     the string caps below — it is the guard that stops a typo'd `order: 40` from silently sorting
+     a case to the end of the game. `content/questions.test.ts` asserts the real sequence. */
+  order: z.number().int().min(1).max(10),
   ask: z.string().min(1).max(80),
   duckSays: z.string().min(1).max(140),
   /** Exact substring of `duckSays`, marked on the reveal. The lie, or the load-bearing claim. */

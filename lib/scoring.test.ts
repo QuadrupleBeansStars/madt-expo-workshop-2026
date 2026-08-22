@@ -54,8 +54,8 @@ describe('scorePlayer', () => {
     const qs = QUESTIONS_IN_ORDER
     const answers = qs.map((q) => ans(q.id, q.verdict, 15_000)) // all correct, no speed bonus
     const { total, correct } = scorePlayer(answers, qs)
-    expect(correct).toBe(9)
-    // Nine bases, plus the streak bonus climbing 0, +50, +100 and holding there.
+    expect(correct).toBe(10)
+    // Ten bases, plus the streak bonus climbing 0, +50, +100 and holding there.
     expect(total).toBe(qs.reduce((sum, _q, i) => sum + BASE_POINTS + streakBonus(i + 1), 0))
   })
 
@@ -87,14 +87,14 @@ describe('scorePlayer', () => {
     const rejectedEverything = qs.map((q) => ans(q.id, 'reject'))
     expect(scorePlayer(rejectedEverything, qs).wrongPass).toBe(0)
     expect(scorePlayer(rejectedEverything, qs).correct).toBe(rejects.length)
-    // Two, not v3's three — the team's set has two จริง cases. Pinned rather than derived so a
-    // content change that alters the guessing floor cannot slip through this file unnoticed.
-    expect(passes.length).toBe(2)
+    // Three, as of `coffee-sleep-source` at order 5. Pinned rather than derived so a content change that
+    // alters the guessing floor cannot slip through this file unnoticed — the floor IS this number.
+    expect(passes.length).toBe(3)
   })
 
   it('reports the streak standing at the end of the walk', () => {
     const qs = QUESTIONS_IN_ORDER
-    expect(scorePlayer(qs.map((q) => ans(q.id, q.verdict)), qs).streak).toBe(9)
+    expect(scorePlayer(qs.map((q) => ans(q.id, q.verdict)), qs).streak).toBe(10)
     const broken = [ans(qs[0].id, qs[0].verdict), ans(qs[1].id, qs[1].verdict === 'pass' ? 'reject' : 'pass')]
     expect(scorePlayer(broken, qs).streak).toBe(0)
   })
@@ -117,72 +117,52 @@ describe('scorePlayer', () => {
   })
 
   /*
-   * WHAT THE MULTIPLIER PROMISES ABOUT GUESSING — and it is WEAKER than it used to be.
+   * WHAT THE MULTIPLIER PROMISES ABOUT GUESSING — and it is back to being strong-ish.
    *
-   * THIS TEST USED TO ASSERT: "never lets an always-reject player reach the ×3 multiplier". v3's
-   * answer key had THREE จริง cases and placed them so no three ตีกลับ answers were ever adjacent;
-   * a player tapping ตีกลับ nine times scored 800 with six correct and never once reached ×3.
+   * v3 promised the strong rule: an always-reject player never reached the streak ceiling at all.
+   * That held because v3's key had THREE จริง cases among nine, enough to keep every run of มั่ว
+   * answers down to two. The team's own set arrived with TWO, no arrangement of two can do it, and
+   * this test spent two rounds documenting the weaker property instead.
    *
-   * WHY IT WEAKENED: the team's set (docs/superpowers/specs/2026-08-19-hallucination-nine-content.md)
-   * has TWO จริง cases among nine, and no arrangement of two can restore the old rule. With `p`
-   * จริง answers the `9 − p` rejects fall into at most `p + 1` runs, so the shortest possible
-   * longest run is `ceil((9 − p) / (p + 1))` — 3 at p=2, 2 at p=3. A run of three is unavoidable,
-   * so ×3 is reachable however the cases are ordered. The running order (จริง at 4 and 7) makes
-   * that run happen exactly ONCE instead of the four-question stretch the team's own numbering
-   * would have handed out.
+   * THE THIRD จริง CASE HAS NOW LANDED — `coffee-sleep-source`, order 5 — and the numbers moved: the
+   * reject runs are [3, 3, 1] where they were [6, 1], and an always-reject player takes 54% of a
+   * perfect game where they used to take 70%.
    *
-   * WHAT IT PROMISES NOW: an always-reject player gets seven of nine RIGHT and still scores half
-   * what a thinking player scores, and touches ×3 on one question only. That is the honest,
-   * weaker property. Do not restore the old wording over it.
+   * THE CEILING IS STILL REACHED TWICE, and that is the floor rather than an oversight: a จริง
+   * case at order 1 opens no reject run, so it spends one of the four dividers on nothing, and
+   * runs of two would need the game to open on a lie. Case 1 is the room's warm-up and the team
+   * has kept it there through two rounds of this exact trade. See `content/questions.test.ts`.
    *
-   * WHAT RESTORES THE OLD GUARANTEE: a THIRD จริง case. At p=3, placed at 3, 6 and 8, an
-   * always-reject player scores 800 with six correct and never reaches ×3 — v3's exact numbers.
-   * That is a content decision for the team; `content/questions.test.ts`'s run test already
-   * tightens to 2 on its own the moment a third one lands.
+   * If you are here because this test went red: the arrangement changed. Fix the content, not the
+   * numbers below.
    */
-  /*
-   * WHAT THIS PROMISES, AND WHAT IT USED TO.
-   *
-   * v3 promised something stronger: an always-reject player never reached the ×3 multiplier at
-   * all, scoring 800 of 2400 with six correct. That held because v3's key had THREE จริง cases,
-   * which is enough to keep every run of มั่ว answers down to two.
-   *
-   * The team's set has two, and case 1 — the warm-up — is one of them, so six มั่ว answers run
-   * consecutively from case 2 to case 7. A guesser now holds ×3 across four of them. The
-   * multiplier still separates guessing from thinking (1600 against 2400), but it no longer
-   * disqualifies guessing the way it did.
-   *
-   * A THIRD จริง CASE RESTORES IT COMPLETELY: at three, placed at orders 1, 4 and 7, every reject
-   * run is two long, an always-reject player scores 900, and ×3 is never reached — with the
-   * warm-up still opening the game. That is a content decision, and this comment exists so nobody
-   * reads the numbers below and concludes the mechanic is as strong as it was.
-   *
-   * If you are here because this test went red: the arrangement changed. Fix the content.
-   */
-  it('leaves an always-reject player well short of a thinking one, but no longer locked out of the ceiling', () => {
+  it('leaves an always-reject player barely half of a thinking one, at the ceiling twice', () => {
     const qs = QUESTIONS_IN_ORDER
     const answers = qs.map((q) => ans(q.id, 'reject')) // 15_000ms — no speed bonus in the sums
     const { total, correct, perQuestion } = scorePlayer(answers, qs)
 
-    // Seven right out of nine, because seven of the nine answers are มั่ว. Being right often is
-    // not the thing the score is measuring.
+    // Seven right out of ten, because seven of the ten answers are มั่ว. Being right often is not
+    // the thing the score is measuring.
     expect(correct).toBe(7)
 
-    // q1 wrong | q2..q7 a run of six, the bonus climbing then holding | q8 wrong | q9 a fresh one
-    const run = [1, 2, 3, 4, 5, 6].reduce((sum, n) => sum + BASE_POINTS + streakBonus(n), 0)
-    expect(total).toBe(run + BASE_POINTS + streakBonus(1))
+    // Three runs — [3, 3, 1] — each restarting the bonus from zero. Written as the runs rather
+    // than as one total, because the runs are the mechanic and the total is only their sum.
+    const runScore = (len: number) =>
+      Array.from({ length: len }, (_, i) => BASE_POINTS + streakBonus(i + 1)).reduce((a, b) => a + b, 0)
+    expect(total).toBe(runScore(3) + runScore(3) + runScore(1))
+    expect(total).toBe(1000)
 
-    // A perfect game: nine correct, the bonus climbing to its ceiling and staying there.
+    // A perfect game: ten correct, the bonus climbing to its ceiling and staying there.
     const perfect = qs.reduce((sum, _q, i) => sum + BASE_POINTS + streakBonus(i + 1), 0)
-    expect(perfect).toBe(1650)
-    expect(total, 'guessing must stay clearly behind thinking').toBeLessThan(perfect * 0.75)
+    expect(perfect).toBe(1850)
+    expect(total, 'guessing must stay clearly behind thinking').toBeLessThan(perfect * 0.6)
 
     const atCeiling = qs.filter(
       (q) => perQuestion[q.id]?.points === BASE_POINTS + MAX_STREAK_BONUS,
     )
-    // Four cases pay a guesser the full streak bonus. Under v3 this array was empty; a third จริง
-    // case empties it again. Asserted exactly, so changing the run length cannot pass unnoticed.
-    expect(atCeiling.map((q) => q.order)).toEqual([4, 5, 6, 7])
+    // The third question of each run of three, and nowhere else. It was four cases. Asserted
+    // exactly, so a run growing back cannot pass unnoticed.
+    expect(atCeiling.map((q) => q.order)).toEqual([4, 8])
   })
 })
 

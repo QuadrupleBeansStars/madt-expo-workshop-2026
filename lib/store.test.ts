@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { MemoryRoomStore } from './store'
+import { codenamePool, emojiFor } from './codenames'
 import { LOBBY_STATE, NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_MS, READING_MS, REVEAL_MS } from './game'
 import { BASE_POINTS, MAX_SPEED_BONUS } from './scoring'
 
@@ -42,6 +43,22 @@ describe('MemoryRoomStore', () => {
   it('assigns every joiner an avatar', () => {
     const a = store.join('Detective Ramen', 0)
     expect(a.avatar).toBeTruthy()
+  })
+
+  it('gives a pool name the face that belongs to it', () => {
+    expect(store.join('นักสืบราเมง', 0).avatar).toBe('🍜')
+  })
+
+  it('derives the avatar from the RESOLVED codename, not from what was passed in', () => {
+    /* The two used to be computed side by side in one object literal, `avatarFor(id)` beside
+     * `codename: this.uniqueCodename(codename)`. Now that the face comes from the name, looking it
+     * up from the ARGUMENT instead of from the stored string diverges the moment a name repeats:
+     * the second `นักสืบราเมง` is filed as `นักสืบราเมง 2`, and the row on the projector would read
+     * as the same detective wearing a different face. */
+    const first = store.join('นักสืบราเมง', 0)
+    const second = store.join('นักสืบราเมง', 1)
+    expect(second.codename).toBe('นักสืบราเมง 2')
+    expect(second.avatar).toBe(first.avatar)
   })
 
   it('records an answer', () => {
@@ -750,11 +767,75 @@ describe('duplicate codenames', () => {
 })
 
 /*
+ * DEALING A NAME FROM THE POOL — what the 🎲 button asks for, via GET /api/codename.
+ *
+ * The point of dealing rather than drawing is arithmetic: 100 phones drawing INDEPENDENTLY from
+ * 150 names produce only ~73 distinct ones, so about 27 people end up on the projector under a
+ * numbered name. Dealt from pool-minus-taken, a full room gets a full room of different names.
+ */
+describe('dealCodename', () => {
+  it('deals a name from the pool', () => {
+    const store = new MemoryRoomStore()
+    expect(codenamePool('th')).toContain(store.dealCodename())
+  })
+
+  it('never deals a name the room already holds, so a dealt room needs no suffixes', () => {
+    const store = new MemoryRoomStore()
+    for (let i = 0; i < 40; i++) store.join(store.dealCodename(), i)
+    const names = store.getPlayers().map((p) => p.codename)
+    expect(new Set(names).size).toBe(40)
+    expect(names.filter((n) => / \d+$/.test(n))).toEqual([])
+  })
+
+  it('counts spectators as holding a name', () => {
+    // Same rule as `uniqueCodename`: a spectator's card is on the room's own lists, and a repeat
+    // there is exactly as confusing as one on the leaderboard. `activePlayers()` would miss this,
+    // and a lobby-sized test would never notice — nobody is a spectator in a lobby.
+    const store = new MemoryRoomStore()
+    startToReading(store, 0) // past the rules screen: everyone from here on joins as a spectator
+    const taken = store.dealCodename()
+    expect(store.join(taken, 1).spectator).toBe(true)
+    const next = Array.from({ length: 30 }, () => store.dealCodename())
+    expect(next).not.toContain(taken)
+  })
+
+  it('picks uniformly from the free names rather than off the front of the list', () => {
+    // Nothing joins between these draws, so all 60 come from the same 150. Taking the head of the
+    // list would name the first twenty players after Thai food in group order, which reads as a
+    // broken room rather than a themed one.
+    const store = new MemoryRoomStore()
+    const firstGroup = new Set(codenamePool('th').slice(0, 15))
+    const deals = Array.from({ length: 60 }, () => store.dealCodename())
+    expect(deals.some((c) => !firstGroup.has(c))).toBe(true)
+  })
+
+  it('falls back to a plain random draw once the pool is exhausted, and never blocks a join', () => {
+    // Player 151. The pool is empty, so the deal is a plain draw and `uniqueCodename` suffixes it
+    // on join — the pre-pool behaviour, paid for only by a room 50% larger than the largest one
+    // this workshop plans for. It must not throw and must not refuse anyone entry.
+    const store = new MemoryRoomStore()
+    const pool = codenamePool('th')
+    pool.forEach((name, i) => store.join(name, i))
+    expect(store.getPlayers()).toHaveLength(150)
+
+    const dealt = store.dealCodename()
+    expect(pool).toContain(dealt)
+    const player = store.join(dealt, 151)
+    expect(player.codename).toBe(`${dealt} 2`)
+    // ...and player 151 still gets the FACE that belongs to the name, not a fallback prop.
+    expect(player.avatar).toBe(emojiFor(dealt))
+  })
+})
+
+/*
  * `rank` and `gapToNext` — the phone's reveal line. Both are derived from `getLeaderboard()` on
  * every read; the store keeps nothing extra for them.
  */
 describe('you.rank and you.gapToNext', () => {
-  /** Three players on three different scores: 110, 105, 0. */
+  /** Three players on three different scores: 109, 105, 0.
+   *  The top score moved from 110 when `MAX_SPEED_BONUS` went 10 -> 9 to keep the speed invariant
+   *  clear at ten cases (lib/scoring.ts). The SHAPE is what this fixture is for — three distinct
+   *  scores, one of them zero — and that is unchanged. */
   function threeWayRoom() {
     const store = new MemoryRoomStore()
     const ann = store.join('Ann', T0)
@@ -763,7 +844,7 @@ describe('you.rank and you.gapToNext', () => {
     startToQuestion(store, T0)
     const q = QUESTIONS_IN_ORDER[0]
     const wrong = q.verdict === 'pass' ? 'reject' : 'pass'
-    store.recordAnswer({ playerId: ann.id, questionId: q.id, verdict: q.verdict }, T0)              // 100 + 10
+    store.recordAnswer({ playerId: ann.id, questionId: q.id, verdict: q.verdict }, T0)              // 100 + 9
     store.recordAnswer({ playerId: bee.id, questionId: q.id, verdict: q.verdict }, T0 + QUESTION_MS / 2) // 100 + 5
     store.recordAnswer({ playerId: cid.id, questionId: q.id, verdict: wrong }, T0 + 1)              // 0
     return { store, ann, bee, cid }
@@ -799,7 +880,7 @@ describe('you.rank and you.gapToNext', () => {
   it('reports the player their own position in the leaderboard', () => {
     const { store, ann, bee, cid } = threeWayRoom()
     const board = store.getLeaderboard()
-    expect(board.map((r) => r.codename)).toEqual(['Ann', 'Bee', 'Cid']) // 110, 105, 0
+    expect(board.map((r) => r.codename)).toEqual(['Ann', 'Bee', 'Cid']) // 109, 105, 0
 
     for (const p of [ann, bee, cid]) {
       const you = store.getPublicState(T0 + 1000, p.id).you
@@ -813,8 +894,8 @@ describe('you.rank and you.gapToNext', () => {
     const board = store.getLeaderboard()
 
     const youBee = store.getPublicState(T0 + 1000, bee.id).you
-    expect(youBee?.gapToNext).toBe(board[0].score - board[1].score) // 110 − 105
-    expect(youBee?.gapToNext).toBe(5) // pinned, so a leaderboard that changed underneath is red
+    expect(youBee?.gapToNext).toBe(board[0].score - board[1].score) // 109 − 105
+    expect(youBee?.gapToNext).toBe(4) // pinned, so a leaderboard that changed underneath is red
 
     const youCid = store.getPublicState(T0 + 1000, cid.id).you
     expect(youCid?.gapToNext).toBe(board[1].score - board[2].score) // 105 − 0

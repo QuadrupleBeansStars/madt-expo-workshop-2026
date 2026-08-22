@@ -2,11 +2,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { POST as join } from './join/route'
 import { POST as answer } from './answer/route'
 import { GET as stats } from './stats/route'
+import { GET as codenameGET } from './codename/route'
 import { POST as reset } from './reset/route'
 import { GET as stateGET } from './state/route'
 import { POST as controlPOST } from './control/route'
 import { getStore } from '@/lib/store'
 import { QUESTIONS_IN_ORDER } from '@/lib/game'
+import { codenamePool } from '@/lib/codenames'
 
 const post = (body: unknown) => new Request('http://x', { method: 'POST', body: JSON.stringify(body) })
 const postRaw = (body: string) => new Request('http://x', { method: 'POST', body })
@@ -546,5 +548,39 @@ describe('/api/answer status contract', () => {
       playerId: joined.player.id, questionId: q1.id, verdict: q1.verdict,
     }))
     expect(res.status).toBe(409)
+  })
+})
+
+/*
+ * GET /api/codename — the 🎲 button's server side. The whole reason it exists is that only the
+ * room knows which names are already taken: 100 phones drawing independently from 150 names land
+ * on ~73 distinct ones, and about 27 people would carry a numbered name on the projector.
+ */
+describe('GET /api/codename', () => {
+  beforeEach(async () => { await resetLocal() })
+
+  it('returns a codename from the pool', async () => {
+    const body = await (await codenameGET()).json()
+    expect(codenamePool('th')).toContain(body.codename)
+  })
+
+  it('returns NOTHING but the name', async () => {
+    // An unauthenticated GET reachable by any phone on the LAN. `Object.keys` rather than a list
+    // of `not.toHaveProperty` assertions on purpose: absence-of-what-I-thought-of passes for every
+    // field a later commit adds without thinking. See the route's comment, and /api/stats's.
+    await join(post({ codename: 'เป็ดทอง' }))
+    const body = await (await codenameGET()).json()
+    expect(Object.keys(body)).toEqual(['codename'])
+  })
+
+  it('does not deal a name the room already holds', async () => {
+    // Ten players, each joining under the name they were dealt: ten different names, no suffixes.
+    for (let i = 0; i < 10; i++) {
+      const { codename } = await (await codenameGET()).json()
+      await join(post({ codename }))
+    }
+    const names = getStore().getPlayers().map((p) => p.codename)
+    expect(new Set(names).size).toBe(10)
+    expect(names.filter((n) => / \d+$/.test(n))).toEqual([])
   })
 })

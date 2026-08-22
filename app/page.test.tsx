@@ -209,6 +209,68 @@ describe('the join screen', () => {
       expect(JSON.parse(String((call![1] as RequestInit).body))).toMatchObject({ codename: 'สายลับใหม่' })
     })
   })
+
+  /*
+   * THE DICE ASKS THE ROOM (GET /api/codename), because independent draws collide: 100 phones
+   * drawing locally from the same 150 names land on ~73 distinct ones, and about 27 people would
+   * watch the projector under a numbered name. These three tests are the contract that matters at
+   * a booth — it deals, it never strands a player, and a double-tap cannot race itself.
+   */
+  const dealt = (codename: string) => new Response(
+    JSON.stringify({ codename }), { headers: { 'content-type': 'application/json' } },
+  )
+
+  it('pressing the dice fills the field with the name the room dealt', async () => {
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (
+      String(url).includes('/api/codename')
+        ? dealt('นักสืบทุเรียน')
+        : new Response(JSON.stringify(state()), { headers: { 'content-type': 'application/json' } })
+    )))
+
+    render(<Page />)
+    await userEvent.click(await screen.findByRole('button', { name: /สุ่มให้/ }))
+    await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('นักสืบทุเรียน'))
+  })
+
+  it('falls back to a local name when the room cannot be reached, so the button is never dead', async () => {
+    // A player standing at an expo booth with a dice button that does nothing is a worse outcome
+    // than a duplicate name — and the store suffixes a duplicate into something legible anyway.
+    localStorage.clear()
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/api/codename')) throw new Error('LAN dropped')
+      return new Response(JSON.stringify(state()), { headers: { 'content-type': 'application/json' } })
+    }))
+
+    render(<Page />)
+    await userEvent.click(await screen.findByRole('button', { name: /สุ่มให้/ }))
+    // Read the value rather than matching it — the local draw is one of 150, so the assertion is
+    // "a real codename arrived", not which one.
+    await waitFor(() => expect((screen.getByRole('textbox') as HTMLInputElement).value).toMatch(/^นักสืบ./))
+  })
+
+  it('a double-tap sends one request, so two replies cannot race into the field', async () => {
+    // The second tap is dropped while the first is in flight. Without that, the slower reply wins
+    // the field and the player is left looking at a name they did not see arrive.
+    localStorage.clear()
+    let release: (r: Response) => void = () => {}
+    const gate = new Promise<Response>((resolve) => { release = resolve })
+    const f = vi.fn(async (url: string) => (
+      String(url).includes('/api/codename')
+        ? gate
+        : new Response(JSON.stringify(state()), { headers: { 'content-type': 'application/json' } })
+    ))
+    vi.stubGlobal('fetch', f)
+
+    render(<Page />)
+    const dice = await screen.findByRole('button', { name: /สุ่มให้/ })
+    await userEvent.click(dice)
+    await userEvent.click(dice)
+    expect(f.mock.calls.filter(([u]) => String(u).includes('/api/codename'))).toHaveLength(1)
+
+    release(dealt('นักสืบมะลิ'))
+    await waitFor(() => expect(screen.getByRole('textbox')).toHaveValue('นักสืบมะลิ'))
+  })
 })
 
 
@@ -432,6 +494,16 @@ describe('the case folder the phone is', () => {
     render(<Page />)
     await screen.findByRole('button', { name: /ผ่าน/ })
     expect(screen.getByText('เป็ดทอง')).toBeInTheDocument()
+  })
+
+  /* The face ahead of the name is the same one Standings and Podium put ahead of the same name on
+     the projector — a player hunting for themselves on the wall matches a glyph, not text. Asserted
+     on the tab's own text so it also pins the ORDER and the fact that the two stay separate
+     elements: concatenating them would make the avatar part of the identity screen readers read. */
+  it('puts the projector\'s own face in front of that codename', async () => {
+    render(<Page />)
+    await screen.findByRole('button', { name: /ผ่าน/ })
+    expect(screen.getByText('เป็ดทอง').parentElement).toHaveTextContent('🕵️เป็ดทอง')
   })
 
   it('heads the sheet with which case the room is on', async () => {

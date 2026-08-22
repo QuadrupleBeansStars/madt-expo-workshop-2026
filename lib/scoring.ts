@@ -11,26 +11,35 @@ export const BASE_POINTS = 100
  * Speed is a TIEBREAKER ONLY.
  *
  * INVARIANT (enforced by test): QUESTION_COUNT * MAX_SPEED_BONUS < BASE_POINTS.
- * 9 * 10 = 90 < 100 — so even a perfect speed run cannot out-score one extra correct answer.
+ * 10 * 9 = 90 < 100 — so even a perfect speed run cannot out-score one extra correct answer.
  * A workshop that teaches people not to trust snap judgments must not reward snap judgments.
+ *
+ * IT WAS 10, AND THE TENTH CASE IS WHY IT IS NOT. At nine cases 9 * 10 = 90 cleared the invariant
+ * with room to spare; the third จริง case took the count to ten, and 10 * 10 = 100 does NOT clear
+ * it — a flawless speed run would have tied a whole extra correct answer. Adding an eleventh case
+ * will do this again. The bonus is the thing that gives way, never the invariant: this workshop
+ * cannot pay people for answering fast.
  */
-export const MAX_SPEED_BONUS = 10
+export const MAX_SPEED_BONUS = 9
 
 /**
  * The anti-guess mechanic. Two buttons means a coin-flipper is right half the time; points alone
  * cannot tell thinking from flipping, and a run of correct answers can.
  *
  * A BONUS, NOT A MULTIPLIER. This was `BASE_POINTS * min(streak, 3)` — 100 / 200 / 300 — so one
- * lucky run was worth triple and could carry a whole board by itself. Measured against the current
- * answer key, dropping the multiplier costs almost nothing: a player tapping ตีกลับ nine times
- * takes 70% of a perfect game under this scheme against 67% under the multiplier. The separation
+ * lucky run was worth triple and could carry a whole board by itself. Measured against the answer
+ * key of the day, dropping the multiplier cost almost nothing: a player tapping ตีกลับ at every
+ * case took 70% of a perfect game under this scheme against 67% under the multiplier. The third
+ * จริง case has since taken that 70% down to 54%, which is where the separation was always meant
+ * to come from. The separation
  * never came from the steepness — it comes from the KEY (content/questions.ts, whose two จริง cases
  * are what a guesser trips on) — and paying triple for it only made a single streak louder than the
  * nine decisions around it.
  *
  * A streak is now worth at most DOUBLE a plain correct answer: three tiers a rules screen can
- * state and a room can hold in its head. A third จริง case remains the real fix for the guessing
- * floor; the arithmetic is on the always-reject test in `scoring.test.ts`.
+ * state and a room can hold in its head. The guessing floor is a CONTENT property, not a scoring
+ * one, and the third จริง case is what fixed it; the arithmetic is on the always-reject test in
+ * `scoring.test.ts`.
  */
 export const STREAK_STEP = 50
 export const MAX_STREAK_BONUS = 100

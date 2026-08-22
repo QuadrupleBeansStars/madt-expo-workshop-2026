@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'
 import '@testing-library/jest-dom/vitest'
 import TV from './page'
 import { QUESTIONS_IN_ORDER, QUESTION_MS, READING_MS } from '@/lib/game'
+import { CLOSING_LINES } from '@/content/questions'
 import { scoreAnswer } from '@/lib/scoring'
 import { SplitBar } from '@/components/game/SplitBar'
 import { t } from '@/lib/i18n'
@@ -130,41 +131,51 @@ describe('the projector', () => {
     expect(screen.queryByText('หมูกรอบ')).toBeNull()
   })
 
-  // The number COUNTS UP over ~2s now (spec §9) — it is the one number the whole workshop walks
-  // toward, and a number already sitting there when the screen appears has been read and dismissed
-  // before the host has drawn breath. The timeout is raised past that climb deliberately: at
-  // findByText's 1s default this would go red for the feature working.
-  /* The tally is the room's MISS RATE now, not a raw count — the same green/pink bar the reveal
-     has shown nine times, over the whole game. 6 wrong of 40 answered is 15%.
-     The proportion comes from answers actually given (`roomAccuracy`), never from
-     playerCount x QUESTION_COUNT: someone who ran out of time is not someone who was wrong, and
-     the fixture's 40 deliberately differs from 10 x 9 so that substitution cannot pass. */
-  it('shows the room miss rate as a percentage, over answers actually given', async () => {
+  /* THE CLOSING SCREEN IS THE TAKEAWAY NOW (design H3), not a report. It used to open on the room's
+     miss rate counting up to 22vh over a green/pink bar; the team replaced all of it with the one
+     question they want a hundred people repeating on Tuesday. The negatives are half the test: a
+     future "let's put the bar back" has to argue with a red run rather than land quietly. */
+  it('closes on the question, not on the room’s score', async () => {
     mockFetch({ ...base, phase: 'tally', questionId: null })
     render(<TV />)
-    await screen.findByText(/จากทั้งหมด 40 คำตอบ/)
-
-    /* The number CLIMBS to its value, and `useCountUp` drives that with requestAnimationFrame —
-       which vitest's fake timers do NOT advance unless rAF is explicitly faked. A fixed 4s wait
-       raced machine load instead and lost about one full-suite run in five.
-       `waitFor` polls until the climb lands, so it costs nothing when the machine is idle and
-       still passes when it is busy — and it fails for real if the number never arrives. */
-    await waitFor(() => expect(screen.getByText('15%')).toBeInTheDocument(), { timeout: 15_000 })
+    expect(await screen.findByText('“รู้ได้ยังไง?”')).toBeInTheDocument()
+    expect(screen.getByText('ก่อนเชื่อ AI — ถามคำเดียว')).toBeInTheDocument()
+    expect(screen.queryByText(/ของคำตอบทั้งห้อง คือคำตอบที่ผิด/)).toBeNull()
+    expect(screen.queryByText(/ถ้านี่เป็นงานจริง/)).toBeNull()
   })
 
-  /* The closing sentence now RESTATES THE BAR instead of carrying a second statistic. It used to
-     count `wrongPass` across the room — so the last screen of the day held a rate above and an
-     unrelated count below, and at a hundred players that count ran into the hundreds and meant
-     nothing to anyone. 6 wrong of 40 is 15%, which is one in seven.
-
-     Asserted through the ratio rather than the literal string, so the sentence stays tied to the
-     number the bar is drawing: change the fixture and this fails until they agree again. */
-  it('closes on the bar’s own number, said at the scale of one desk', async () => {
+  /* THE TWO COUNTS ARE DERIVED FROM THE CONTENT, and this is the test that keeps them honest.
+     `content/questions.ts` carries a live decision to add a third true case; the day it lands, the
+     sentence on the projector has to change with it. Computing the expectation the same way the
+     page does would be circular, so the reject count is spelled out from the verdicts themselves —
+     the one place both sides have to agree is the content file. */
+  it('states how many times the duck could not answer it, counted from the cases', async () => {
     mockFetch({ ...base, phase: 'tally', questionId: null })
     render(<TV />)
-    const oneIn = Math.round(100 / 15)
-    expect(await screen.findByText(new RegExp(`ถ้านี่เป็นงานจริง.*ทุก ${oneIn} ชิ้น`))).toBeInTheDocument()
-    expect(screen.queryByText(/ชิ้นที่ถูกส่งออกไปในชื่อของเรา/)).toBeNull()
+    const unbacked = QUESTIONS_IN_ORDER.filter((q) => q.verdict === 'reject').length
+    const line = await screen.findByText(/วันนี้เป็ดให้การ/)
+    expect(line).toHaveTextContent(
+      `วันนี้เป็ดให้การ ${QUESTIONS_IN_ORDER.length} ครั้ง — มี ${unbacked} ครั้งที่มันตอบคำนี้ไม่ได้`)
+  })
+
+  /* The room's own number survives as ONE LINE of evidence under the question — demoted, not
+     deleted. It is still computed over answers actually GIVEN (`roomAccuracy`), never from
+     playerCount x QUESTION_COUNT: someone who ran out of time is not someone who was wrong, and
+     the fixture's 40 deliberately differs from 10 x 9 so that substitution cannot pass. 6 of 40
+     is 15%. */
+  it('keeps the room’s miss rate as one line, over answers actually given', async () => {
+    mockFetch({ ...base, phase: 'tally', questionId: null })
+    render(<TV />)
+    expect(await screen.findByText(/และห้องนี้เชื่อมันไป/))
+      .toHaveTextContent('และห้องนี้เชื่อมันไป 15% ของคำตอบทั้งหมด 40 คำตอบ')
+  })
+
+  /* The team's closing remark, all three lines, in the order they wrote them — it was exported
+     from content/questions.ts with nothing rendering it for two rounds. */
+  it('ends on the team’s own three closing lines', async () => {
+    mockFetch({ ...base, phase: 'tally', questionId: null })
+    render(<TV />)
+    for (const line of CLOSING_LINES) expect(await screen.findByText(line)).toBeInTheDocument()
   })
 
   it('shows the podium at the end', async () => {

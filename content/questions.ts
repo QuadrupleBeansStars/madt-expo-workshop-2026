@@ -12,24 +12,27 @@ import type { Question } from '@/lib/types'
  *  1. `verdict` is the CORRECT ACTION, not "is the duck right". They happen to coincide, but the
  *     player's buttons say ผ่าน/ตีกลับ, and the copy everywhere else must match the buttons.
  *
- *  2. `order` IS the team's own numbering, and that is a deliberate decision with a known cost.
- *     Verdicts run `pass reject reject reject reject reject reject pass reject`, so a player
- *     tapping ตีกลับ at everything scores 1600 of 2400 with seven correct, holding the ×3
- *     multiplier from case 4 to case 7. An earlier pass moved the two จริง cases to orders 4 and 7,
- *     which drops that to 1200 — but case 1 is the room's warm-up, a joke about a comedy trio
- *     everyone in Thailand knows, and opening on it is worth more than the 400 points of guessing
- *     resistance. The team made that call explicitly. `questions.test.ts` asserts the sequence
- *     position by position, so a well-meaning re-sort cannot happen silently.
+ *  2. `order` IS the team's own numbering, and the arrangement is load-bearing. Verdicts run
+ *     `pass reject reject reject pass reject reject reject pass reject`, which puts the three จริง
+ *     cases at 1, 5 and 9 and breaks the rejects into runs of 3, 3 and 1. A player tapping ตีกลับ
+ *     at everything is right seven times out of ten and still scores 1000 of 1850 — 54%, down from
+ *     the 70% the two-จริง key paid. `questions.test.ts` asserts the sequence position by position,
+ *     so a well-meaning re-sort cannot happen silently.
  *
- *     THE REAL FIX IS A THIRD จริง CASE, not a re-sort. With `p` จริง answers the rejects fall
- *     into `p + 1` runs, so keeping every run to two needs `9 − p ≤ 2(p + 1)`, i.e. `p ≥ 3`. At
- *     `p = 2` a run of three is unavoidable wherever the two sit. With three จริง cases at orders
- *     1, 4 and 7 an always-reject player scores 900 and never reaches ×3 at all — the warm-up
- *     keeps its place AND the mechanic works. See the always-reject test in `lib/scoring.test.ts`.
- *     Until then, fix the content, never the test.
+ *     A RUN OF THREE IS THE FLOOR HERE, and no amount of re-sorting removes it. With `p` จริง
+ *     answers among `n` cases the rejects fall into at most `p + 1` runs; at n=10, p=3 that allows
+ *     runs of two — but only if the first จริง case sits at order 3 or later. Case 1 is the room's
+ *     warm-up, a joke about a comedy trio everyone in Thailand knows, and the team keeps it there,
+ *     which forces one extra reject into the first stretch. Opening on the warm-up is worth the
+ *     one question of guessing resistance; the team made that call explicitly, twice. If you want
+ *     runs of two you are proposing to open the game on a lie — say so out loud before you do it.
+ *
+ *     A FOURTH จริง CASE WOULD ALSO NEED `MAX_SPEED_BONUS` TO DROP AGAIN. The speed bonus is
+ *     capped so a perfect speed run can never out-score one extra correct answer — see the
+ *     invariant in `lib/scoring.ts`, which is why the tenth case took it from 10 to 9.
  *
  *
- * Case 09 is a REAL misattribution. Do not replace it with an invented journal or case number:
+ * Case 10 is a REAL misattribution. Do not replace it with an invented journal or case number:
  * the repo's content rule forbids fabricating evidence that imitates a real outlet, and it is
  * written as "there is no evidence Einstein said this", never as a citation proving it.
  */
@@ -46,7 +49,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'pa-da-confidence',
-    order: 5,
+    order: 6,
     ask: 'ป้าดาพูดว่า "ความจริงมีหนึ่งเดียว" เราควรเชื่อป้าดาเลยไหมครับ?',
     duckSays: 'ควรครับ เพราะป้าดาพูดด้วยความมั่นใจมาก',
     highlight: 'เพราะป้าดาพูดด้วยความมั่นใจมาก',
@@ -56,7 +59,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'mala-sweat',
-    order: 7,
+    order: 8,
     ask: 'กินหมาล่าแล้วเหงื่อออก แปลว่าอะไรครับ?',
     duckSays: 'แปลว่าไขมันกำลังละลายครับ',
     highlight: 'ไขมันกำลังละลาย',
@@ -99,18 +102,54 @@ export const QUESTIONS: Question[] = [
 
   {
     id: 'octopus-hearts',
-    order: 8,
+    order: 9,
     ask: 'ปลาหมึกมีหัวใจ 3 ดวงจริงไหมครับ?',
     duckSays: 'จริงครับ ปลาหมึกมีหัวใจ 3 ดวง',
     highlight: 'ปลาหมึกมีหัวใจ 3 ดวง',
     verdict: 'pass',
-    truth: 'จริง สองดวงสูบเลือดไปที่เหงือก อีกดวงเลี้ยงทั้งตัว ข้อที่ฟังดูเหลือเชื่อที่สุด กลับตรวจได้ง่ายที่สุด',
+    truth: 'จริง เป็ดพูดถูก และสิ่งที่ทำให้คนตีกลับข้อนี้คือมันฟังดูแปลก ไม่ใช่เพราะมันผิด — ระแวงเกินไปก็พลาดของจริง',
     tell: 'อย่าปฏิเสธ Insight เพราะ "ฟังดูไม่น่าเป็นไปได้" — ต้องตรวจ Data ก่อน',
     needsCheck: 'เตรียมแหล่งอ้างอิงเรื่องหัวใจ 3 ดวงของปลาหมึกไว้ให้โฮสต์ เผื่อมีคนแย้งกลางห้อง',
   },
+
+  /*
+   * THE THIRD จริง CASE, and it is a mechanic fix as much as a content one — see the header note
+   * on why `p >= 3` is what keeps every ตีกลับ run down to three. It plays at order 5, in the
+   * middle of what used to be a six-case run of ตีกลับ.
+   *
+   * THE ONLY CASE WHERE THE DUCK SHOWS ITS WORKING. The question is a plain question, exactly
+   * like the other nine — nobody asks the duck to go and look. It volunteers a source anyway, and
+   * that is the whole reason this one passes: not that a link makes a claim true, which is the
+   * exact misreading `tell` exists to block, but that it came back with somewhere to check.
+   *
+   * The ask keeps the room's own spoken register (`มั้ยครับ`) rather than the flatter `ไหมครับ`
+   * the other cases use — the team wrote this one word for word.
+   *
+   * THE URL IS A PLACEHOLDER AND MUST STAY OBVIOUSLY ONE. `example.org` is the domain reserved
+   * for documentation precisely so nothing points at a real outlet. DO NOT swap in an invented
+   * domain that reads like a real journal, ministry or news site — that is fabricating evidence,
+   * it is the rule that also governs case 10's Einstein quote, and a room photographing the screen
+   * would be spreading a citation that does not exist. Replacing it with a REAL link the team has
+   * checked is fine and better; inventing a realistic-looking one is not.
+   *
+   * IT SETS UP CASE 10 AND MUST STAY BEFORE IT. Here a citation is what makes an answer checkable;
+   * at case 10 a real name is attached to a quote it never said. Five teaches the tool, ten shows
+   * the tool being defeated. Reordering these two silently removes the arc.
+   */
+  {
+    id: 'coffee-sleep-source',
+    order: 5,
+    ask: 'กินกาแฟตอนบ่ายสามมีผลกับการนอนมั้ยครับ?',
+    duckSays: 'มีครับ คาเฟอีนลดลงครึ่งหนึ่งใน 5-6 ชม. ตอนเข้านอนจึงยังเหลือ · ที่มา example.org/caffeine',
+    highlight: 'ที่มา example.org/caffeine',
+    verdict: 'pass',
+    truth: 'ผ่านเพราะเป็ดบอกที่มาไว้ให้ตามต่อได้ ไม่ใช่เพราะมีลิงก์แล้วแปลว่าจริง',
+    tell: 'มีลิงก์ ไม่ได้แปลว่าจริง — ต้องกดเข้าไปอ่านว่ามันพูดตรงกับที่ AI สรุปไหม',
+    needsCheck: 'ลิงก์บนจอเป็นลิงก์ตัวอย่าง ไม่ใช่แหล่งจริง ถ้ามีคนถามให้ตอบตรง ๆ ว่าใส่ไว้ให้เห็นรูปแบบ · ถ้าอยากให้ห้องกดจริง เปลี่ยนเป็นลิงก์ที่ทีมตรวจแล้วก่อนงาน',
+  },
   {
     id: 'million-views',
-    order: 6,
+    order: 7,
     ask: 'คลิปนี้มี 1 ล้านวิว แปลว่าคนดูชอบไหมครับ?',
     duckSays: 'ชอบครับ เพราะถ้าไม่ชอบคงไม่ดู',
     highlight: 'เพราะถ้าไม่ชอบคงไม่ดู',
@@ -120,7 +159,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'einstein-fish',
-    order: 9,
+    order: 10,
     ask: '"ถ้าตัดสินปลาจากการปีนต้นไม้ ปลาจะคิดว่าตัวเองโง่" เป็นของ Einstein ไหมครับ?',
     duckSays: 'ใช่ครับ Einstein เป็นคนพูด',
     highlight: 'Einstein เป็นคนพูด',

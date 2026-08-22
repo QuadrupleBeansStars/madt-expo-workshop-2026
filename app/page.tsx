@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PublicGameState, Verdict } from '@/lib/types'
 import { CodenameScreen } from '@/components/CodenameScreen'
+import { avatarFor } from '@/lib/avatars'
 import { t } from '@/lib/i18n'
 
 const RUN_KEY = 'aidet.run'   // identity ONLY: { playerId, codename }
@@ -191,7 +192,7 @@ export default function PlayerPage() {
  * `app/page.test.tsx` asserts this equals `QUESTION_COUNT` — a test file runs in node and can
  * import whatever it likes, so the copy cannot drift without turning something red.
  */
-export const PHONE_CASE_COUNT = 9
+export const PHONE_CASE_COUNT = 10
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
 
@@ -228,10 +229,27 @@ function PhoneBody({
     <div className="det-ph">
       {/* The tab carries the codename on every in-game screen — the folder the player has been
           filed under. Thai face: the pixel and terminal faces have no Thai glyphs and would drop
-          every vowel mark in the name they just chose. */}
+          every vowel mark in the name they just chose.
+
+          THE FACE IN FRONT OF THE NAME IS THE ONE THE PROJECTOR DRAWS. `Standings` and `Podium`
+          have always put the avatar ahead of the codename; the phone did not, so a player hunting
+          for themselves on the leaderboard was matching on text while the room was reading faces.
+          Now the glyph in their hand is the glyph on the wall.
+
+          IT REPLACES THE 📁 RATHER THAN JOINING IT. The tab already IS the folder — that shape,
+          that card stock, that tan — so the icon was saying what the object says. And `.det-ftab`
+          is `nowrap` under a 70cqw ceiling: a second emoji ahead of `นักสืบราเมงหมูกรอบ` pushes
+          the name itself into the ellipsis, which costs the one thing the tab exists for.
+
+          SERVER VALUE FIRST, `avatarFor` AS THE FALLBACK. They are the same function over the same
+          resolved codename and cannot disagree — but this tab renders from the localStorage
+          identity the instant the phone mounts, before any state has arrived, and again through
+          every poll that fails at a venue. A tab that is briefly faceless on every reload is worse
+          than one derived twice. Kept as its OWN element, never concatenated into the name: the
+          avatar is decoration, the codename is the identity, and only one of them is read out. */}
       <span className="det-ftab">
-        <span aria-hidden="true">📁</span>
-        <span>{codename}</span>
+        <span aria-hidden="true">{state?.you?.avatar ?? avatarFor(codename)}</span>
+        <span className="det-ftab-name">{codename}</span>
       </span>
 
       {phase === 'lobby' && <WaitingSheet />}
@@ -540,8 +558,10 @@ function ResultSheet({ you, playerCount }: { you?: PublicGameState['you']; playe
 
   return (
     <div className="det-fbody det-fbody-mid">
-      {/* English — this is the pixel face and Press Start 2P has no Thai glyphs. */}
-      <div className="det-fhd">CASE CLOSED</div>
+      {/* The same stamp the projector presses onto the podium, in the same red, in the same box —
+          see `.det-fstamp` in app/globals.css. English because this is the pixel face and Press
+          Start 2P has no Thai glyphs. */}
+      <div className="det-fstamp">CASE CLOSED</div>
       <div className="det-fscore">{you.score.toLocaleString('en-US')}</div>
       <p className="det-fq" style={{ fontSize: '3.2cqh' }}>อันดับ {you.rank} จาก {playerCount}</p>
 
