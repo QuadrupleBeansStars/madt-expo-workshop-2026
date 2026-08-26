@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { NAME_MAX } from '@/lib/names'
 import { getRoomStore } from '@/lib/room-store'
 
 export async function POST(req: Request) {
@@ -22,6 +23,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'playerId must be a string' }, { status: 400 })
   }
 
-  const player = getRoomStore().join(trimmed.slice(0, 40), Date.now(), playerId)
+  const player = getRoomStore().join(trimmed.slice(0, NAME_MAX), Date.now(), playerId)
   return NextResponse.json({ player })
 }

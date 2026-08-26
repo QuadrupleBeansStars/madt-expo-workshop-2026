@@ -50,7 +50,15 @@ export const STANDINGS_PLACES = 10
  *
  * The authoritative room size is `playerCount`, which is never capped.
  */
-export const LOBBY_CARDS = 120
+/*
+ * How many arrivals /api/stats publishes for the lobby board.
+ *
+ * It is a WIRE cap, not a display one: the board itself now pages (app/tv/page.tsx, BOARD_PAGE), so
+ * everyone in the room reaches the wall in turn — but only out of the names the route actually
+ * sent. At 120 a room of 200 had eighty people who could never appear on any page. Two hundred
+ * twenty-character names is a few kilobytes to the one screen that asks for them.
+ */
+export const LOBBY_CARDS = 400
 
 export const READING_MS = 10_000
 

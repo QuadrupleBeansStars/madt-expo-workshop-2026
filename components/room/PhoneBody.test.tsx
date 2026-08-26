@@ -99,7 +99,7 @@ describe('reveal', () => {
 })
 
 describe('done', () => {
-  it('renders the persona card with English label, Thai coffee, strengths and partner', () => {
+  it('renders the persona card with the mascot, the archetype, strengths and partner', () => {
     renderBody({
       ...baseFrame,
       phase: 'done',
@@ -107,13 +107,17 @@ describe('done', () => {
     })
     const card = screen.getByTestId('persona-card')
     expect(card).toHaveAttribute('data-persona', 'analyst')
-    expect(screen.getByText('THE ANALYST')).toBeInTheDocument()
-    expect(screen.getByText(/โคลด์บริว/)).toBeInTheDocument()
+    // The mascot's name and what that character IS — not the framework label, and not the coffee.
+    // Both are still authored (content/persona.ts) as the host's lines.
+    expect(screen.getByText(PERSONAS.analyst.mascot.name)).toBeInTheDocument()
+    expect(screen.getByText(PERSONAS.analyst.archetype)).toBeInTheDocument()
+    expect(screen.queryByText('THE ANALYST')).toBeNull()
+    expect(screen.queryByText(/โคลด์บริว/)).toBeNull()
     expect(screen.getByText(PERSONAS.analyst.description)).toBeInTheDocument()
     expect(screen.getByText(PERSONAS.analyst.strength)).toBeInTheDocument()
     expect(screen.getByText(PERSONAS.analyst.caution)).toBeInTheDocument()
-    // Partner is the diagonal: THE PIONEER.
-    expect(screen.getByText(/THE PIONEER/)).toBeInTheDocument()
+    // Partner is the diagonal: BIGLOK, the PIONEER quadrant.
+    expect(screen.getByTestId('partner')).toHaveTextContent(PERSONAS.pioneer.mascot.name)
     // Axis line in English framework language.
     expect(screen.getByText(/DATA/)).toBeInTheDocument()
     expect(screen.getByText(/WAIT & SEE/)).toBeInTheDocument()

@@ -38,135 +38,126 @@ import type { Question } from '@/lib/types'
  */
 export const QUESTIONS: Question[] = [
   {
-    id: 'hyrox-itch',
-    order: 4,
-    ask: 'แบกกระสอบ HYROX แล้วคันหลัง แปลว่าอะไรครับ?',
-    duckSays: 'กล้ามหลังกำลังโตแบบก้าวกระโดดครับ',
-    highlight: 'กล้ามหลังกำลังโต',
-    verdict: 'reject',
-    truth: 'คันหลังเกิดได้จากเหงื่อ ผ้าเสียดสี หรือฝุ่น เป็ดหยิบคำอธิบายที่ฟังดูดีที่สุดมาอันเดียว แล้วเรียกมันว่าสาเหตุ',
-    tell: 'ยอดขายตกไม่ได้แปลว่าสาเหตุคือ Marketing ต้องหาว่าอะไรเป็น Driver จริง',
-  },
-  {
-    id: 'pa-da-confidence',
-    order: 6,
-    ask: 'ป้าดาพูดว่า "ความจริงมีหนึ่งเดียว" เราควรเชื่อป้าดาเลยไหมครับ?',
-    duckSays: 'ควรครับ เพราะป้าดาพูดด้วยความมั่นใจมาก',
-    highlight: 'เพราะป้าดาพูดด้วยความมั่นใจมาก',
-    verdict: 'reject',
-    truth: 'เหตุผลเดียวที่เป็ดมีคือ "ป้าดามั่นใจ" ซึ่งไม่ใช่หลักฐาน ความมั่นใจกับความถูกต้องเป็นคนละเรื่อง',
-    tell: 'ผู้บริหารพูด ≠ Data จริง ต้องกลับไปดู KPI ก่อนตัดสินใจ',
-  },
-  {
-    id: 'mala-sweat',
-    order: 8,
-    ask: 'กินหมาล่าแล้วเหงื่อออก แปลว่าอะไรครับ?',
-    duckSays: 'แปลว่าไขมันกำลังละลายครับ',
-    highlight: 'ไขมันกำลังละลาย',
-    verdict: 'reject',
-    truth: 'ความเผ็ดไปกระตุ้นตัวรับความร้อน ร่างกายจึงระบายเหงื่อออกมา ไม่เกี่ยวกับไขมันเลย',
-    tell: '"ยอดขายเพิ่มหลังยิงโฆษณา" ยังไม่พิสูจน์ว่าโฆษณาเป็นสาเหตุ',
-  },
-
-  {
     id: 'mum-teng-nong',
     order: 1,
-    ask: 'ถ้าเท่งเจอหม่ำ แล้วหม่ำเจอโหน่ง เท่งจะเจอโหน่งไหมครับ?',
-    duckSays: 'เจอครับ เพราะเท่งเจอหม่ำ และหม่ำเจอโหน่งครับ',
-    highlight: 'เพราะเท่งเจอหม่ำ และหม่ำเจอโหน่ง',
+    ask: 'ถ้าเท่งกำลังยืนคุยกับหม่ำ และหม่ำกำลังยืนคุยกับโหน่ง เท่งจะเจอโหน่งไหมครับ?',
+    duckSays: 'เจอครับ เพราะทั้งสามคนอยู่ในวงสนทนาเดียวกัน',
+    highlight: 'อยู่ในวงสนทนาเดียวกัน',
     verdict: 'pass',
-    truth: 'เป็ดต่อข้อมูลสองชิ้นที่โจทย์ให้มา แล้วหยุดแค่นั้น ไม่ได้เติมอะไรที่ไม่มีใครบอกเข้าไปเอง',
-    tell: 'AI เชื่อมข้อมูลหลายจุดได้ แต่ต้องเช็กว่าข้อสรุปตามจากข้อมูลจริงหรือไม่',
-    needsCheck: 'ข้อเปิด เป็นกึ่งมุก — หม่ำ เท่ง โหน่ง เป็นคณะเดียวกัน ห้องจะอ่านออกทันทีว่าเจอกันแน่ ไม่ต้องอธิบายอะไรเพิ่ม ถ้ามีคนแย้งเรื่องตรรกะ ใช้เป็นแต้มต่อได้เลยว่าเขากำลังทำสิ่งที่เกมนี้สอนพอดี แต่คำตอบยังเป็น "จริง" ตามเดิม',
+    truth: 'ผ่าน เพราะข้อมูลบอกชัดว่าทั้งสามอยู่ด้วยกัน เป็ดไม่ได้เติมเรื่องใหม่เข้าไป',
+    tell: 'ข้อสรุปที่ดีต้องตามจากข้อมูลที่โจทย์ให้มาจริง ๆ',
   },
   {
     id: 'ultra-smooth',
     order: 2,
-    ask: 'ร้านเจลาโต้แห่งหนึ่งเขียนว่า "Ultra Smooth" กินยังไงถึงจะถูกครับ?',
+    ask: 'ร้านเจลาโต้เขียนว่า “Ultra Smooth” เรารู้ได้ไหมครับว่ากินยังไงถึงจะถูก?',
     duckSays: 'ต้องกลืนเลยครับ เพราะเนื้อเนียนจนไม่ต้องเคี้ยว',
     highlight: 'ต้องกลืนเลยครับ',
     verdict: 'reject',
-    truth: 'ร้านเขียนแค่ว่าเนื้อเนียน ไม่ได้บอกวิธีกินสักคำ "ต้องกลืนเลย" เป็ดคิดขึ้นมาเอง',
-    tell: 'อย่าให้ AI เติมรายละเอียดจากคำสั้น ๆ — "ลูกค้าพอใจ" ไม่ได้แปลว่า "ลูกค้าจะซื้อซ้ำ"',
+    truth: 'ตีกลับ เพราะคำว่าเนื้อเนียนบอกลักษณะเจลาโต้ ไม่ได้บอกวิธีกิน',
+    tell: 'อย่าให้ AI เติมรายละเอียดที่ข้อมูลไม่ได้บอก',
   },
   {
     id: 'five-more-minutes',
     order: 3,
-    ask: 'เพื่อนบอกว่า "อีก 5 นาทีถึงบ้าน" ตอนนี้เพื่อนอยู่ไหนครับ?',
+    ask: 'เพื่อนบอกว่า “อีก 5 นาทีถึงบ้าน” เรารู้ได้ไหมครับว่าตอนนี้เพื่อนอยู่ตรงไหน?',
     duckSays: 'อยู่หน้าบ้านครับ',
-    highlight: 'หน้าบ้าน',
+    highlight: 'อยู่หน้าบ้าน',
     verdict: 'reject',
-    truth: 'ประโยคนั้นบอกเวลา ไม่ได้บอกตำแหน่ง เพื่อนอาจติดไฟแดงอยู่อีกสามกิโลก็ได้',
-    tell: 'ถ้าข้อมูลไม่พอ อย่าเติมสิ่งที่ไม่รู้ — ควรบอกว่า "ยังระบุไม่ได้จากข้อมูลนี้"',
+    truth: 'ตีกลับ เพราะประโยคนี้บอกเวลาโดยประมาณ ไม่ได้บอกตำแหน่งปัจจุบัน',
+    tell: 'ข้อมูลไม่พอ ต้องกล้าตอบว่า “ยังสรุปไม่ได้”',
+  },
+  {
+    id: 'hyrox-itch',
+    order: 4,
+    ask: 'แบกกระสอบ HYROX แล้วคันหลัง แปลว่ากล้ามหลังกำลังโตไหมครับ?',
+    duckSays: 'ใช่ครับ กล้ามหลังกำลังโตแบบก้าวกระโดด',
+    highlight: 'กล้ามหลังกำลังโต',
+    verdict: 'reject',
+    truth: 'ตีกลับ เพราะอาการคันไม่ใช่ตัวชี้วัดว่ากล้ามเนื้อกำลังโต เป็ดสรุปเหตุผลเกินข้อมูล',
+    tell: 'เห็นอาการหนึ่งอย่าง ไม่ได้แปลว่ารู้สาเหตุแน่ชัด',
   },
 
+  /*
+   * THE THIRD จริง CASE, and it is a mechanic fix as much as a content one — see the header note on
+   * why `p >= 3` is what keeps every ตีกลับ run down to three. It plays at order 5, in the middle
+   * of what used to be a six-case run of ตีกลับ.
+   *
+   * IT PASSES BECAUSE THE DUCK HEDGES, NOT BECAUSE IT CITED ANYTHING. An earlier draft had it
+   * volunteer a source — `example.org/caffeine`, the domain reserved for documentation, which
+   * resolves to nothing — and asked the room to let it through BECAUSE there was a link. That
+   * taught the opposite of the intended lesson twice over: it rewarded a fabricated citation, and
+   * its own `tell` told players to go and click a link that could not be clicked. A URL must never
+   * be what makes an answer passable here. What earns the pass now is the SHAPE of the claim:
+   * "อาจมีผล", and a stated dependency on when you sleep and on the person.
+   */
+  {
+    id: 'coffee-sleep-source',
+    order: 5,
+    ask: 'กินกาแฟตอนบ่ายสามมีผลกับการนอนไหมครับ?',
+    duckSays: 'อาจมีผลครับ เพราะคาเฟอีนอาจยังอยู่ในร่างกายตอนเข้านอน ขึ้นกับเวลานอนและแต่ละคน',
+    highlight: 'ขึ้นกับเวลานอนและแต่ละคน',
+    verdict: 'pass',
+    truth: 'ผ่าน เพราะเป็ดตอบอย่างมีเงื่อนไข ไม่ฟันธงเกินกว่าที่ข้อมูลทั่วไปบอกได้',
+    tell: 'คำตอบที่น่าเชื่อถือจะบอกขอบเขตและสิ่งที่ยังต้องรู้เพิ่ม',
+    needsCheck: 'โฮสต์ควรเตรียมแหล่งข้อมูลสุขภาพที่ตรวจแล้ว หากต้องการขยายความเรื่องคาเฟอีน',
+  },
+  {
+    id: 'pa-da-confidence',
+    order: 6,
+    /* Nine characters shorter than the line the team wrote — "ว่าเรื่องนี้จริง" became "ว่าจริง".
+       Theirs was 83 and `ask` is capped at 80 (lib/types.ts), a projector budget rather than a
+       style rule: an over-long ask does not wrap gracefully on 1366×768, it pushes the host's
+       own controls off the bottom of the screen. The question is otherwise untouched. */
+    ask: 'ป้าดาพูดว่า “ความจริงมีหนึ่งเดียว” เราควรเชื่อว่าจริงเพราะป้าดาพูดไหมครับ?',
+    duckSays: 'ควรครับ เพราะป้าดาพูดด้วยความมั่นใจมาก',
+    highlight: 'พูดด้วยความมั่นใจมาก',
+    verdict: 'reject',
+    truth: 'ตีกลับ เพราะความมั่นใจของคนพูดไม่ใช่หลักฐานว่าสิ่งที่พูดถูก',
+    tell: 'แยกให้ออกระหว่างความมั่นใจกับหลักฐาน',
+  },
+  {
+    id: 'million-views',
+    order: 7,
+    ask: 'คลิปนี้มี 1 ล้านวิว แปลว่าคนดูชอบคลิปนี้ไหมครับ?',
+    duckSays: 'ชอบครับ เพราะถ้าไม่ชอบคงไม่ดู',
+    highlight: 'ถ้าไม่ชอบคงไม่ดู',
+    verdict: 'reject',
+    truth: 'ตีกลับ เพราะยอดวิวบอกแค่ว่ามีคนเปิดดู ไม่ได้บอกว่าชอบ ดูจบ หรืออยากกลับมาดู',
+    tell: 'KPI หนึ่งตัวไม่ควรถูกใช้สรุปพฤติกรรมทั้งหมด',
+  },
+  {
+    id: 'mala-sweat',
+    order: 8,
+    ask: 'กินหมาล่าแล้วเหงื่อออก แปลว่าไขมันกำลังละลายไหมครับ?',
+    duckSays: 'ใช่ครับ เหงื่อออกแปลว่าไขมันกำลังละลาย',
+    highlight: 'ไขมันกำลังละลาย',
+    verdict: 'reject',
+    truth: 'ตีกลับ เพราะเหงื่อออกเป็นการตอบสนองต่อความร้อน ไม่ได้ยืนยันว่าไขมันกำลังลด',
+    tell: 'เหตุการณ์ที่เกิดพร้อมกัน ไม่ได้แปลว่าอย่างหนึ่งเป็นสาเหตุของอีกอย่าง',
+  },
   {
     id: 'octopus-hearts',
     order: 9,
     ask: 'ปลาหมึกมีหัวใจ 3 ดวงจริงไหมครับ?',
     duckSays: 'จริงครับ ปลาหมึกมีหัวใจ 3 ดวง',
-    highlight: 'ปลาหมึกมีหัวใจ 3 ดวง',
+    highlight: 'หัวใจ 3 ดวง',
     verdict: 'pass',
-    truth: 'จริง เป็ดพูดถูก และสิ่งที่ทำให้คนตีกลับข้อนี้คือมันฟังดูแปลก ไม่ใช่เพราะมันผิด — ระแวงเกินไปก็พลาดของจริง',
-    tell: 'อย่าปฏิเสธ Insight เพราะ "ฟังดูไม่น่าเป็นไปได้" — ต้องตรวจ Data ก่อน',
-    needsCheck: 'เตรียมแหล่งอ้างอิงเรื่องหัวใจ 3 ดวงของปลาหมึกไว้ให้โฮสต์ เผื่อมีคนแย้งกลางห้อง',
-  },
-
-  /*
-   * THE THIRD จริง CASE, and it is a mechanic fix as much as a content one — see the header note
-   * on why `p >= 3` is what keeps every ตีกลับ run down to three. It plays at order 5, in the
-   * middle of what used to be a six-case run of ตีกลับ.
-   *
-   * THE ONLY CASE WHERE THE DUCK SHOWS ITS WORKING. The question is a plain question, exactly
-   * like the other nine — nobody asks the duck to go and look. It volunteers a source anyway, and
-   * that is the whole reason this one passes: not that a link makes a claim true, which is the
-   * exact misreading `tell` exists to block, but that it came back with somewhere to check.
-   *
-   * The ask keeps the room's own spoken register (`มั้ยครับ`) rather than the flatter `ไหมครับ`
-   * the other cases use — the team wrote this one word for word.
-   *
-   * THE URL IS A PLACEHOLDER AND MUST STAY OBVIOUSLY ONE. `example.org` is the domain reserved
-   * for documentation precisely so nothing points at a real outlet. DO NOT swap in an invented
-   * domain that reads like a real journal, ministry or news site — that is fabricating evidence,
-   * it is the rule that also governs case 10's Einstein quote, and a room photographing the screen
-   * would be spreading a citation that does not exist. Replacing it with a REAL link the team has
-   * checked is fine and better; inventing a realistic-looking one is not.
-   *
-   * IT SETS UP CASE 10 AND MUST STAY BEFORE IT. Here a citation is what makes an answer checkable;
-   * at case 10 a real name is attached to a quote it never said. Five teaches the tool, ten shows
-   * the tool being defeated. Reordering these two silently removes the arc.
-   */
-  {
-    id: 'coffee-sleep-source',
-    order: 5,
-    ask: 'กินกาแฟตอนบ่ายสามมีผลกับการนอนมั้ยครับ?',
-    duckSays: 'มีครับ คาเฟอีนลดลงครึ่งหนึ่งใน 5-6 ชม. ตอนเข้านอนจึงยังเหลือ · ที่มา example.org/caffeine',
-    highlight: 'ที่มา example.org/caffeine',
-    verdict: 'pass',
-    truth: 'ผ่านเพราะเป็ดบอกที่มาไว้ให้ตามต่อได้ ไม่ใช่เพราะมีลิงก์แล้วแปลว่าจริง',
-    tell: 'มีลิงก์ ไม่ได้แปลว่าจริง — ต้องกดเข้าไปอ่านว่ามันพูดตรงกับที่ AI สรุปไหม',
-    needsCheck: 'ลิงก์บนจอเป็นลิงก์ตัวอย่าง ไม่ใช่แหล่งจริง ถ้ามีคนถามให้ตอบตรง ๆ ว่าใส่ไว้ให้เห็นรูปแบบ · ถ้าอยากให้ห้องกดจริง เปลี่ยนเป็นลิงก์ที่ทีมตรวจแล้วก่อนงาน',
-  },
-  {
-    id: 'million-views',
-    order: 7,
-    ask: 'คลิปนี้มี 1 ล้านวิว แปลว่าคนดูชอบไหมครับ?',
-    duckSays: 'ชอบครับ เพราะถ้าไม่ชอบคงไม่ดู',
-    highlight: 'เพราะถ้าไม่ชอบคงไม่ดู',
-    verdict: 'reject',
-    truth: 'วิวนับแค่ว่ามีคนกดดู ไม่ได้บอกว่าดูจบ ดูเพราะชอบ หรือเข้ามาด่า ตัวเลขจริง แต่ข้อสรุปไม่ใช่',
-    tell: 'ยอดวิว ≠ Engagement ≠ Conversion อย่าใช้ KPI ตัวเดียวสรุปพฤติกรรมลูกค้า',
+    truth: 'ผ่าน ข้อนี้ฟังดูแปลก แต่เป็นข้อมูลจริง ความแปลกไม่ใช่หลักฐานว่าผิด',
+    tell: 'อย่าปฏิเสธข้อมูลเพียงเพราะไม่ตรงกับสิ่งที่เราคุ้นเคย',
+    needsCheck: 'เตรียมแหล่งอ้างอิงที่ตรวจแล้วเรื่องกายวิภาคของปลาหมึก',
   },
   {
     id: 'einstein-fish',
     order: 10,
-    ask: '"ถ้าตัดสินปลาจากการปีนต้นไม้ ปลาจะคิดว่าตัวเองโง่" เป็นของ Einstein ไหมครับ?',
+    /* One word shorter than the line the team wrote — the leading "ถ้า" is gone. Theirs was 81
+       and `ask` is capped at 80 (lib/types.ts), which is a projector budget, not a style rule. */
+    ask: '“ตัดสินปลาจากการปีนต้นไม้ ปลาจะคิดว่าตัวเองโง่” เป็นคำพูดของ Einstein ไหมครับ?',
     duckSays: 'ใช่ครับ Einstein เป็นคนพูด',
     highlight: 'Einstein เป็นคนพูด',
     verdict: 'reject',
-    truth: 'ไม่มีหลักฐานว่า Einstein พูดประโยคนี้ เป็นคำคมที่ถูกเอาไปแปะชื่อเขาทีหลัง ชื่อมีจริง ความเชื่อมโยงไม่มี',
-    tell: 'Source จริง ≠ Claim จริง ต้องตรวจว่าแหล่งนั้นสนับสนุนข้อความที่ AI อ้างจริงไหม',
-    needsCheck: 'เตรียมลิงก์ที่อธิบายว่าคำคมนี้ไม่มีหลักฐานว่าเป็นของ Einstein เผื่อมีคนแย้งกลางห้อง',
+    truth: 'ตีกลับ เพราะไม่มีหลักฐานน่าเชื่อถือว่า Einstein เคยพูดประโยคนี้',
+    tell: 'ชื่อคนดังทำให้คำพูดน่าเชื่อขึ้นได้ แต่ไม่ได้ทำให้คำพูดนั้นจริง',
   },
 ]
 

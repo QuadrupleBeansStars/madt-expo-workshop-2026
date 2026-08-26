@@ -16,6 +16,7 @@ export const FIELD_TITLES: Record<AudienceField, LocalizedText> = {
   arrivalMode: { en: 'How will you travel to the expo?', th: 'คุณจะเดินทางมางานอย่างไร?' },
   wakeTime: { en: 'What time do you usually wake up on a weekday?', th: 'ปกติวันธรรมดาคุณตื่นกี่โมง?' },
   firstDrink: { en: 'What is the first thing you drink in the morning?', th: 'เช้ามาคุณดื่มอะไรเป็นอย่างแรก?' },
+  firstBuy: { en: 'What is the first drink you BUY each day?', th: 'เครื่องดื่มแก้วแรกที่คุณซื้อในแต่ละวันคืออะไร?' },
   buyTime: { en: 'When do you usually buy your first drink of the day?', th: 'ปกติคุณซื้อเครื่องดื่มแก้วแรกของวันตอนกี่โมง?' },
   queuePatience: { en: 'How long would you wait in line for drinks before giving up?', th: 'คุณจะยอมต่อคิวซื้อน้ำนานแค่ไหนก่อนจะล้มเลิก?' },
   spend: { en: 'How much do you usually spend on a drink?', th: 'ปกติคุณซื้อเครื่องดื่มในราคาเท่าไหร่?' },
@@ -34,6 +35,13 @@ export const BUCKET_LABELS: Record<AudienceField, Labels> = {
     '6to8': { en: '6–8', th: '6–8 โมง' },
     '8to10': { en: '8–10', th: '8–10 โมง' },
     after10: { en: 'After 10', th: 'หลัง 10 โมง' },
+  },
+  firstBuy: {
+    coffee: { en: 'Coffee', th: 'กาแฟ' },
+    tea: { en: 'Tea', th: 'ชา' },
+    juice: { en: 'Juice', th: 'น้ำผลไม้' },
+    milk: { en: 'Milk / milk drinks', th: 'นม หรือเครื่องดื่มนม' },
+    none: { en: 'I do not buy one', th: 'ไม่ได้ซื้อ' },
   },
   firstDrink: {
     coffee: { en: 'Coffee', th: 'กาแฟ' },

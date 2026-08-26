@@ -110,8 +110,17 @@ const TYPE = {
   control: '3.6vh',
   /** The floor. Nothing on `/tv` is smaller, lobby name cards excepted. */
   floor: '3.1vh',
-  /** The lobby's name cards — the one sanctioned exception, and still 50% above the 8H minimum. */
-  card: '3.0vh',
+  /*
+   * The lobby's name cards — the one sanctioned exception to the 3.1vh floor, and still above the
+   * 8H minimum of 2vh.
+   *
+   * IT CAME DOWN FROM 3.0 WHEN THE BOARD STOPPED TRUNCATING. A thirty-character name drawn at 3.0
+   * was most of a shelf on its own, and a board of them seated barely half a full room. These are
+   * proper nouns read at a glance by someone hunting for their own, not running text — the size
+   * that matters is the one that fits the room on the board, and `npm run check:projector` seats a
+   * hundred of them at this one.
+   */
+  card: '2.4vh',
 } as const
 
 /**
@@ -378,7 +387,9 @@ export default function TvPage() {
   }
 
   /*
-   * WHICH BEAT OF THE REVEAL THE ROOM IS ON, and it is advanced by the HOST, not by a clock.
+   * WHICH BEAT OF THE REVEAL THE ROOM IS ON, and it is advanced by the HOST, not by a clock. Every
+   * reveal but the LAST one has two beats — see `revealHasStandings` below for why case ten has
+   * only the verdict.
    *
    * It was a 5.5s timer inside a 12s reveal, and that lost the standings outright: a host reading
    * a fast room presses ถัดไป at four seconds, the phase advances to the next case, and the
@@ -397,6 +408,17 @@ export default function TvPage() {
   const [revealBeat, setRevealBeat] = useState<'verdict' | 'standings'>('verdict')
   const revealPhase = state?.phase === 'reveal'
   const revealQuestionId = state?.questionId ?? null
+  /*
+   * THE LAST CASE HAS NO STANDINGS BEAT. Every other reveal earns one — the room needs to see the
+   * board move before the next case. After the final case it is two screens from the podium
+   * (tally, then the winners), and a leaderboard shown here is the same board the room is about to
+   * be shown properly, one press later. It steals the ending's surprise and costs the host a press.
+   *
+   * Read off the last authored question, not off QUESTION_COUNT: the count and the order come from
+   * the same array, but an id compare cannot drift if a case is ever added or pulled.
+   */
+  const lastQuestionId = QUESTIONS_IN_ORDER.at(-1)?.id ?? null
+  const revealHasStandings = revealPhase && revealQuestionId !== lastQuestionId
 
   useEffect(() => {
     if (!revealPhase) setRevealBeat('verdict')
@@ -436,7 +458,7 @@ export default function TvPage() {
      * host action that could silently do nothing at all: `scripts/check-projector-fit.mjs` probes
      * exactly that, on a reveal, and caught it.
      */
-    if (revealPhase && revealBeat === 'verdict') {
+    if (revealHasStandings && revealBeat === 'verdict') {
       setRevealBeat('standings')
       /*
        * IT TAKES THE SAME GUARD A REAL ADVANCE TAKES, and that is not tidiness. Returning here
@@ -458,7 +480,7 @@ export default function TvPage() {
     } else {
       setNextPending(false)
     }
-  }, [nextPending, control, revealPhase, revealBeat])
+  }, [nextPending, control, revealHasStandings, revealBeat])
 
   const question = state?.questionId ? QUESTIONS_IN_ORDER.find((q) => q.id === state.questionId) ?? null : null
 
@@ -1244,10 +1266,19 @@ function freeGaps(blocks: [number, number][], width: number): [number, number][]
   return gaps
 }
 
-/** Rendered on the board, never stored: 40 characters is fine on the wire, and one 40-character
- *  codename rendered on the board eats a whole shelf. */
-const NAME_MAX = 14
-const truncate = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NAME_MAX)}…` : name)
+/*
+ * NO TRUNCATION ON THE BOARD.
+ *
+ * This used to clip at 14 characters and hang an ellipsis on the rest, which quietly broke the one
+ * thing the board is for: a player scans it for the name THEY typed, and `สมชายผู้พิชิตกาแฟเย็น…`
+ * is not that name. The host reads these out loud and teases the room with them, and a truncated
+ * one cannot be read out.
+ *
+ * The cap moved to the door instead — `lib/names.ts`, thirty characters, enforced in the join
+ * route for both workshops — so what the store holds is already short enough to draw whole. Card
+ * type came down with it (TYPE.card) to buy the shelves back the width a full-length name costs.
+ */
+const truncate = (name: string) => name
 
 /**
  * The name board.
@@ -1268,16 +1299,51 @@ const truncate = (name: string) => (name.length > NAME_MAX ? `${name.slice(0, NA
  * EVERY CARD RENDERS AT FULL OPACITY. The age-based and coverage-based fading of earlier drafts is
  * deleted outright: nothing is covered any more, so there is nothing for a fade to apologise for.
  */
+/**
+ * The board's paging.
+ *
+ * THE BOARD CANNOT SEAT A FULL ROOM AND NEVER COULD. Measured at the twenty-character cap
+ * (lib/names.ts), a 1366×768 projector seats roughly fifty cards at a size the back of a hall can
+ * read — so a room of a hundred had half its names on the wall and the other half nowhere, with
+ * nothing on screen admitting it. Which half you were in came down to when you joined. The board
+ * now shows a page at a time and everyone reaches the wall inside one cycle.
+ *
+ * A PAGE IS "WHATEVER FIT", NOT A FIXED COUNT. A fixed forty was safe against a room where every
+ * name is twenty characters and left a third of the board empty in the room you actually get,
+ * where most people type "ปุ๊ก". So the packer is handed a WINDOW of candidates, seats as many as
+ * the shelves hold, and the next page starts at the first one it could not seat. Long names make
+ * short pages, short names make full ones, and the board is packed either way.
+ *
+ * The window is a runaway guard, not a target: it only has to exceed what any projector could
+ * possibly seat.
+ *
+ * THE HOST TURNS IT, not a timer. A wall that swaps itself every five seconds takes the decision
+ * away from the person who can see the room: they cannot hold a page while they read a name out,
+ * and they cannot turn it early once everybody has found themselves. The drawer label is the
+ * control — there is no second button, because a lobby with two host controls in it is a lobby
+ * where one of them gets pressed by mistake.
+ */
+const BOARD_WINDOW = 160
+
 function NameBoard({
-  names, boardRef,
+  names, boardRef, onPage, onTurn,
 }: {
   names: { codename: string; avatar: string }[]
   boardRef: React.RefObject<HTMLDivElement | null>
+  /** Reports which page is on the board and whether there is more than one, so the lobby can
+   *  label it. There is no total: a page is as long as the shelves allowed, so the count is not
+   *  known until the board has been round once. */
+  onPage?: (page: number, paging: boolean) => void
+  /** Hands the lobby the page-turn action, so the drawer label can be the control. */
+  onTurn?: (turn: () => void) => void
 }) {
   const placedRef = useRef<Map<string, Placement>>(new Map())
   const cardRefs = useRef<Map<string, HTMLDivElement>>(new Map())
   const [, setTick] = useState(0)
   const [resizeKey, setResizeKey] = useState(0)
+  /** Where this page starts in join order, and which page number it is (for the label). */
+  const [cursor, setCursor] = useState(0)
+  const [page, setPage] = useState(0)
 
   // A resize invalidates every measurement at once — the board, the furniture and each card. There
   // is no partial repair; drop the lot and let the effect below pack again from scratch.
@@ -1292,7 +1358,65 @@ function NameBoard({
     return () => ro.disconnect()
   }, [boardRef])
 
-  const shown = useMemo(() => names.map((n) => ({ ...n, label: truncate(n.codename) })), [names])
+  /* A room that shrank under the cursor (a reset) goes back to the top rather than showing
+     nothing. */
+  const start = cursor < names.length ? cursor : 0
+  const shown = useMemo(
+    () => names
+      .slice(start, start + BOARD_WINDOW)
+      .map((n) => ({ ...n, label: truncate(n.codename) })),
+    [names, start],
+  )
+
+  /*
+   * WHERE THIS PAGE ENDS: the first card in the window the packer could NOT seat.
+   *
+   * Not "how many were seated". `packShelves` fills shelves in order but is free to skip a card
+   * too wide for the gap it is looking at and seat a later, narrower one — so the seated set is
+   * not always a prefix of the window. Advancing the cursor by a COUNT therefore steps over the
+   * ones that were skipped in the middle, and at 200 players three people never reached the wall.
+   * Advancing to the first unseated index cannot skip anyone: the worst it does is show a card
+   * twice, which costs nothing.
+   *
+   * Read during render off the ref rather than held in state. It is one frame behind on the very
+   * first pass, and the board re-renders every stats poll, so the label and the control appear
+   * within a second of the board being full — and nothing on screen depends on the number itself.
+   */
+  const firstUnplaced = shown.findIndex((n) => !placedRef.current.has(n.codename))
+  /** Turning at all only when the board cannot hold the whole room at once. */
+  const paging = names.length > 0 && (start > 0 || firstUnplaced !== -1 || shown.length < names.length)
+  useEffect(() => { onPage?.(page, paging) }, [page, paging, onPage])
+
+  /*
+   * THE PAGE TURN.
+   *
+   * It invalidates every placement, exactly the way a resize does: the cards on the board are
+   * about to be a different set, and a placement kept from the previous page would seat a new card
+   * on top of one that is no longer there. The next page begins where this one ran out of shelves,
+   * so wrapping is by CURSOR — the page length is not known until the packer has run, and there is
+   * no total to modulo against. A page that seated nothing still advances by one, or the control
+   * would do nothing and read as broken.
+   *
+   * READ AT THE PRESS, off the placement map, NOT from whatever the last measuring pass happened
+   * to leave behind: that effect early-returns whenever there is nothing new to place, which is
+   * exactly what happens on a page whose cards were all seated on an earlier pass. `placedRef` is
+   * the truth about what is on the wall right now, so ask it — and ask it for the first card it
+   * could NOT seat, per the note above.
+   */
+  const turn = useCallback(() => {
+    const unplaced = shown.findIndex((n) => !placedRef.current.has(n.codename))
+    const seated = Math.max(1, unplaced === -1 ? shown.length : unplaced)
+    setCursor((c) => {
+      const next = c + seated
+      if (next >= names.length) { setPage(0); return 0 }
+      setPage((p) => p + 1)
+      return next
+    })
+    placedRef.current = new Map()
+  }, [names.length, shown])
+
+  useEffect(() => { onTurn?.(turn) }, [turn, onTurn])
+
 
   useIsomorphicLayoutEffect(() => {
     const board = boardRef.current
@@ -1422,10 +1546,59 @@ function Lobby({
   onStart: () => void
 }) {
   const boardRef = useRef<HTMLDivElement | null>(null)
+  const [board, setBoard] = useState({ page: 0, paging: false })
+  const onPage = useCallback((page: number, paging: boolean) => setBoard({ page, paging }), [])
+  const turnRef = useRef<() => void>(() => {})
+  const onTurn = useCallback((turn: () => void) => { turnRef.current = turn }, [])
 
   return (
     <div ref={boardRef} className="relative z-10 min-h-[95vh]">
-      <NameBoard names={names} boardRef={boardRef} />
+      <NameBoard names={names} boardRef={boardRef} onPage={onPage} onTurn={onTurn} />
+
+      {/*
+        * WHICH DRAWER THE BOARD IS SHOWING.
+        *
+        * The board cannot seat a full room at a readable size, so it pages (NameBoard, BOARD_PAGE)
+        * — and a wall of names that silently swaps every three seconds reads as a glitch unless
+        * something on screen says it is turning. In this workshop's own language that is a case
+        * file: แฟ้ม 1, แฟ้ม 2. Top left, the one corner of the lobby nothing else occupies.
+        *
+        * It renders only when there is more than one, so a small room never sees a label for a
+        * board that is not turning. `data-lobby-furniture` keeps the packer off it — the shelf
+        * packer reads these rectangles off the live DOM, so this needs no change to the packer.
+        */}
+      {board.paging ? (
+        /*
+         * THE DRAWER LABEL, AND THE CONTROL, in one object. The board holds one page of a room too
+         * big to draw at once and the host turns it by pressing this — there is no separate arrow,
+         * because a second host control in the lobby is a second thing to hit by mistake next to
+         * Start.
+         *
+         * Bare type in the HUD's own gold, the same treatment as `CASE 04 / 09`, because it is the
+         * same kind of thing: a label the host reads off the chrome, not an object on the board. A
+         * filled plate here read as a card that had landed crooked on top of the names.
+         *
+         * `data-lobby-furniture` keeps the shelf packer off it — the packer reads these rectangles
+         * off the live DOM, so this needs no change to the packer.
+         */
+        <button
+          type="button"
+          data-lobby-furniture
+          data-testid="lobby-page-plate"
+          onClick={() => turnRef.current()}
+          className="det-thai absolute left-0 top-0 cursor-pointer"
+          style={{
+            fontSize: TYPE.control,
+            lineHeight: 1.15,
+            color: 'var(--det-gold)',
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+          }}
+        >
+          แฟ้ม {board.page + 1} ▸
+        </button>
+      ) : null}
 
       {/*
         * RESET, in the corner — and it is the only host control the lobby carries besides Start.

@@ -44,6 +44,9 @@ next-env.d.ts
 .room-state.json
 .deck-state.json
 .decision-room-state.json
+# The store writes to a temp file and renames it; a server killed mid-write leaves the temp behind.
+.room-state.json.*.tmp
+.decision-room-state.json.*.tmp
 
 # isolated dev worktrees
 .worktrees/

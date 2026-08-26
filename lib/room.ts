@@ -14,10 +14,25 @@ export const SEQUENCE: SeqStage[] = QUESTIONS.flatMap((_, i) => [
 export const STAGE_COUNT = SEQUENCE.length
 
 /**
- * The soft countdown, DISPLAY-ONLY (spec §2): it nudges the room but never closes voting and
- * never advances a stage. Voting closes when the host advances to the reveal — nothing else.
+ * How long a decision stays open.
+ *
+ * FORTY-FIVE SECONDS, up from thirty. Thirty was set while this countdown was purely decorative — the
+ * spec called it a soft nudge and voting closed only when the host advanced — so running out cost
+ * nobody anything. It is not decorative any more: `app/biz/page.tsx` closes the vote and moves the
+ * room to the reveal when this reaches zero, and at thirty seconds a table still reading the
+ * chart when the clock started was answering a question it had not finished.
+ *
+ * IT IS THE WHOLE OF THE ROOM'S FORCED CLOCK. Eight decisions at forty-five seconds each is 6:00,
+ * and every other screen in this workshop waits for the host — so this constant is the one number
+ * that decides how much of a session the room spends deciding rather than listening. Changing it
+ * moves the run sheet by EIGHT TIMES whatever you change it by: the thirty-second version cost
+ * 4:00, the sixty-second one 8:00.
+ *
+ * The store does NOT enforce it: `askOpen()` stays true past this and the server accepts a vote
+ * right up to the moment the stage actually advances, so a phone that was mid-tap when the clock
+ * hit zero is not punished for a round trip.
  */
-export const ASK_MS = 30_000
+export const ASK_MS = 45_000
 
 export interface RoomState {
   /** `'done'` IS the result screen — the 2×2 map / persona cards. */

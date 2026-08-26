@@ -705,7 +705,7 @@ async function checkReducedMotion(browser, motionFailures) {
   const page = await context.newPage()
   try {
     // Any page that loads app/globals.css works — this probes the stylesheet's cascade, not
-    // anything about /tv's own markup or game state.
+    // anything about /tv's own markup or game state. /biz is visited below for the other sheet.
     await page.goto(`${BASE}/tv`, { waitUntil: 'domcontentloaded' })
 
     const result = await page.evaluate(() => {
@@ -727,6 +727,39 @@ async function checkReducedMotion(browser, motionFailures) {
       }
     })
 
+    /*
+     * Café Persona's motion lives in components/room/stages.css, which /tv does not load — so this
+     * has to visit /biz as well or the room workshop's animations are simply unmeasured. They were,
+     * the day the mascots landed. Its classes need `.room-root` as an ancestor (that is where the
+     * --pp-* tokens and the sheet's scoping hang), so each probe is built inside one.
+     */
+    await page.goto(`${BASE}/biz`, { waitUntil: 'domcontentloaded' })
+    const room = await page.evaluate(() => {
+      const root = document.createElement('div')
+      root.className = 'room-root'
+      document.body.appendChild(root)
+      const computedFor = (className, prop) => {
+        const el = document.createElement('div')
+        el.className = className
+        root.appendChild(el)
+        const value = getComputedStyle(el)[prop]
+        el.remove()
+        return value
+      }
+      const out = {
+        'pp-names__one': computedFor('pp-names__one', 'animationName'),
+        'pp-chart__bar': computedFor('pp-chart__bar', 'animationName'),
+        'pp-split__bar': computedFor('pp-split__bar', 'animationName'),
+        'pp-dot': computedFor('pp-dot', 'animationName'),
+        // The drifting-bean layers are pseudo-elements on .room-root itself — two of them, big
+        // beans and small, and a check that only read one would clear a screen still moving.
+        'room-root::before': getComputedStyle(root, '::before').animationName,
+        'room-root::after': getComputedStyle(root, '::after').animationName,
+      }
+      root.remove()
+      return out
+    })
+
     const expectations = [
       ['.timer-fill transition-duration', result['timer-fill'], '0s'],
       ['.stamp-slam animation-name', result['stamp-slam'], 'none'],
@@ -734,6 +767,12 @@ async function checkReducedMotion(browser, motionFailures) {
       ['.row-slide animation-name', result['row-slide'], 'none'],
       ['.block-rise animation-name', result['block-rise'], 'none'],
       ['.hop-in animation-name', result['hop-in'], 'none'],
+      ['.room-root::before animation-name', room['room-root::before'], 'none'],
+      ['.room-root::after animation-name', room['room-root::after'], 'none'],
+      ['.pp-names__one animation-name', room['pp-names__one'], 'none'],
+      ['.pp-chart__bar animation-name', room['pp-chart__bar'], 'none'],
+      ['.pp-split__bar animation-name', room['pp-split__bar'], 'none'],
+      ['.pp-dot animation-name', room['pp-dot'], 'none'],
     ]
     for (const [label, actual, expected] of expectations) {
       if (actual !== expected) {
@@ -791,11 +830,59 @@ async function main() {
 
       const context = await browser.newContext({ viewport })
       const page = await context.newPage()
+      /* /biz is behind a login gate (app/biz/page.tsx). Without a token in storage every stage
+       * below would measure the same closed door and report a tidy tick for a deck nobody looked
+       * at. `addInitScript` runs before the page's own scripts, so the first render is already the
+       * room — no gate flash to race. */
+      await context.addInitScript((value) => {
+        try { localStorage.setItem('decisionroom.hostToken', value) } catch { /* ignore */ }
+      }, TOKEN)
       await page.goto(`${BASE}/biz`, { waitUntil: 'domcontentloaded' })
       await page.waitForTimeout(1500)
 
       const label = `${viewport.width}x${viewport.height}`
       console.log(`\n=== ${label} ===`)
+
+      /*
+       * THE LOBBY, WITH A FULL ROOM IN IT — measured before the walk and separately from it.
+       *
+       * The walk below seats nine players, which is the tall case for the RESULT map and the
+       * short case for the lobby: nine name cards is a third of a board, and a lobby that fits
+       * nine can still hang its Start button below the fold at a hundred. That is exactly what it
+       * did. A hundred join here, the lobby is measured, and they are cleared again so the walk
+       * gets the room it expects.
+       */
+      {
+        for (let i = 0; i < 100; i++) {
+          await post('/api/room/join', { name: `ผู้ร่วมงานคนที่ ${i}`.slice(0, 20) })
+        }
+        await page.waitForTimeout(2600)
+        const full = await page.evaluate(() => {
+          const btn = document.querySelector('[data-testid="start-button"]')
+          return {
+            overflowY: document.documentElement.scrollHeight - document.documentElement.clientHeight,
+            clearance: btn ? Math.round(document.documentElement.clientHeight - btn.getBoundingClientRect().bottom) : null,
+          }
+        })
+        if (full.overflowY > TOLERANCE_PX) {
+          failures.push({ viewport: label, stage: 'lobby (100 players)', overflowY: full.overflowY, overflowX: 0 })
+          console.log(`  ✗ lobby (100 players)  +${full.overflowY}px down`)
+        } else if (full.clearance !== null && full.clearance < 0) {
+          failures.push({ viewport: label, stage: 'lobby (100 players, Start below the fold)', overflowY: -full.clearance, overflowX: 0 })
+          console.log(`  ✗ lobby (100 players)  Start button cut off by ${-full.clearance}px`)
+        } else {
+          console.log(`  ✓ lobby (100 players)  Start ${full.clearance}px clear of the fold`)
+        }
+
+        // Back to the nine the walk was written for.
+        await post('/api/room/reset')
+        players.length = 0
+        for (const name of NAMES) {
+          const joined = await post('/api/room/join', { name })
+          if (joined?.player?.id) players.push(joined.player.id)
+        }
+        await page.waitForTimeout(1400)
+      }
 
       /* Walk until the room reports itself finished, rather than counting to a hard-coded ten:
        * adding a stage to `content/room.ts` must extend this check automatically, not silently

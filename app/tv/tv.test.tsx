@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { NAME_MAX } from '@/lib/names'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 // No global setupFiles registers jest-dom matchers (see vitest.config.ts) — every *.test.tsx in
@@ -383,6 +384,25 @@ describe('the reveal is advanced by the host', () => {
 
     expect(nextPosts(fetchSpy)).toHaveLength(1)
   })
+
+  /*
+   * THE LAST CASE SKIPS THE BEAT. The room is two presses from the podium there, and the standings
+   * shown on the final reveal are the same board the winners' screen is about to show properly —
+   * so the ending arrives twice, the second time as an anticlimax. Every earlier reveal keeps its
+   * scoreboard; this one hands the press straight to the room.
+   */
+  it('has no standings beat on the final case — the first press advances', async () => {
+    const last = QUESTIONS_IN_ORDER.at(-1)!
+    const fetchSpy = spy({ ...base, phase: 'reveal', qIndex: QUESTIONS_IN_ORDER.length - 1, questionId: last.id })
+    const user = userEvent.setup()
+    render(<TV />)
+    await screen.findByText(last.truth)
+
+    await user.click(screen.getByRole('button', { name: /ถัดไป/ }))
+
+    expect(nextPosts(fetchSpy)).toHaveLength(1)
+    expect(screen.queryByText('หมูกรอบ')).toBeNull()
+  })
 })
 
 describe('the reading branch and the split bar', () => {
@@ -533,9 +553,21 @@ describe('the lobby', () => {
     }
   })
 
-  // Storing 40 characters is fine; rendering 40 on the board lets one name eat a shelf (spec §2).
-  it('truncates a long codename on the card, with an ellipsis', async () => {
-    const long = 'นักสืบผู้ยิ่งใหญ่แห่งกรุงเทพมหานคร'
+  /*
+   * THE BOARD DRAWS THE WHOLE NAME.
+   *
+   * It used to clip at 14 characters and hang an ellipsis on the rest, and this test asserted the
+   * clip. Both are gone: the board exists so a player can find the name THEY typed and so the host
+   * can read it out, and a truncated name does neither. The length limit moved to the join route
+   * (lib/names.ts, thirty characters), which is the only place it can be enforced without lying to
+   * the person who typed it.
+   *
+   * The fixture is a full-length name at exactly that cap, so this fails if truncation ever comes
+   * back OR if the cap and the board drift apart.
+   */
+  it('draws a full-length codename on the card, never an ellipsis', async () => {
+    const long = 'นักสืบผู้ยิ่งใหญ่แห่งกรุงเทพมหานคร'.slice(0, NAME_MAX)
+    expect(long).toHaveLength(NAME_MAX)
     vi.stubGlobal('fetch', vi.fn(async (url: string) => new Response(
       JSON.stringify(String(url).includes('/api/stats')
         ? { ...stats, recent: [{ codename: long, avatar: '🕵️' }], playerCount: 1 }
@@ -543,8 +575,8 @@ describe('the lobby', () => {
       { headers: { 'content-type': 'application/json' } },
     )))
     render(<TV />)
-    expect(await screen.findByText(new RegExp(`${long.slice(0, 14)}…$`))).toBeInTheDocument()
-    expect(screen.queryByText(new RegExp(long))).toBeNull()
+    expect(await screen.findByText(new RegExp(long))).toBeInTheDocument()
+    expect(screen.queryByText(/…/)).toBeNull()
   })
 
   /*

@@ -34,7 +34,23 @@ export const PersonaSchema = z.object({
   coffee: z.string().min(1),
   /** Thai archetype — "นักวิเคราะห์". */
   archetype: z.string().min(1),
-  emoji: z.string().min(1),
+  /**
+   * The MAD+ mascot this persona is, and the finale's only face.
+   *
+   * MAPPED FROM THE OFFICIAL PROFILES (2026 MADT EXPO), not from the artwork. An earlier pass read
+   * the colours and the objects in each character's hands and got all four wrong — what a mascot
+   * HOLDS is its job in the AI pipeline, not its temperament. The evidence that settles it is the
+   * last page: Techie deploys, measures and hands the feedback back to BeeDee, which is exactly
+   * the SPRINTER↔GUARDIAN complement `partner` already asserts below.
+   *
+   * `art` is a path under /public — the Dockerfile copies that folder into the standalone image.
+   * `quote` is the character's own line from the same document, shown once, on the phone card.
+   */
+  mascot: z.object({
+    name: z.string().min(1),
+    art: z.string().min(1),
+    quote: z.string().min(1),
+  }),
   /** Who you are: 2–3 warm second-person Thai sentences (MBTI register). */
   description: z.string().min(1),
   strength: z.string().min(1),
@@ -53,7 +69,8 @@ export const ChoiceSchema = z.object({
 export type Choice = z.infer<typeof ChoiceSchema>
 
 export const AUDIENCE_FIELDS = [
-  'arrivalMode', 'wakeTime', 'firstDrink', 'buyTime', 'queuePatience', 'spend', 'mainFactor',
+  'arrivalMode', 'wakeTime', 'firstDrink', 'firstBuy', 'buyTime', 'queuePatience', 'spend',
+  'mainFactor',
 ] as const
 
 export const QuestionSchema = z.object({

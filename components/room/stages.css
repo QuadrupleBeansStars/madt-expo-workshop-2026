@@ -18,10 +18,27 @@
   --pp-ink: #23201a;
   --pp-muted: #6b6459;
   --pp-line: #e8e2d4;
-  --pp-pioneer: #e4572e;
-  --pp-sprinter: #e9a820;
-  --pp-analyst: #2667c9;
-  --pp-guardian: #2e7d4f;
+  /*
+   * THE PERSONA PALETTE IS THE MAD+ MASCOT PALETTE — each value is that character's own brand
+   * colour, darkened only where a projector on cream needed the contrast. Which mascot is which
+   * persona comes from the official profiles, not from the artwork; content/persona.ts carries
+   * the note.
+   */
+  --pp-pioneer: #d98209;   /* BIGLOK */
+  --pp-sprinter: #e3603b;  /* TECHIE */
+  --pp-analyst: #7b4a96;   /* SHAPPY */
+  --pp-guardian: #3f7699;  /* BEEDEE */
+
+  /*
+   * CHROME, AND NOT A PERSONA COLOUR. Everything that is furniture rather than data reads these:
+   * the headcount, the timer, the chart's highlight, the host bar's focus ring. They used to
+   * borrow --pp-sprinter and --pp-guardian, which meant re-pointing one persona at a new mascot
+   * silently repainted half the deck — and put a fifth and sixth meaning on colours whose whole
+   * job is to mean exactly one thing each.
+   */
+  --pp-amber: #e9a820;
+  --pp-green: #2e7d4f;
+  --pp-alert: #e4572e;
 
   /* NO overflow:hidden here, deliberately: scripts/check-projector-fit.mjs measures /biz by
      scrollHeight, and clipping would pin it to clientHeight — the exact blindness that let /tv
@@ -40,11 +57,11 @@
 .room-root .deck-bi { display: block; }
 .room-root .deck-bi__th { display: block; line-height: 1.5; }
 .room-root .deck-bi--hero .deck-bi__th {
-  font-size: min(clamp(22px, 2.4vw, 40px), 5.2vh);
+  font-size: 5.2vh;
   font-weight: 700;
 }
 .room-root .deck-bi--label .deck-bi__th {
-  font-size: min(clamp(14px, 1.2vw, 20px), 2.8vh);
+  font-size: 2.8vh;
   font-weight: 600;
   color: var(--pp-muted);
 }
@@ -52,327 +69,736 @@
 /* ── shared stage frame ─────────────────────────────────────────────────── */
 
 .pp-stage {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  padding: min(4vh, 36px) min(clamp(24px, 4vw, 72px), 8vh) min(3vh, 28px);
-  gap: min(2.6vh, 24px);
+  padding: 2.6vh 6.4vh 2.2vh;
+  gap: 1.8vh;
 }
 
 .pp-strip {
   display: flex;
   align-items: baseline;
-  gap: min(clamp(16px, 2vw, 36px), 4vh);
+  gap: 4vh;
   /* The host bar is FIXED over the top-right corner and does not affect layout — without this
      reservation it paints straight over the vote counter, invisibly to any fit metric. */
-  padding-right: min(25vw, 350px);
+  padding-right: 25vw;
 }
 
 .pp-strip__q {
-  font-size: min(clamp(18px, 1.6vw, 28px), 3.6vh);
+  font-size: 3.6vh;
   font-weight: 800;
 }
 
 .pp-strip__clock {
-  font-size: min(clamp(26px, 2.6vw, 44px), 5.6vh);
+  font-size: 5.6vh;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
-  color: var(--pp-pioneer);
+  color: var(--pp-alert);
 }
 
+/*
+ * HOW MANY PEOPLE HAVE ANSWERED — the number the host actually runs the room on, and the only
+ * figure on this stage that changes while the room watches. It earns its emphasis from SIZE, not
+ * from a fill: the four persona colours are the only coloured things on this deck that mean
+ * something, and a fifth coloured object competing with them costs more than this number is worth.
+ */
 .pp-strip__votes {
+  display: flex;
+  align-items: baseline;
+  gap: 1.2vh;
   margin-left: auto;
-  font-size: min(clamp(16px, 1.4vw, 24px), 3.2vh);
+  font-size: 3vh;
+  font-weight: 700;
   color: var(--pp-muted);
 }
 
 .pp-strip__votes b {
   color: var(--pp-ink);
-  font-size: 1.2em;
+  font-size: 1.9em;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  /* Fixed room for three digits: without it the strip reflows every few seconds as the count
+     climbs past 9 and past 99, in front of a room that is reading it. */
+  min-width: 2.6ch;
+  text-align: right;
 }
 
 /* ── lobby ──────────────────────────────────────────────────────────────── */
 
+/*
+ * THE ONE STAGE THAT IS PINNED TO THE SCREEN, not merely at least as tall as it.
+ *
+ * `.pp-stage` sets `min-height: 100vh` and deliberately no ceiling — the sheet's header explains
+ * why: a stage that outgrows the projector must GROW THE DOCUMENT so scripts/check-projector-fit.mjs
+ * can measure it by scrollHeight, and clipping every stage would make that metric blind.
+ *
+ * The lobby is the exception, because its overflow is not a defect to be caught — it is the
+ * design. The name board holds one page of a room that does not fit and clips the rest on
+ * purpose, and `flex: 1` cannot bound a column inside a box that is only min-height'd: at a
+ * hundred players the board grew to 1041px inside a 768px screen and pushed the Start button 384px
+ * below the fold.
+ *
+ * `max-height` against `.pp-stage`'s `min-height` pins this stage to exactly the screen. The
+ * projector check does NOT lose its grip on it: the lobby probe there measures the Start button's
+ * clearance from the fold, which is a position and not a document height, so a lobby that cannot
+ * fit its own furniture still fails.
+ */
 .pp-lobby {
+  max-height: 100vh;
+  justify-content: center;
+}
+
+/*
+ * TWO COLUMNS. The single centred stack left the left two-thirds of the screen empty for the
+ * several minutes this stage is up — the longest-lived screen in the workshop and the one with
+ * the least on it. Names fill the left, the join block owns the right.
+ */
+.pp-lobby__grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  /* The board gets the WIDER half. The QR only has to be scannable from the back of the room;
+     the name list has to hold as much of the room as it can, and every column of width is another
+     name per row. */
+  grid-template-columns: 40fr 60fr;
+  /*
+   * ONE ROW, AND IT CANNOT GROW.
+   *
+   * A grid row defaults to `auto`, which is content-sized — so a full name board pushed the row
+   * past the grid's own box, past the stage, and hung the Start button below the fold. The board
+   * clips inside its column; `minmax(0, 1fr)` is what makes the column stop at the screen instead
+   * of the column stopping at the names.
+   */
+  grid-template-rows: minmax(0, 1fr);
+  gap: 4vh;
+  /*
+   * STRETCH, NOT CENTRE, and this is what actually freezes the heading.
+   *
+   * Centred, each column was only as tall as its own content — so the last page of the name board,
+   * with four names on it instead of thirty-six, made the left column short and the whole title
+   * block slid down the screen to re-centre. The title moved every cycle. Stretched, both columns
+   * are the full height of the stage, the title is pinned to the top of its own column, and the
+   * board absorbs the difference as empty space below it.
+   */
+  align-items: stretch;
+}
+
+.pp-lobby__left {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 1.4vh;
   text-align: center;
 }
 
-.pp-lobby__title {
-  margin: 0;
-  font-size: min(clamp(48px, 6vw, 96px), 12vh);
-  font-weight: 900;
-  letter-spacing: 0.01em;
-}
-
-.pp-lobby__qr {
+/*
+ * THE BOARD the names are pinned to.
+ *
+ * Without a frame the list read as text that had been left on the screen — names floating on the
+ * same cream ground as everything else, hugging the top edge of their column. Inside a panel with
+ * its own edge and its own padding it reads as an object: a board by the door with today's names
+ * on it, which is what it is.
+ */
+.pp-lobby__right {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: min(1.6vh, 14px);
+  padding: 3vh 3vh 2vh;
+  background: var(--pp-card);
+  border: 0.3vh solid var(--pp-line);
+  border-radius: 2.4vh;
+  box-shadow: inset 0 0 0 0.5vh var(--pp-bg), 0 1.2vh 2.4vh -1.2vh rgba(120, 82, 44, 0.22);
+}
+
+/*
+ * FROZEN. The heading, the subtitle and the page counter keep their exact positions while the name
+ * board cycles underneath them — a title that shifts by a row every three seconds turns a calm
+ * screen into a flickering one, and this stage is up for minutes.
+ *
+ * The board is what absorbs the difference: it has a fixed share of the column (`flex: 1` inside a
+ * `min-height: 0` parent), so a short last page leaves empty space rather than pulling everything
+ * below it upward.
+ */
+.pp-lobby__title {
+  margin: 0;
+  font-size: 6.4vh;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.pp-lobby__sub {
+  margin: 0;
+}
+
+/*
+ * THE NAME BOARD.
+ *
+ * Every name in full — the cap is thirty characters at the join route (lib/names.ts) exactly so
+ * this never has to truncate one. A player scans this for the name they typed and the host reads
+ * them out; a clipped name serves neither.
+ *
+ * IT CLIPS, IT DOES NOT SCROLL OR GROW. `overflow: hidden` on a fixed share of the screen is what
+ * keeps a room of two hundred from pushing the QR code off the projector — the headcount beside it
+ * is the authoritative number, and it stays right whether or not every card fits. Cards wrap
+ * naturally; the newest simply fall off the bottom edge rather than being drawn half-off it.
+ */
+.pp-names {
+  list-style: none;
+  /* Off the top edge: the first row of names starts where the board's own padding ends, and the
+     board keeps its full height whether the page holds thirty-six names or four. */
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  /* PACKED, NOT RULED. A fixed three-column grid sized every cell for the longest name in the
+     room, so a board of mostly short nicknames was two thirds white space. Names wrap in flow and
+     each card is only as wide as its own name, which is what makes a real room — a "ปุ๊ก" next to
+     a "นักสืบผู้ยิ่งใหญ่เบอร์หนึ่ง" — look full rather than ruled.
+     `overflow: hidden` is load-bearing, not tidiness: the board is handed a WINDOW of names
+     (NAMES_WINDOW, Stages.tsx) and draws whatever physically fits, and this is what clips the
+     rest. Stages.tsx then measures which ones landed inside this box to decide where the next
+     page starts, so a name is never half-drawn and never skipped. */
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 0.9vh 1.1vh;
+}
+
+.pp-names__one {
+  min-width: 0;
+  padding: 0.6vh 1.4vh;
+  background: var(--pp-card);
+  border: 0.16vh solid var(--pp-line);
+  border-radius: 99px;
+  font-size: 2.4vh;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  /* One line per name, always. A thirty-character name that wrapped would make its card twice the
+     height of every other and break the rows either side of it. Overflow is clipped rather than
+     ellipsised: the cap at the join route is what guarantees a name fits, and an ellipsis here
+     would be the board quietly lying about somebody's name instead of the cap being wrong. */
+  white-space: nowrap;
+  overflow: hidden;
+  animation: pp-arrive 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+}
+
+@keyframes pp-arrive {
+  from { opacity: 0; transform: scale(0.7); }
 }
 
 .pp-lobby__qr-box {
-  padding: min(2vh, 18px);
+  padding: 1.4vh;
   background: var(--pp-card);
-  border: 2px solid var(--pp-line);
-  border-radius: 20px;
+  border: 0.28vh solid var(--pp-line);
+  border-radius: 2.4vh;
 }
 
 .pp-lobby__qr-box svg {
-  width: min(30vh, 280px);
-  height: min(30vh, 280px);
+  display: block;
+  width: 30vh;
+  height: 30vh;
 }
 
-.pp-lobby__hint {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.pp-lobby__url {
-  font-size: min(clamp(16px, 1.4vw, 24px), 3.2vh);
+.pp-names__page {
+  align-self: center;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  /* A fixed slot, occupied or not: the counter appearing on the second player to join must not
+     move the board that is already on screen. */
+  min-height: 3.4vh;
+  margin: 1.2vh 0 0;
+  text-align: center;
+  font-size: 2vh;
   font-weight: 700;
-  color: var(--pp-analyst);
+  color: var(--pp-muted);
+  font-variant-numeric: tabular-nums;
 }
+
+/* The one big press on this screen. `ถัดไป` in the corner bar does the same thing — this exists so
+   the host does not have to hunt a 2vh glyph in front of a room to begin. */
+.pp-lobby__start {
+  align-self: center;
+  /* Wide enough to be the obvious press in a dark room, and stated as a share of the screen so it
+     stays that on any projector. */
+  width: min(60vw, 120vh);
+  margin-top: 2vh;
+  padding: 1.8vh 3.4vh;
+  font: inherit;
+  font-size: 3vh;
+  font-weight: 800;
+  color: #ffffff;
+  /* Roasted brown — the café's own colour, and the only saturated fill on the lobby. */
+  background: #6b4326;
+  border: 0;
+  border-radius: 1.4vh;
+  cursor: pointer;
+}
+
+.pp-lobby__start:hover { background: #55341d; }
+.pp-lobby__start:focus-visible { outline: 0.4vh solid var(--pp-ink); outline-offset: 0.3vh; }
 
 .pp-lobby__count {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 1.2vh;
 }
 
 .pp-lobby__count b {
-  font-size: min(clamp(36px, 4vw, 64px), 8vh);
+  font-size: 6vh;
   font-weight: 900;
-  color: var(--pp-guardian);
+  /* The café's amber, not the deck's green — the only number on this screen, in the colour the
+     rest of the workshop uses for "this is the figure to look at". */
+  color: var(--pp-amber);
 }
 
 /* ── ask ────────────────────────────────────────────────────────────────── */
 
-/* The chart card. Muted bars, the buckets the scenario turns on in the data accent (amber) —
-   deliberately NOT a persona color pair, so nothing here foreshadows the choice mapping. */
+/*
+ * THE ASK STAGE'S MIDDLE: evidence on the left, brief on the right.
+ *
+ * The columns are UNEQUAL and the brief keeps the wider one — it carries 4vh type and is what the
+ * room acts on. The chart only has to be readable, so it takes the narrower left column, which is
+ * where the eye starts: numbers first, then the decision they bear on.
+ *
+ * `minmax(0, 1fr)` on the row for the same reason the lobby needs it — an auto row is
+ * content-sized and would push the choice cards off the bottom the moment a brief ran long.
+ */
+.pp-ask__body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 45fr 55fr;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 3vh;
+  align-items: stretch;
+}
+
+/*
+ * THE CHART. Labels ABOVE full-width bars, the highlighted row twice as thick, and no card around
+ * any of it.
+ *
+ * It was a white card with an amber spine, a label column eating 4/11 of the width, and a sentence
+ * under the bars that told the room the conclusion before it had looked at them. All three are
+ * gone: the card because a chart that fills its half of the stage does not need a frame to say it
+ * is a chart, the label column because it was width taken from the only thing on the card that
+ * carries a quantity, and the sentence because it is the host's line (components/room/Stages.tsx
+ * and content/persona.ts both say why).
+ *
+ * The bars are neutral clay; only the buckets the scenario turns on take the amber. Deliberately
+ * NOT a persona colour pair, so nothing here foreshadows the choice mapping.
+ */
 .pp-chart {
   display: flex;
   flex-direction: column;
-  gap: min(1.2vh, 10px);
-  padding: min(2vh, 18px) min(clamp(20px, 2.4vw, 44px), 5vh);
-  background: var(--pp-card);
-  border: 2px solid var(--pp-line);
-  border-left: min(1.4vh, 12px) solid var(--pp-sprinter);
-  border-radius: 18px;
+  min-height: 0;
+  justify-content: center;
+  gap: 1.5vh;
+  padding: 0.4vh 0.6vh;
 }
 
 .pp-chart__title {
-  margin: 0;
+  margin: 0 0 0.6vh;
   display: flex;
   align-items: baseline;
-  gap: min(1.6vh, 14px);
-  font-size: min(clamp(17px, 1.6vw, 27px), 3.6vh);
+  gap: 1.6vh;
+  font-size: 2.7vh;
   font-weight: 800;
-}
-
-.pp-chart__meta {
-  margin-left: auto;
-  font-size: min(clamp(12px, 1vw, 17px), 2.4vh);
-  font-weight: 600;
-  color: var(--pp-muted);
-  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .pp-chart__rows {
   display: flex;
   flex-direction: column;
-  gap: min(0.9vh, 8px);
+  /* 1.5vh, not 2: the buying question plots FIVE buckets where every other chart plots four, and
+     the thick highlighted row is worth more than the air between rows. */
+  gap: 1.5vh;
 }
 
 .pp-chart__row {
-  display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 8fr) auto;
-  align-items: center;
-  gap: min(1.8vh, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vh;
 }
 
-.pp-chart__label {
-  font-size: min(clamp(13px, 1.2vw, 20px), 2.8vh);
+.pp-chart__lab {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 1.4vh;
+  font-size: 2.3vh;
   font-weight: 600;
-  text-align: right;
-  line-height: 1.3;
+  line-height: 1.2;
+  color: var(--pp-muted);
+}
+
+.pp-chart__count {
+  margin-left: auto;
+  font-size: 2.6vh;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .pp-chart__track {
   display: block;
-  height: min(3.4vh, 30px);
-  background: var(--pp-bg);
-  border: 1px solid var(--pp-line);
-  border-radius: 8px;
+  height: 2.2vh;
+  background: #ece7db;
+  border-radius: 1.1vh;
   overflow: hidden;
 }
 
 .pp-chart__bar {
   display: block;
   height: 100%;
-  border-radius: 7px;
-  background: var(--pp-line);
+  border-radius: 1.1vh;
+  background: #cfc7b6;
   transition: width 0.6s ease;
 }
 
-.pp-chart__row[data-highlight='true'] .pp-chart__bar {
-  background: var(--pp-sprinter);
-}
-
-.pp-chart__row[data-highlight='true'] .pp-chart__label,
-.pp-chart__row[data-highlight='true'] .pp-chart__count {
+/* THE HIGHLIGHTED ROW IS THE HEADLINE. Thicker bar, ink label, and the figure the cut caption used
+   to carry -- "50 จาก 50" -- sitting on the bar that proves it. */
+.pp-chart__row[data-highlight='true'] .pp-chart__lab {
+  font-size: 2.8vh;
+  font-weight: 800;
   color: var(--pp-ink);
+}
+
+.pp-chart__row[data-highlight='true'] .pp-chart__count {
+  font-size: 4vh;
   font-weight: 800;
 }
 
-.pp-chart__count {
-  min-width: 2ch;
-  font-size: min(clamp(15px, 1.4vw, 24px), 3.2vh);
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: var(--pp-muted);
+.pp-chart__row[data-highlight='true'] .pp-chart__track {
+  height: 4vh;
+  border-radius: 2vh;
 }
 
-.pp-chart__caption {
-  margin: min(0.6vh, 6px) 0 0;
-  font-size: min(clamp(16px, 1.6vw, 27px), 3.6vh);
-  font-weight: 700;
-  line-height: 1.45;
+.pp-chart__row[data-highlight='true'] .pp-chart__bar {
+  border-radius: 2vh;
+  background: var(--pp-amber);
 }
 
+/*
+ * THE BRIEF, on a wooden board.
+ *
+ * This is the one line the room has to read before it can decide anything, and it used to be bare
+ * text between a chart and four cards — the same weight as everything around it. On the board it
+ * is the only object on the stage with a frame, so the eye lands there first.
+ *
+ * The grain is painted, not an image: three repeating-linear-gradients at different periods over a
+ * walnut base. An asset would be one more file to ship and would band on a projector; gradients
+ * scale to any panel and cost nothing. The ink is cream on wood, so the contrast runs the opposite
+ * way to the rest of the stage — which is the other half of why it reads as a separate object.
+ */
 .pp-scenario {
+  position: relative;
+  /* Fills its column and centres the line inside it, so a one-line brief and a three-line brief
+     both sit in the middle of the same board instead of hugging its top edge. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
   margin: 0;
-  font-size: min(clamp(22px, 2.2vw, 38px), 4.8vh);
+  padding: 2.4vh 3.2vh;
+  border-radius: 1.4vh;
+  font-size: 4vh;
   font-weight: 800;
-  line-height: 1.5;
+  line-height: 1.45;
+  text-align: center;
+  text-wrap: balance;
+  /* A flat cream panel, no grain. The frame and the two screws are what say "board"; the painted
+     wood texture said it a second time and turned the heaviest object on the stage into the
+     busiest one as well. */
+  color: var(--pp-ink);
+  background: #f6ead4;
+  border: 0.45vh solid #d9c19a;
+  box-shadow: 0 1vh 2vh -0.9vh rgba(120, 82, 44, 0.28);
 }
 
+/* The two screws that hold the board up. Decorative, and the reason the frame reads as a physical
+   sign rather than a cream rectangle — a board with no fixings is just a panel. */
+.pp-scenario::before,
+.pp-scenario::after {
+  content: '';
+  position: absolute;
+  top: 1.1vh;
+  width: 1.3vh;
+  height: 1.3vh;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fdf2df, #b08a5c 70%);
+  box-shadow: inset 0 -0.2vh 0.3vh rgba(90, 60, 30, 0.4);
+}
+
+.pp-scenario::before { left: 1.4vh; }
+.pp-scenario::after { right: 1.4vh; }
+
+/*
+ * THE FOUR CARDS DO NOT MOVE BETWEEN QUESTIONS.
+ *
+ * Eight questions run back to back, and the room is looking for its own answer against a clock. If
+ * card B is a hand's width lower on q4 than it was on q3 — because q3's brief ran to one line and
+ * q4's to two, or because one option is longer than the others — every player re-finds the grid
+ * from scratch, eight times. That is the difference between reading four options and re-learning
+ * where they are.
+ *
+ * Two rules hold the block still. `margin-top: auto` pins it to the BOTTOM of the stage, so a
+ * taller brief above grows upward into the chart's slack instead of pushing the cards down. Fixed
+ * `grid-template-rows` makes all four cells the height of the block regardless of how much text
+ * any one of them carries — so A is never a third the height of D.
+ *
+ * The height is stated in vh rather than left to the content for the same reason: content-sized
+ * rows are exactly what moved.
+ */
 .pp-choices {
   list-style: none;
-  margin: 0;
+  margin: auto 0 0;
   padding: 0;
-  flex: 1;
-  min-height: 0;
+  flex: none;
+  height: 25vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: min(1.8vh, 16px);
-  align-content: start;
+  grid-template-rows: 1fr 1fr;
+  gap: 1.4vh;
 }
 
 .pp-choice {
   display: flex;
   align-items: center;
-  gap: min(1.8vh, 16px);
-  padding: min(2vh, 18px) min(2.2vh, 20px);
+  gap: 1.4vh;
+  min-height: 0;
+  padding: 1.2vh 1.8vh;
   background: var(--pp-card);
-  border: 2px solid var(--pp-line);
-  border-radius: 16px;
+  border: 0.28vh solid var(--pp-line);
+  /* The card that a longer option would have grown: it keeps its size and the text wraps inside
+     it. `min-height: 0` is what lets a grid row actually clamp its item rather than being pushed
+     out by the content's own minimum. */
+  border-bottom-width: 0.7vh;
+  border-radius: 1.9vh;
+  overflow: hidden;
 }
 
+/*
+ * The letter sat visibly low in its disc. `place-items: center` centres the LINE BOX, not the
+ * glyph — and the line box for a Latin capital in a Thai-capable fallback carries the descender
+ * space and the room reserved for Thai's lower vowel marks, all of it below the baseline. Setting
+ * `line-height: 1` collapses the box onto the glyph, and the disc is then centred on what is
+ * actually drawn.
+ *
+ * `aspect-ratio` replaces the second length so the two can never disagree, and the border sits
+ * OUTSIDE the box (`box-sizing: content-box` is not in play — the disc is sized by width/ratio,
+ * and a border that ate into it would make the circle smaller than the letter needs).
+ */
 .pp-choice__letter {
   flex: none;
-  width: min(5.2vh, 44px);
-  height: min(5.2vh, 44px);
+  width: 4.6vh;
+  aspect-ratio: 1;
   display: grid;
   place-items: center;
+  line-height: 1;
   border-radius: 50%;
   background: var(--pp-bg);
-  border: 2px solid var(--pp-ink);
+  border: 0.28vh solid var(--pp-ink);
   font-weight: 900;
-  font-size: min(clamp(16px, 1.5vw, 24px), 3.2vh);
+  font-size: 2.9vh;
+  /* Latin capitals only. The Thai-capable body face is what dragged the metrics down; the deck's
+     own stack is unambiguous for A–D. */
+  font-family: var(--deck-sans);
 }
 
 .pp-choice__label {
-  font-size: min(clamp(17px, 1.6vw, 27px), 3.6vh);
+  font-size: 3.6vh;
   font-weight: 600;
   line-height: 1.45;
 }
 
 /* ── reveal ─────────────────────────────────────────────────────────────── */
 
+/*
+ * FILLS THE STAGE. The small-talk panel used to sit under these bars and take the bottom third;
+ * it is the host's line now and is not on screen at all, which left four bars stranded at the top
+ * of an empty wall. `flex: 1` with the rows spread through it gives the reveal the whole screen —
+ * which is right, because for the twenty seconds this is up, the bars ARE the screen.
+ */
 .pp-split {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: min(1.8vh, 16px);
+  justify-content: center;
+  gap: 2.2vh;
+}
+
+/* The brief again, at half the ask stage's size -- context, not the headline. */
+.pp-split__q {
+  margin: 0 0 0.6vh;
+  text-align: center;
+  font-size: 3.1vh;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--pp-muted);
+  text-wrap: balance;
 }
 
 .pp-split__row {
   display: grid;
-  grid-template-columns: min(5vh, 42px) minmax(0, 5fr) minmax(0, 6fr) auto;
-  align-items: center;
-  gap: min(1.8vh, 16px);
+  grid-template-columns: 6vh minmax(0, 1fr);
+  align-items: stretch;
+  gap: 2vh;
 }
 
 .pp-split__letter {
-  width: min(4.6vh, 40px);
-  height: min(4.6vh, 40px);
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--pp-accent);
-  color: #ffffff;
+  border-radius: 1.4vh;
+  background: #ece7db;
+  color: #4a453c;
   font-weight: 900;
-  font-size: min(clamp(15px, 1.3vw, 21px), 2.9vh);
+  font-size: 3.2vh;
+  line-height: 1;
+  /* Latin capitals only -- same reason as .pp-choice__letter. */
+  font-family: var(--deck-sans);
 }
 
-.pp-split__label {
-  font-size: min(clamp(15px, 1.4vw, 24px), 3.2vh);
-  font-weight: 600;
-  line-height: 1.35;
-}
-
+/*
+ * THE ROW IS THE BAR. The text sits ON the track and the fill runs underneath it, so a bar can be
+ * as tall as the line of type it carries instead of being a thin rule beside it -- which is what
+ * left the old reveal with a third of the screen empty above and below.
+ */
 .pp-split__track {
-  display: block;
-  height: min(5.4vh, 46px);
-  background: var(--pp-card);
-  border: 2px solid var(--pp-line);
-  border-radius: 12px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 12.5vh;
+  border-radius: 1.4vh;
+  background: #f1ece0;
   overflow: hidden;
 }
 
 .pp-split__bar {
-  display: block;
-  height: 100%;
-  background: var(--pp-accent);
-  border-radius: 9px;
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: #ddd6c7;
   transition: width 0.6s ease;
 }
 
-.pp-split__nums {
-  font-size: min(clamp(16px, 1.5vw, 26px), 3.4vh);
+.pp-split__face {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.8vh;
+  width: 100%;
+  padding: 0 2.6vh;
+}
+
+.pp-split__label {
+  font-size: 3.3vh;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.pp-split__pct {
+  margin-left: auto;
+  font-size: 5vh;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
+}
+
+.pp-split__cnt {
+  font-size: 2.6vh;
+  font-weight: 600;
   color: var(--pp-muted);
   white-space: nowrap;
 }
 
-.pp-split__nums b {
-  color: var(--pp-ink);
-  font-size: 1.25em;
+/*
+ * "ส่วนใหญ่", on the winning bar only. From the back of a hall two bars a few percent apart look
+ * identical, and the room should not have to compare lengths to learn what it just chose. It is
+ * the ONE thing on this screen allowed to be emphatic -- the amber fill says the same thing in
+ * colour, and neither says anything about which persona the choice belongs to.
+ */
+.pp-split__flag {
+  flex: none;
+  padding: 0.3vh 1.3vh;
+  border-radius: 0.7vh;
+  background: var(--pp-ink);
+  color: #ffffff;
+  font-size: 2.1vh;
+  font-weight: 800;
+  white-space: nowrap;
 }
+
+.pp-split__row[data-top] .pp-split__track { min-height: 15vh; }
+.pp-split__row[data-top] .pp-split__bar { background: var(--pp-amber); }
+.pp-split__row[data-top] .pp-split__letter { background: var(--pp-ink); color: #ffffff; }
+.pp-split__row[data-top] .pp-split__label { font-weight: 800; }
+.pp-split__row[data-top] .pp-split__cnt { color: var(--pp-ink); }
 
 .pp-talk {
   margin-top: auto;
-  padding: min(2.4vh, 22px) min(2.6vh, 24px);
+  padding: 2.4vh 2.6vh;
   background: var(--pp-card);
-  border: 2px solid var(--pp-line);
-  border-left: min(1.4vh, 12px) solid var(--pp-guardian);
-  border-radius: 18px;
+  border: 0.28vh solid var(--pp-line);
+  border-left: 1.4vh solid var(--pp-green);
+  border-radius: 2.1vh;
 }
 
 .pp-talk__title {
-  margin: 0 0 min(1vh, 8px);
-  font-size: min(clamp(15px, 1.3vw, 22px), 3vh);
+  margin: 0 0 1vh;
+  font-size: 3vh;
   font-weight: 800;
-  color: var(--pp-guardian);
+  color: var(--pp-green);
 }
 
 .pp-talk__body {
   margin: 0;
-  font-size: min(clamp(18px, 1.8vw, 30px), 4vh);
+  font-size: 4vh;
   line-height: 1.6;
+}
+
+/* ── the progress rail ──────────────────────────────────────────────────── */
+
+/*
+ * Eight marks along the bottom of every in-game stage. Behind is filled, ahead is empty, and the
+ * current one is wide and in the data accent — a shape you read without counting.
+ *
+ * `margin-top: auto` pins it to the floor of the stage: it must not move when the brief above it
+ * runs to two lines instead of one.
+ */
+.pp-progress {
+  display: flex;
+  justify-content: center;
+  gap: 0.9vh;
+  margin: auto 0 0;
+  padding-top: 1.6vh;
+}
+
+.pp-progress i {
+  width: 1.6vh;
+  height: 0.6vh;
+  border-radius: 99px;
+  background: #e3d9c4;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.pp-progress i[data-on] { background: var(--pp-ink); }
+.pp-progress i[data-now] { width: 4.4vh; background: var(--pp-amber); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-progress i { transition: none; }
 }
 
 /* ── result — the 2×2 map ───────────────────────────────────────────────── */
@@ -380,7 +806,7 @@
 .pp-result__title {
   margin: 0;
   text-align: center;
-  font-size: min(clamp(28px, 3vw, 52px), 6.4vh);
+  font-size: 6.4vh;
   font-weight: 900;
 }
 
@@ -389,12 +815,12 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  padding: min(4.4vh, 40px) min(clamp(48px, 5vw, 90px), 10vh);
+  padding: 4.4vh 10vh;
 }
 
 .pp-map__axis {
   position: absolute;
-  font-size: min(clamp(13px, 1.1vw, 19px), 2.6vh);
+  font-size: 2.6vh;
   font-weight: 800;
   letter-spacing: 0.16em;
   color: var(--pp-muted);
@@ -420,18 +846,23 @@
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   /* Hairline centre axes, drawn by the gap over the ink ground. */
-  gap: 2px;
+  gap: 0.26vh;
   background: var(--pp-line);
-  border: 2px solid var(--pp-line);
-  border-radius: 18px;
+  border: 0.28vh solid var(--pp-line);
+  border-radius: 2.1vh;
   overflow: hidden;
 }
 
 .pp-quadrant {
+  position: relative;
+  /* The mascot sits clear of the bottom edge now, so nothing is cropped on purpose — this stays as
+     the backstop for the horizontal side: a wide character on a narrow projector must never paint
+     across the hairline gap into the next quadrant's text. */
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: min(1vh, 8px);
-  padding: min(2vh, 18px) min(2.2vh, 20px);
+  gap: 1vh;
+  padding: 2vh 2.2vh;
   background: var(--pp-card);
 }
 
@@ -439,161 +870,452 @@
   margin: 0;
   display: flex;
   align-items: baseline;
-  gap: min(1.2vh, 10px);
+  gap: 1.2vh;
 }
 
-.pp-quadrant__emoji {
-  font-size: min(clamp(20px, 2vw, 34px), 4.4vh);
-}
-
-.pp-quadrant__label {
-  font-size: min(clamp(20px, 2vw, 34px), 4.4vh);
+.pp-quadrant__name {
+  font-size: 5.2vh;
   font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
   color: var(--pp-accent);
-}
-
-.pp-quadrant__count {
-  margin-left: auto;
-  font-size: min(clamp(26px, 2.6vw, 46px), 5.8vh);
-  font-weight: 900;
-  font-variant-numeric: tabular-nums;
 }
 
 .pp-quadrant__coffee {
   margin: 0;
-  font-size: min(clamp(13px, 1.2vw, 20px), 2.8vh);
+  font-size: 2.8vh;
   color: var(--pp-muted);
 }
 
-.pp-quadrant__dots {
+/*
+ * THE HEADCOUNT, at the bottom of the quadrant and the size of a fist.
+ *
+ * It used to be a numeral beside the name, the same size as the name, competing with a dot field
+ * that said the same thing less well. The dots are gone (Stages.tsx says why) and what they were
+ * taking up is now this: one number, unmissable from the back, sitting on the meter that lets it
+ * be compared with the other three.
+ */
+.pp-quadrant__big {
+  position: relative;
+  z-index: 1;
+  margin: auto 0 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: min(1vh, 8px);
-  align-content: flex-start;
+  align-items: baseline;
+  gap: 1.2vh;
 }
 
-.pp-dot {
-  width: min(2.6vh, 22px);
-  aspect-ratio: 1;
-  border-radius: 50%;
+.pp-quadrant__count {
+  font-size: 9.5vh;
+  font-weight: 900;
+  line-height: 0.85;
+  color: var(--pp-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-quadrant__big span {
+  font-size: 2.6vh;
+  font-weight: 600;
+  color: var(--pp-muted);
+}
+
+.pp-quadrant__meter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1.1vh;
+  background: #efe9dc;
+}
+
+.pp-quadrant__meter i {
+  display: block;
+  height: 100%;
   background: var(--pp-accent);
+  transition: width 0.6s ease;
 }
 
 .pp-result__hint {
   margin: 0;
   text-align: center;
-  font-size: min(clamp(16px, 1.5vw, 26px), 3.4vh);
+  font-size: 3.4vh;
   font-weight: 600;
   color: var(--pp-muted);
 }
 
-/* ── host chrome (deck tokens — deck.css loads first) ───────────────────── */
+/* ── the gate ───────────────────────────────────────────────────────────── */
 
-/* Deliberately small and out of the way: the room should never notice it, and the host only
-   touches it once, to type the token. Advancing is the arrow key. */
-.room-host {
-  position: fixed;
-  top: 12px;
-  right: 12px;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 1px solid var(--deck-line-strong);
-  border-radius: 12px;
-  background: var(--deck-card);
-  opacity: 0.55;
-  transition: opacity 0.2s ease;
+/*
+ * The closed door, full screen. Sized in vh like every other stage: this is projected, and the
+ * host reads it from wherever the laptop happens to be — often not arm's length.
+ */
+.pp-gate {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 6vh;
 }
 
-.room-host:hover,
-.room-host:focus-within {
-  opacity: 1;
-}
-
-/* Once the token is in, the bar collapses to the controls. The label is setup instruction — it
-   earns its space while the field is empty and is dead weight for the rest of the workshop. It
-   comes back the moment the token is cleared or refused. The input keeps its accessible name
-   either way: the <label> element still wraps it. */
-.room-host[data-compact='true'] .room-host__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.room-host[data-compact='true'] .room-host__input {
-  width: 92px;
-}
-
-.room-host__label {
+.pp-gate__card {
+  width: min(64vw, 96vh);
   display: flex;
   flex-direction: column;
-  font-size: 10px;
+  align-items: center;
+  gap: 1.4vh;
+  padding: 6vh 5vh;
+  text-align: center;
+  background: var(--pp-card);
+  border: 0.4vh solid var(--pp-line);
+  border-radius: 2.4vh;
+  box-shadow: 0 3vh 6vh -3vh rgba(74, 45, 24, 0.35);
+}
+
+.pp-gate__kicker {
+  margin: 0;
+  font-size: 2.6vh;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--deck-muted);
+  letter-spacing: 0.1em;
+  color: var(--pp-amber);
 }
 
-.room-host__label [lang="th"] {
-  text-transform: none;
-  letter-spacing: 0;
-  font-weight: 500;
+.pp-gate__title {
+  margin: 0;
+  font-size: 7vh;
+  font-weight: 900;
+  line-height: 1;
 }
 
-.room-host__input {
-  width: 130px;
-  padding: 6px 8px;
-  border: 1px solid var(--deck-line-strong);
-  border-radius: 8px;
-  background: var(--deck-bg);
-  color: var(--deck-ink);
+.pp-gate__blurb {
+  margin: 0 0 1.6vh;
+  font-size: 2.8vh;
+  color: var(--pp-muted);
+}
+
+.pp-gate__input {
+  width: 70%;
+  padding: 1.6vh 2vh;
   font: inherit;
-  font-size: 14px;
+  font-size: 3.6vh;
+  text-align: center;
+  letter-spacing: 0.24em;
+  color: var(--pp-ink);
+  background: var(--pp-bg);
+  border: 0.3vh solid var(--pp-line);
+  border-radius: 1.4vh;
+  outline: none;
 }
 
-.room-host__btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 6px 14px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--deck-clr, var(--deck-green));
+.pp-gate__input:focus-visible {
+  border-color: var(--pp-amber);
+  box-shadow: 0 0 0 0.4vh rgba(217, 130, 9, 0.25);
+}
+
+.pp-gate__btn {
+  padding: 1.6vh 4vh;
+  font: inherit;
+  font-size: 3vh;
+  font-weight: 800;
   color: #ffffff;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  background: var(--pp-ink);
+  border: 0;
+  border-radius: 1.4vh;
   cursor: pointer;
 }
 
-.room-host__btn [lang="th"] {
-  font-size: 11px;
-  font-weight: 500;
+.pp-gate__btn:hover { background: #3a3229; }
+.pp-gate__btn:focus-visible { outline: 0.4vh solid var(--pp-amber); outline-offset: 0.3vh; }
+
+.pp-gate__error {
+  margin: 0;
+  font-size: 2.6vh;
+  font-weight: 700;
+  color: var(--pp-alert);
 }
 
-.room-alert {
+/* ── host chrome ────────────────────────────────────────────────────────── */
+
+/*
+ * THIS WORKSHOP'S OWN BAR, not the pitch deck's.
+ *
+ * It used to be built from `--deck-*` tokens, which put a saturated green pill in the corner of a
+ * screen whose four colours each mean a persona — a fifth colour the room can see and that says
+ * nothing. Cream, ink and one hairline, from the same tokens the stages use.
+ *
+ * It also no longer carries a token field. The login gate is the only way a token gets in, so
+ * there is nothing here to mistype in front of a room, and the bar is two arrows and a reset.
+ *
+ * Quiet until approached: 0.45 opacity, full on hover or keyboard focus. The room should never
+ * notice it — advancing is the arrow key.
+ */
+.pp-host {
   position: fixed;
-  right: 12px;
-  bottom: 12px;
+  top: 1.4vh;
+  right: 1.4vh;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+  padding: 0.8vh;
+  background: var(--pp-card);
+  border: 0.16vh solid var(--pp-line);
+  border-radius: 1.4vh;
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
+.pp-host:hover,
+.pp-host:focus-within {
+  opacity: 1;
+}
+
+.pp-host__btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6vh;
+  padding: 0.9vh 1.8vh;
+  font: inherit;
+  font-size: 2vh;
+  font-weight: 800;
+  color: #ffffff;
+  background: var(--pp-ink);
+  border: 0;
+  border-radius: 1vh;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.pp-host__btn:focus-visible {
+  outline: 0.3vh solid var(--pp-amber);
+  outline-offset: 0.2vh;
+}
+
+.pp-host__btn--ghost {
+  color: var(--pp-muted);
+  background: transparent;
+  border: 0.16vh solid var(--pp-line);
+}
+
+/* Reset is the only host action with no undo, so it is the only one wearing a warning colour —
+   and only once ARMED. Idle it is a bare glyph that reads as chrome. */
+.pp-host__btn--reset {
+  color: var(--pp-muted);
+  background: transparent;
+  border: 0.16vh solid var(--pp-line);
+  font-size: 2.2vh;
+}
+
+.pp-host__btn--reset[data-armed='true'] {
+  color: #ffffff;
+  background: var(--pp-alert);
+  border-color: var(--pp-alert);
+  font-size: 1.8vh;
+}
+
+.pp-alert {
+  position: fixed;
+  right: 1.4vh;
+  bottom: 1.4vh;
   z-index: 40;
   margin: 0;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: var(--deck-card);
-  border: 1px solid var(--deck-line-strong);
+  padding: 1.2vh 2vh;
+  font-size: 2vh;
+  font-weight: 700;
+  color: var(--pp-ink);
+  background: var(--pp-card);
+  border: 0.16vh solid var(--pp-line);
+  border-radius: 1.2vh;
 }
 
-.room-alert--error {
-  border-color: var(--deck-red);
+.pp-alert--error {
+  color: #ffffff;
+  background: var(--pp-alert);
+  border-color: var(--pp-alert);
 }
 
-.room-alert--error .deck-bi__th {
-  color: var(--deck-red);
+
+/* ── the café layer ─────────────────────────────────────────────────────── */
+
+/*
+ * Coffee beans drifting behind every stage. FIXED and inset, deliberately: a fixed element makes
+ * no contribution to document scrollWidth/scrollHeight, so this cannot move the number
+ * scripts/check-projector-fit.mjs measures. An absolutely-positioned bean crossing the screen
+ * would have widened the document and failed that check while looking perfectly fine on screen.
+ *
+ * QUIET. It was loud enough to fight the type: six beans a tile at up to 17% brown, which on a
+ * projector reads as speckle across every stage. Now four beans across two much larger tiles at
+ * roughly half the opacity — texture you notice only if you look for it, which is the whole job.
+ *
+ * TWO LAYERS, not one, and that is the rest of the trick: `::before` carries the big beans on a slow
+ * drift, `::after` the small ones on a faster one, each rotated differently. A single tile reads
+ * as wallpaper — same bean, same size, same angle, repeating. Two tiles at different scales and
+ * speeds read as beans scattered on a counter.
+ *
+ * Each bean is TWO gradients: a brown ellipse, and a thin sliver of the page's own cream laid over
+ * its middle — the crease. Without the crease they are just brown dots.
+ *
+ * The whole tile translates by exactly its own size, so the loop is seamless and the only animated
+ * property is a transform.
+ */
+.room-root::before,
+.room-root::after {
+  content: '';
+  position: fixed;
+  inset: -40%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* The big beans — slow, and the ones the room actually registers. */
+.room-root::before {
+  background-image:
+    radial-gradient(ellipse 21px 15px at 22% 24%, rgba(104, 68, 38, 0.075) 60%, transparent 62%),
+    radial-gradient(ellipse 3px 11px at 22% 24%, rgba(255, 253, 247, 0.4) 60%, transparent 62%),
+    radial-gradient(ellipse 26px 18px at 72% 66%, rgba(104, 68, 38, 0.065) 60%, transparent 62%),
+    radial-gradient(ellipse 4px 13px at 72% 66%, rgba(255, 253, 247, 0.35) 60%, transparent 62%);
+  background-size: 760px 560px;
+  transform: rotate(-8deg);
+  animation: pp-drift-big 110s linear infinite;
+}
+
+/* The small ones — faster, fainter, and rotated the other way so the two tiles never line up. */
+.room-root::after {
+  background-image:
+    radial-gradient(ellipse 12px 8px at 34% 18%, rgba(104, 68, 38, 0.055) 60%, transparent 62%),
+    radial-gradient(ellipse 2px 6px at 34% 18%, rgba(255, 253, 247, 0.3) 60%, transparent 62%),
+    radial-gradient(ellipse 14px 10px at 12% 74%, rgba(104, 68, 38, 0.05) 60%, transparent 62%),
+    radial-gradient(ellipse 2px 7px at 12% 74%, rgba(255, 253, 247, 0.3) 60%, transparent 62%);
+  background-size: 520px 400px;
+  transform: rotate(14deg);
+  animation: pp-drift-small 70s linear infinite;
+}
+
+/* The rotation has to be restated in every keyframe — a `transform` animation replaces the
+   declared one outright, and dropping it would snap both tiles upright the moment they start. */
+@keyframes pp-drift-big {
+  from { transform: rotate(-8deg) translate3d(0, 0, 0); }
+  to { transform: rotate(-8deg) translate3d(760px, 560px, 0); }
+}
+
+@keyframes pp-drift-small {
+  from { transform: rotate(14deg) translate3d(0, 0, 0); }
+  to { transform: rotate(14deg) translate3d(-520px, 400px, 0); }
+}
+
+/* ── pouring ────────────────────────────────────────────────────────────── */
+
+/*
+ * Bars fill from the left rather than appearing at full length — the same gesture as pouring, and
+ * the reason it is worth the animation is that it gives the room a beat to look at the axis before
+ * the numbers land. scaleX on a bar whose WIDTH already carries the value: the transform is purely
+ * an entrance and cannot change what the chart says.
+ */
+.pp-chart__bar,
+.pp-split__bar {
+  transform-origin: left center;
+  animation: pp-pour 0.85s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
+}
+
+.pp-chart__row:nth-child(2) .pp-chart__bar,
+.pp-split__row:nth-child(2) .pp-split__bar { animation-delay: 0.07s; }
+.pp-chart__row:nth-child(3) .pp-chart__bar,
+.pp-split__row:nth-child(3) .pp-split__bar { animation-delay: 0.14s; }
+.pp-chart__row:nth-child(4) .pp-chart__bar,
+.pp-split__row:nth-child(4) .pp-split__bar { animation-delay: 0.21s; }
+.pp-chart__row:nth-child(5) .pp-chart__bar,
+.pp-split__row:nth-child(5) .pp-split__bar { animation-delay: 0.28s; }
+
+@keyframes pp-pour {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/*
+ * One switch for all of it. Every animation above is decoration over a screen that already says
+ * everything in text, so `reduce` collapses the lot rather than slowing it — and the projector
+ * check asserts exactly that (scripts/check-projector-fit.mjs, checkReducedMotion).
+ */
+@media (prefers-reduced-motion: reduce) {
+  .room-root::before,
+  .room-root::after,
+  .pp-quadrant__art,
+  .pp-quadrant__halo,
+  .pp-names__one,
+  .pp-chart__bar,
+  .pp-split__bar {
+    animation: none;
+  }
+
+  .pp-chart__bar,
+  .pp-split__bar {
+    transition: none;
+  }
+}
+
+
+/* ── the mascots ────────────────────────────────────────────────────────── */
+
+/*
+ * The four MAD+ characters, on the result map and nowhere else on this screen.
+ *
+ * SIZING: plain `vh`, per this sheet's rule — a projector is wide and SHORT, and a character sized
+ * off viewport width alone is the one element on the stage big enough to push the map off a 768px
+ * screen by itself.
+ *
+ * MOTION: transform only. `app/biz/page.tsx` re-renders this whole tree five times a second (the
+ * countdown interpolation) on top of the poll, so anything costing layout or paint per frame
+ * competes with the room's clock on a laptop driving an external display.
+ */
+.pp-quadrant__art {
+  position: absolute;
+  right: 1.4vh;
+  /*
+   * CLEAR OF THE EDGE, NOT CROPPED BY IT.
+   *
+   * This used to sit at `-1.6vh` so the character was cut off by the quadrant's bottom border —
+   * the idea being that it read as sitting IN the box rather than floating in it. On the wall it
+   * just read as a picture that did not fit: these are somebody's mascots, and the first thing the
+   * room noticed was that their feet were missing.
+   *
+   * The gap has to clear the BOB as well as the art. The idle animation lifts the figure and drops
+   * it back to its resting position and never below it, so a resting gap is a permanent gap — but
+   * the rotation swings the far corner down by about a percent of the height, which is what the
+   * extra room here is for.
+   */
+  bottom: 2.4vh;
+  height: 25vh;
+  width: auto;
+  transform-origin: 50% 100%;
+  animation: pp-bob 3.2s ease-in-out infinite;
+}
+
+/* A soft disc of the persona's own colour under the character. This is how the object it holds —
+   the star, the flame, the snowflake, the data cloud — gets to pulse: the art is a flat export
+   with no named layers, so nothing inside it can be animated on its own. */
+.pp-quadrant__halo {
+  position: absolute;
+  right: 3.4vh;
+  bottom: 6vh;
+  width: 15vh;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pp-accent) 0%, transparent 68%);
+  opacity: 0.14;
+  animation: pp-halo 3.4s ease-in-out infinite;
+}
+
+/* Each character on its own phase — four figures bobbing in lockstep read as one mechanism, which
+   is the opposite of four different people. */
+.pp-quadrant:nth-child(2) .pp-quadrant__art { animation-delay: -0.8s; }
+.pp-quadrant:nth-child(3) .pp-quadrant__art { animation-delay: -1.6s; }
+.pp-quadrant:nth-child(4) .pp-quadrant__art { animation-delay: -2.4s; }
+
+@keyframes pp-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-4%) rotate(-1.2deg); }
+}
+
+@keyframes pp-halo {
+  0%, 100% { transform: scale(0.86); opacity: 0.09; }
+  50% { transform: scale(1.12); opacity: 0.2; }
 }

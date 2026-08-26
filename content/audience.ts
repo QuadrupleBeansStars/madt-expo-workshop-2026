@@ -25,6 +25,13 @@ export type AudienceAggregate = {
   arrivalMode: Record<'walk' | 'bus' | 'car' | 'moto', number>
   wakeTime: Record<'before6' | '6to8' | '8to10' | 'after10', number>
   firstDrink: Record<'coffee' | 'tea' | 'water' | 'nothing', number>
+  /**
+   * What they BUY first, which is not what they drink first — see MOCK_FIELDS below. The form
+   * asked what people drink when they wake up, and the honest answer to that is water: it is what
+   * a body wants on waking, not a thing anyone chose or paid for. A question about a café has to
+   * ask about the first drink someone BUYS.
+   */
+  firstBuy: Record<'coffee' | 'tea' | 'juice' | 'milk' | 'none', number>
   buyTime: Record<'before7' | '7to9' | '9to11' | 'after11' | 'never', number>
   /** Minutes they will stand in a queue before giving up. `any` never leaves. */
   queuePatience: Record<'under5' | 'under10' | 'under15' | 'any', number>
@@ -48,8 +55,26 @@ export type AudienceAggregate = {
 
 /** Single-choice fields, which must sum to `respondents`. `mainFactor` is deliberately absent. */
 export const SINGLE_CHOICE_FIELDS = [
-  'arrivalMode', 'wakeTime', 'firstDrink', 'buyTime', 'queuePatience', 'spend',
+  'arrivalMode', 'wakeTime', 'firstDrink', 'firstBuy', 'buyTime', 'queuePatience', 'spend',
 ] as const
+
+/**
+ * Distributions with NO COLUMN BEHIND THEM YET.
+ *
+ * Everything else in this file is a real answer (scaled — see the note below). `firstBuy` is not:
+ * the question has not been asked yet, and these numbers are a plausible stand-in written so the
+ * café's partnership round has a chart that bears on the decision at all.
+ *
+ * IT IS MARKED ON SCREEN. `components/room/Stages.tsx` prints "ข้อมูลตัวอย่าง" in the chart's meta
+ * line for anything named here, because the whole premise of this workshop is that the room is
+ * looking at ITS OWN data — telling them a made-up bar is theirs is the one lie this deck cannot
+ * afford, and it is the exact move the other workshop spends nine minutes teaching them to catch.
+ *
+ * TO RETIRE IT: add the column to the registration form, and `scripts/import-audience.ts` already
+ * knows how to read it (HEADER_KEYS.firstBuy). Delete the name from this set on the same commit
+ * that lands the real numbers.
+ */
+export const MOCK_FIELDS: ReadonlySet<string> = new Set(['firstBuy'])
 
 // Real registration data has been imported — the placeholder badge is off.
 export const IS_PLACEHOLDER = false
@@ -77,6 +102,13 @@ export const AUDIENCE: AudienceAggregate = {
     "tea": 11,
     "water": 22,
     "nothing": 0
+  },
+  "firstBuy": {
+    "coffee": 21,
+    "tea": 9,
+    "juice": 6,
+    "milk": 3,
+    "none": 11
   },
   "buyTime": {
     "before7": 3,

@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PHONE } from '@/content/room-labels'
+import { NAME_MAX } from '@/lib/names'
 import { Bilingual } from '@/components/deck/Bilingual'
 import { PhoneBody, type PhoneFrame } from '@/components/room/PhoneBody'
 import type { LocalizedText } from '@/lib/types'
@@ -307,7 +308,7 @@ function JoinScreen({
           className="phone-join__input"
           type="text"
           value={name}
-          maxLength={40}
+          maxLength={NAME_MAX}
           autoComplete="off"
           onChange={(e) => setName(e.target.value)}
         />

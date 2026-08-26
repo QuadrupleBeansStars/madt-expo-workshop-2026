@@ -3,7 +3,8 @@
 //
 // Choice buttons are NEUTRAL during ask — persona colors on the phone mid-game would leak the
 // choice→type mapping to anyone who noticed four consistent colors. The persona palette appears
-// exactly once on this screen: the final card.
+// exactly once on this screen: the final card, which is also the only place the phone shows a
+// mascot (public/personas/*.png, mapped in content/persona.ts).
 
 import { PHONE } from '@/content/room-labels'
 import { PERSONAS, QUESTIONS } from '@/content/persona'
@@ -188,10 +189,18 @@ function PersonaCard({ persona }: { persona: PersonaId }) {
   const partner = PERSONAS[p.partner]
   return (
     <section className="phone-card" data-testid="persona-card" data-persona={persona}>
-      <p className="phone-card__kicker"><Bilingual text={PHONE.yourType} as="label" /></p>
-      <p className="phone-card__emoji" aria-hidden>{p.emoji}</p>
-      <h1 className="phone-card__label">{p.label}</h1>
-      <p className="phone-card__coffee" lang="th">{p.coffee} · {p.archetype}</p>
+      {/* The character's own line from the MAD+ profile — the one place it appears, so a player
+          who walked past the booth recognises the card as the same world. */}
+      <p className="phone-card__quote">{p.mascot.quote}</p>
+      {/* The mascot IS the reveal: it rises first, the words follow. `alt` is empty because the
+          name is the next line and a screen reader would otherwise say the character twice. */}
+      <span className="phone-card__art" aria-hidden>
+        <img src={p.mascot.art} alt="" />
+      </span>
+      <h1 className="phone-card__name">{p.mascot.name}</h1>
+      {/* The archetype alone. `label` and `coffee` stay authored in content/persona.ts as the
+          host's language; the card carries the character's name and what that character is. */}
+      <p className="phone-card__coffee" lang="th">{p.archetype}</p>
       <p className="phone-card__axis">
         {AXIS_LABELS.trust[axis.trust]} × {AXIS_LABELS.pace[axis.pace]}
       </p>
@@ -207,7 +216,7 @@ function PersonaCard({ persona }: { persona: PersonaId }) {
         </div>
         <div>
           <dt><Bilingual text={PHONE.partner} as="label" /></dt>
-          <dd data-testid="partner">{partner.emoji} {partner.label}</dd>
+          <dd data-testid="partner">{partner.mascot.name} · {partner.archetype}</dd>
         </div>
       </dl>
     </section>

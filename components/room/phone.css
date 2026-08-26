@@ -14,10 +14,12 @@
   --phone-muted: #6b6459;
   --phone-line: #e8e2d4;
   --phone-clr: #b4550f;
-  --phone-pioneer: #e4572e;
-  --phone-sprinter: #e9a820;
-  --phone-analyst: #2667c9;
-  --phone-guardian: #2e7d4f;
+  /* The MAD+ mascot palette — the same four values as components/room/stages.css. If you change
+     one here, change it there: the projector and the phone are showing the same card. */
+  --phone-pioneer: #d98209;   /* BIGLOK */
+  --phone-sprinter: #e3603b;  /* TECHIE */
+  --phone-analyst: #7b4a96;   /* SHAPPY */
+  --phone-guardian: #3f7699;  /* BEEDEE */
 
   min-height: 100dvh;
   display: flex;
@@ -211,17 +213,104 @@
 .phone-card[data-persona='analyst'] { --phone-accent: var(--phone-analyst); }
 .phone-card[data-persona='guardian'] { --phone-accent: var(--phone-guardian); }
 
-.phone-card__emoji {
-  font-size: 44px;
-  line-height: 1;
+/* The character's own line, from the MAD+ profile. Quiet and small — it sets the register for the
+   card without competing with the name underneath the picture. */
+.phone-card__quote {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--phone-muted);
 }
 
-.phone-card__label {
-  margin: 0;
-  font-size: 28px;
+/*
+ * The mascot, and the reason the card is worth looking at. Sized off the SHORT axis (`dvh`, with a
+ * px ceiling): a 44px emoji left the bottom third of a modern phone empty, and a width-sized
+ * picture would overflow a small one. The halo behind it is how the object the character holds
+ * gets to pulse — the art is a flat export with no layers to animate.
+ */
+.phone-card__art {
+  position: relative;
+  display: grid;
+  place-items: end center;
+  /*
+   * `minmax(0, 1fr)`, NOT the implicit `auto` row.
+   *
+   * An auto row sizes itself to its content, so the 800px PNG made the ROW 372px tall inside a
+   * 200px box — and `max-height: 100%` on the image resolved against that 372px row, which is why
+   * capping the image did nothing. Bounding the row is what makes the cap mean the box.
+   */
+  grid-template-rows: minmax(0, 1fr);
+  height: min(28dvh, 200px);
+  /*
+   * `flex: none` AND `min-height: 0`, and both are load-bearing.
+   *
+   * This is a flex item, and a flex item's `min-height` defaults to AUTO — meaning it refuses to
+   * shrink below its content. The content is an 800px-tall PNG, so the declared height above was
+   * simply ignored: the character rendered at full size, overflowed this box, and painted straight
+   * over its own name, its archetype and the first two lines of the description. The card looked
+   * like a picture with text behind it.
+   */
+  flex: none;
+  min-height: 0;
+  margin-top: 6px;
+}
+
+.phone-card__art::before {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: min(24dvh, 172px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--phone-accent) 0%, transparent 70%);
+  opacity: 0.18;
+  animation: phone-halo 3.4s ease-in-out infinite;
+}
+
+.phone-card__art img {
+  position: relative;
+  /* Bounded by the BOX on both axes, never by its own intrinsic size — `max-*` with `auto` keeps
+     the character's proportions whatever the phone's shape turns out to be. */
+  max-height: 100%;
+  max-width: 100%;
+  height: auto;
+  width: auto;
+  animation: phone-rise 0.85s cubic-bezier(0.2, 1.1, 0.4, 1) backwards 0.1s;
+}
+
+.phone-card__name {
+  margin: 8px 0 0;
+  font-size: 34px;
   font-weight: 900;
   letter-spacing: 0.04em;
+  line-height: 1;
   color: var(--phone-accent);
+}
+
+/* The framework name, under the mascot's own. The 2×2 on the projector is labelled in these
+   words, and a player who only ever saw "SHAPPY" could not find themselves on it. */
+.phone-card__label {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--phone-muted);
+}
+
+@keyframes phone-rise {
+  from { opacity: 0; transform: translateY(14%) scale(0.88); }
+}
+
+@keyframes phone-halo {
+  0%, 100% { transform: scale(0.86); opacity: 0.1; }
+  50% { transform: scale(1.1); opacity: 0.24; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phone-card__art::before,
+  .phone-card__art img {
+    animation: none;
+  }
 }
 
 .phone-card__coffee {

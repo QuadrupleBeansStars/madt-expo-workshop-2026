@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { NAME_MAX } from '@/lib/names'
 import { getStore } from '@/lib/store'
 
 export async function POST(req: Request) {
@@ -20,6 +21,6 @@ export async function POST(req: Request) {
 
   const trimmed = codename.trim()
   if (!trimmed) return NextResponse.json({ error: 'codename required' }, { status: 400 })
-  const player = getStore().join(trimmed.slice(0, 40), Date.now())
+  const player = getStore().join(trimmed.slice(0, NAME_MAX), Date.now())
   return NextResponse.json({ player })
 }

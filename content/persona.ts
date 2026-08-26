@@ -1,4 +1,24 @@
-// Café Persona — ALL authored content. Personas are team-renameable without touching mechanics;
+// Café Persona — ALL authored content.
+//
+// EACH PERSONA IS A MAD+ MASCOT, mapped from the official profiles in `2026 MADT EXPO.pdf` rather
+// than from the artwork: BIGLOK the Creator prototypes before anyone else has finished framing the
+// problem (PIONEER), TECHIE the Builder ships and measures and ships again (SPRINTER), SHAPPY the
+// Thinker orders the data before trusting it (ANALYST), BEEDEE the Listener will not answer until
+// it has understood the question (GUARDIAN). The four colours below are those characters' own.
+//
+// The mapping is not decorative — `partner` is the diagonal, and the document's own loop closes
+// Techie → BeeDee, which is the same pair. See lib/room-types.ts for the full note.
+//
+// `label` AND `coffee` ARE NO LONGER RENDERED. The screen shows the mascot's name and the Thai
+// archetype — BIGLOK · นักบุกเบิก — because three names stacked on one quadrant is two more than a
+// room can read from the back. Both fields stay authored here for the same reason `smallTalk`
+// does: they are the host's words. "คุณคือเอสเพรสโซ่" is a line worth saying out loud; it is not
+// worth a third line of type on a projector.
+//
+// `smallTalk` IS NOT RENDERED ANYWHERE. It is the host's line for the reveal — the workshop's
+// teaching, delivered out loud over the bars rather than printed beside them (components/room/
+// Stages.tsx says why). Keep authoring it: it is the script, and the reveal is empty without
+// someone saying it. Personas are team-renameable without touching mechanics;
 // question copy is team-editable. dataHook figures are template-computed from AUDIENCE so a
 // survey re-import (scripts/import-audience.ts) updates every hook — never hand-type a figure.
 
@@ -9,37 +29,42 @@ const N = AUDIENCE.respondents
 
 export const PERSONAS: Record<PersonaId, Persona> = {
   pioneer: {
-    id: 'pioneer', label: 'THE PIONEER', coffee: 'เอสเพรสโซ่', archetype: 'นักบุกเบิก', emoji: '🔥',
+    id: 'pioneer', label: 'THE PIONEER', coffee: 'เอสเพรสโซ่', archetype: 'นักบุกเบิก',
+    mascot: { name: 'BIGLOK', art: '/personas/biglok.png', quote: 'Impossible? Let’s prototype.' },
     description:
-      'คุณคือคนที่กดช็อตแล้วเสิร์ฟเลย โลกของคุณหมุนเร็ว และคุณเชื่อว่าโอกาสไม่รอใคร ' +
-      'เซนส์ของคุณคมเพราะประสบการณ์จริง ไม่ใช่เพราะเดา และพลังของคุณดึงคนทั้งทีมให้กล้าขยับตาม',
+      'คุณคือคนที่กดช็อตแล้วเสิร์ฟเลย ตอนคนอื่นยังเห็นว่ามันเป็นปัญหา คุณเริ่มลงมือทำต้นแบบไปแล้ว ' +
+      'ไอเดียของคุณมาไวและมาเยอะ และพลังของคุณดึงคนทั้งทีมให้กล้าขยับตาม',
     strength: 'ได้ลงมือก่อนใคร สร้างโมเมนตัมเก่ง',
     caution: 'เร็วจนบางทีข้อมูลที่มีอยู่แล้วไม่ถูกเปิดอ่าน',
     partner: 'analyst',
   },
   sprinter: {
-    id: 'sprinter', label: 'THE SPRINTER', coffee: 'Nitro', archetype: 'นักฉวยจังหวะ', emoji: '⚡',
+    id: 'sprinter', label: 'THE SPRINTER', coffee: 'Nitro', archetype: 'นักฉวยจังหวะ',
+    mascot: { name: 'TECHIE', art: '/personas/techie.png', quote: 'Let’s make it real.' },
     description:
-      'คุณสกัดข้อมูลเก็บไว้ล่วงหน้าเหมือนโคลด์บริวในถัง Nitro พอจังหวะมาถึงคุณกดแท็ปเสิร์ฟทันที ' +
-      'เร็วแต่ไม่มั่ว เพราะการบ้านทำมาแล้ว คุณคือคนที่ทดลองเล็ก เรียนรู้ไว แล้วขยายผล',
+      'คุณไม่ปล่อยให้ไอเดียค้างอยู่บนกระดาน คุณปล่อยของจริงออกไปก่อน แล้ววัดผล ปรับ แล้วปล่อยใหม่ ' +
+      'เร็วแต่ไม่มั่ว เพราะทุกรอบคุณเก็บผลกลับมาเสมอ',
     strength: 'ทดลองเร็ว เรียนรู้เร็ว ปรับตัวไว',
     caution: 'การทดลองที่เร็วเกินไปอาจวัดผลไม่ทันจบ',
     partner: 'guardian',
   },
   analyst: {
-    id: 'analyst', label: 'THE ANALYST', coffee: 'โคลด์บริว', archetype: 'นักวิเคราะห์', emoji: '🌊',
+    id: 'analyst', label: 'THE ANALYST', coffee: 'โคลด์บริว', archetype: 'นักวิเคราะห์',
+    mascot: { name: 'SHAPPY', art: '/personas/shappy.png', quote: 'Let’s connect the dots.' },
     description:
-      'คุณไม่เชื่ออะไรง่าย ๆ จนกว่าตัวเลขจะพูด คุณยอมแช่ข้อมูล 18 ชั่วโมงเพื่อรสที่พลาดยาก ' +
-      'การตัดสินใจของคุณอาจมาช้ากว่าใคร แต่แทบไม่เคยต้องถอนคืน และทีมพึ่งความแม่นของคุณเสมอ',
+      'คุณไม่เชื่ออะไรง่าย ๆ จนกว่าจะจัดข้อมูลให้เข้าที่ก่อน คุณรู้ว่าข้อมูลเยอะไม่ได้แปลว่าฉลาด ' +
+      'แต่ข้อมูลที่เรียงถูกวิธีจะกลายเป็นภาพใหญ่ที่คนอื่นมองไม่เห็น ' +
+      'การตัดสินใจของคุณอาจมาช้ากว่าใคร แต่แทบไม่เคยต้องถอนคืน',
     strength: 'แม่นยำ พลาดยาก น่าเชื่อถือ',
     caution: 'รอข้อมูลครบจนโอกาสหลุดมือ',
     partner: 'pioneer',
   },
   guardian: {
-    id: 'guardian', label: 'THE GUARDIAN', coffee: 'พัวร์โอเวอร์', archetype: 'ผู้พิทักษ์', emoji: '🌿',
+    id: 'guardian', label: 'THE GUARDIAN', coffee: 'พัวร์โอเวอร์', archetype: 'ผู้พิทักษ์',
+    mascot: { name: 'BEEDEE', art: '/personas/beedee.png', quote: 'Every great AI starts with understanding.' },
     description:
-      'คุณค่อย ๆ รินอย่างมีจังหวะ เชื่อในฝีมือ คุณภาพ และคนตรงหน้า ' +
-      'คุณปกป้องสิ่งที่ร้านเป็นมากกว่าวิ่งตามทุกกระแส และเป็นเหตุผลที่ลูกค้าเก่ากลับมาทุกวัน',
+      'คุณค่อย ๆ รินอย่างมีจังหวะ และคุณไม่รีบตอบ — คุณฟังก่อน ฟังลูกค้า ฟังทีม ฟังว่าคำถามจริง ๆ คืออะไร ' +
+      'คุณเชื่อว่าการตัดสินใจที่ดีเริ่มจากการเข้าใจคำถามที่ถูกต้อง และเป็นเหตุผลที่ลูกค้าเก่ากลับมาทุกวัน',
     strength: 'มั่นคง รักษาแก่นของทีมและแบรนด์',
     caution: 'ระวังจนบางครั้งเสียจังหวะที่ควรขยับ',
     partner: 'sprinter',
@@ -54,12 +79,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['taste'],
       caption: `“รสชาติ” มีผลกับทั้ง ${AUDIENCE.mainFactor.taste} จาก ${N} คนในห้องนี้ — มากกว่าราคาเสียอีก`,
     },
-    scenario: 'ซัพพลายเออร์รายใหม่เสนอเมล็ดกาแฟถูกลง 20% แต่รสชาติต่างจากเดิมเล็กน้อย — เอายังไงดี?',
+    scenario: 'เมล็ดเจ้าใหม่ถูกลง 20% แต่รสต่างจากเดิมนิดหน่อย — เอาไหม?',
     choices: [
       { label: 'ชิมเองแล้วตัดสินเลย เชื่อลิ้นตัวเอง', persona: 'pioneer' },
       { label: 'สลับใช้ 1 สัปดาห์ ดูยอดขายจริง', persona: 'sprinter' },
-      { label: 'จัด blind taste test เก็บคะแนนก่อนตัดสิน', persona: 'analyst' },
-      { label: 'ไม่เปลี่ยน — รสชาติคือทั้งหมดของร้านเรา', persona: 'guardian' },
+      { label: 'ทำ blind test ให้ลูกค้าชิม แล้วนับคะแนน', persona: 'analyst' },
+      { label: 'ไม่เปลี่ยน — รสชาติคือทั้งหมดของร้าน', persona: 'guardian' },
     ],
     smallTalk:
       'ทั้งห้องพูดเป็นเสียงเดียวว่ารสชาติมาก่อน — คำถามจึงไม่ใช่ “ประหยัดได้ไหม” แต่ “เสี่ยงกับแก่นของร้านแค่ไหน” ' +
@@ -72,14 +97,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['under5', 'under10'],
       caption: `${AUDIENCE.queuePatience.under5 + AUDIENCE.queuePatience.under10} จาก ${N} คนเลิกต่อคิวภายใน 10 นาที`,
     },
-    scenario:
-      'เช้าวันธรรมดา ลูกค้าต้องต่อคิวร้านเรานานราว 15 นาที — แต่ข้อมูลบอกว่าคนส่วนใหญ่ทนรอได้ไม่ถึง 10 นาที ' +
-      'วันนี้เห็นลูกค้าถอดใจเดินออกไปหลายคนแล้ว จะแก้ปัญหาคิวยังไง?',
+    scenario: 'เช้าวันธรรมดา คิวร้านเรายาว 15 นาที วันนี้เห็นคนถอดใจเดินออกหลายคน — แก้ยังไง?',
     choices: [
-      { label: 'ทดลองรับออเดอร์ล่วงหน้าผ่าน LINE 1 สัปดาห์ ดูตัวเลขว่าคิวสั้นลงจริงไหม', persona: 'sprinter' },
-      { label: 'จ้างบาริสต้าเพิ่มตั้งแต่พรุ่งนี้ — คิวยาวคือเสียลูกค้าทุกวัน', persona: 'pioneer' },
-      { label: 'ยังไม่จ้างเพิ่ม — ฝึกทีมเดิมให้ชงเร็วขึ้น คุมทั้งคุณภาพและต้นทุน', persona: 'guardian' },
-      { label: 'จับเวลาทุกขั้นตอน 1 สัปดาห์ หาให้เจอว่าช้าตรงไหน แล้วแก้ให้ตรงจุด', persona: 'analyst' },
+      { label: 'ลองรับออเดอร์ล่วงหน้าใน LINE 1 สัปดาห์', persona: 'sprinter' },
+      { label: 'จ้างบาริสต้าเพิ่มพรุ่งนี้เลย', persona: 'pioneer' },
+      { label: 'ยังไม่จ้างเพิ่ม — ฝึกทีมเดิมให้ชงเร็วขึ้น', persona: 'guardian' },
+      { label: 'จับเวลาทุกขั้นตอนก่อน หาว่าช้าตรงไหน', persona: 'analyst' },
     ],
     smallTalk:
       'ตัวเลขบอกว่าลูกค้าหายไปตรงนาทีที่ 10 — แต่ไม่ได้บอกว่า “เพราะอะไร” ' +
@@ -92,12 +115,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['50to100'],
       caption: `${AUDIENCE.spend['50to100']} จาก ${N} คนจ่ายอยู่ในช่วง ฿50–100`,
     },
-    scenario: 'ร้านกำลังจะเปิดตัวเมนู signature ใหม่ — ตั้งราคาที่เท่าไหร่ดี?',
+    scenario: 'จะเปิดเมนู signature ใหม่ — ตั้งราคาเท่าไหร่ดี?',
     choices: [
-      { label: 'อยู่ในกรอบ ฿50–100 ที่ลูกค้าเราอยู่จริง', persona: 'guardian' },
-      { label: 'สำรวจก่อนว่าลูกค้ายอมจ่ายสูงสุดเท่าไหร่ แล้วค่อยตั้ง', persona: 'analyst' },
+      { label: '฿50–100 ตามที่ลูกค้าเราจ่ายอยู่จริง', persona: 'guardian' },
+      { label: 'ถามลูกค้าก่อนว่ายอมจ่ายสูงสุดเท่าไหร่', persona: 'analyst' },
       { label: '฿120 ไปเลย ของดีต้องกล้าตั้ง', persona: 'pioneer' },
-      { label: 'เปิดตัว ฿89 โปรสัปดาห์แรก แล้วปรับตามยอดขาย', persona: 'sprinter' },
+      { label: 'เปิดตัวราคาพิเศษ 2 สัปดาห์ แล้วค่อยขึ้นราคา', persona: 'sprinter' },
     ],
     smallTalk:
       'ราคาไม่ใช่แค่ตัวเลข แต่เป็นข้อความที่ร้านส่งถึงลูกค้า — บางคนตั้งในกรอบเพื่อความชัวร์ ' +
@@ -105,22 +128,35 @@ export const QUESTIONS: Question[] = [
   },
   {
     id: 'q4',
+    /*
+     * IT USED TO PLOT `firstDrink` AND HIGHLIGHT water + tea, and the sum it printed — "33 of 50
+     * do not start the day with coffee" — was true and meant nothing. Almost everyone drinks
+     * water on waking; it is not a preference and nobody pays for it. Folding it in inflated the
+     * real signal (tea) from 22% to 66% and pointed the room at "sign the deal" with a number
+     * that never said so.
+     *
+     * That is the same move AI Detective's case 7 exists to teach people to catch — a true figure
+     * carrying a conclusion it does not support — and a deck that does it to its own audience has
+     * no business running the other workshop an hour earlier.
+     *
+     * `firstBuy` asks what people BUY instead, which is the question a café actually has. It is
+     * MOCK until the form carries the column (content/audience.ts, MOCK_FIELDS) and the chart
+     * says so on screen.
+     */
     dataHook: {
-      field: 'firstDrink',
-      highlight: ['water', 'tea'],
-      caption: `${AUDIENCE.firstDrink.water + AUDIENCE.firstDrink.tea} จาก ${N} คนเริ่มเช้าด้วยเครื่องดื่มที่ไม่ใช่กาแฟ`,
+      field: 'firstBuy',
+      highlight: ['tea', 'juice', 'milk'],
+      caption: `${AUDIENCE.firstBuy.tea + AUDIENCE.firstBuy.juice + AUDIENCE.firstBuy.milk} จาก ${N} คนซื้อแก้วแรกของวันเป็นอย่างอื่นที่ไม่ใช่กาแฟ`,
     },
-    scenario:
-      'แบรนด์ชาพรีเมียมเสนอเป็นพาร์ตเนอร์ เปิดเมนูชาและเครื่องดื่ม non-coffee ในร้านเรา ' +
-      'ลงทุนเพิ่มไม่มาก แต่ต้องแบ่งพื้นที่บาร์และเวลาของทีมไปส่วนหนึ่ง — เอาไหม?',
+    scenario: 'จะเพิ่มเมนูที่ไม่ใช่กาแฟ — ชา น้ำผลไม้ นม — เข้าร้านไหม?',
     choices: [
-      { label: 'ตกลงเลย — คนครึ่งห้องไม่ได้เริ่มวันด้วยกาแฟ ตลาดนี้มีจริง', persona: 'pioneer' },
-      { label: 'ไม่เอา — เราคือร้านกาแฟ แบ่งบาร์ให้ชาเสี่ยงเสียตัวตนของร้าน', persona: 'guardian' },
-      { label: 'ยังไม่เซ็นสัญญายาว — ขอลองขายชา 2 เมนูสัก 1 เดือน วัดยอดจริงก่อน', persona: 'sprinter' },
-      { label: 'ยังไม่ตอบ — ไปถามลูกค้าก่อนว่าเช้าที่ไม่ดื่มกาแฟ เขาอยากได้อะไรกันแน่', persona: 'analyst' },
+      { label: 'เพิ่มเลย ช้าแล้วร้านอื่นได้ไป', persona: 'pioneer' },
+      { label: 'ไม่เอา — เราคือร้านกาแฟ', persona: 'guardian' },
+      { label: 'ลองขาย 2 เมนู 1 เดือน แล้ววัดยอด', persona: 'sprinter' },
+      { label: 'ถามลูกค้าก่อนว่าอยากได้เมนูไหน', persona: 'analyst' },
     ],
     smallTalk:
-      'ข้อมูลบอกว่าเช้าของหลายคนไม่ได้เริ่มด้วยกาแฟ — แต่ไม่ได้บอกว่าเขาจะซื้อชาจากร้านเรา ' +
+      'เกือบครึ่งของคนที่ซื้อ ไม่ได้ซื้อกาแฟ — แต่ยังไม่ได้บอกว่าเขาจะซื้อเมนูอื่นจากร้านเรา ' +
       'บางคนเห็นตลาดใหม่ บางคนเห็นความเสี่ยงต่อตัวตนของร้าน ส่วนการขอทดลองหรือถามต่อ ก็คือการซื้อข้อมูลเพิ่มก่อนจ่ายเงินจริง',
   },
   {
@@ -130,12 +166,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['car'],
       caption: `${AUDIENCE.arrivalMode.car} จาก ${N} คนขับรถยนต์มา`,
     },
-    scenario: 'ห้องข้าง ๆ ร้านว่างพอดี เจ้าของตึกเสนอให้เช่าทำที่จอดรถ — เอาไหม?',
+    scenario: 'ห้องข้าง ๆ ว่าง เจ้าของตึกให้เช่าทำที่จอดรถ — เอาไหม?',
     choices: [
-      { label: 'นับก่อน — วันหนึ่งมีรถวนแล้วไม่ได้จอดกี่คัน', persona: 'analyst' },
+      { label: 'นับก่อน — วันหนึ่งมีรถหาที่จอดไม่ได้กี่คัน', persona: 'analyst' },
       { label: 'เซ็นเลย ที่จอดคือแต้มต่อที่คู่แข่งไม่มี', persona: 'pioneer' },
-      { label: 'ขอเช่าระยะสั้น 3 เดือน ทดลองก่อน', persona: 'sprinter' },
-      { label: 'ไม่เอา — ภาระค่าเช่าประจำเสี่ยงเกินไป', persona: 'guardian' },
+      { label: 'ขอเช่าสั้น 3 เดือน ลองก่อน', persona: 'sprinter' },
+      { label: 'ไม่เอา — ค่าเช่าประจำเสี่ยงเกินไป', persona: 'guardian' },
     ],
     smallTalk:
       'ตึกข้าง ๆ ไม่ได้ว่างตลอดไป — โอกาสมีวันหมดอายุ แต่ค่าเช่าไม่มี ' +
@@ -148,12 +184,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['7to9', 'never'],
       caption: `ยอดขายกระจุกช่วง 7–9 โมง (${AUDIENCE.buyTime['7to9']} คน) — และมีคน “ไม่ซื้อเลย” ถึง ${AUDIENCE.buyTime.never} คน`,
     },
-    scenario: 'ยอดขายกระจุกตอนเช้า ช่วงบ่ายร้านเงียบมาก — จัดการยังไง?',
+    scenario: 'ยอดกระจุกตอนเช้า บ่ายร้านเงียบ — ทำยังไงดี?',
     choices: [
-      { label: 'ยิง flash promo บ่ายนี้ 14:00–16:00 ดูผลทันที', persona: 'sprinter' },
-      { label: 'ลดชั่วโมงพนักงานช่วงบ่าย รักษากำไรไว้ก่อน', persona: 'guardian' },
-      { label: 'จัด happy hour ช่วงบ่ายตั้งแต่พรุ่งนี้เลย', persona: 'pioneer' },
-      { label: 'ไปศึกษากลุ่มที่ “ไม่ซื้อเลย” — อาจเป็นตลาดใหม่ทั้งก้อน', persona: 'analyst' },
+      { label: 'ยิงโปรบ่ายนี้ 14:00–16:00 ดูผลทันที', persona: 'sprinter' },
+      { label: 'ลดชั่วโมงพนักงานช่วงบ่าย รักษากำไรไว้', persona: 'guardian' },
+      { label: 'จัด happy hour ช่วงบ่าย เริ่มพรุ่งนี้', persona: 'pioneer' },
+      { label: 'หาก่อนว่าคนที่ไม่ซื้อเลย เขาติดอะไร', persona: 'analyst' },
     ],
     smallTalk:
       'ช่วงเวลาที่เงียบคือกระจกสองด้าน — ด้านหนึ่งคือต้นทุนที่ต้องคุม อีกด้านคือตลาดที่ยังไม่ถูกปลุก ' +
@@ -166,12 +202,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['price', 'promotion'],
       caption: `“ราคา” มีผลกับ ${AUDIENCE.mainFactor.price} คน “โปรโมชัน” อีก ${AUDIENCE.mainFactor.promotion} คน — แต่รสชาตินำทุกอย่าง`,
     },
-    scenario: 'ร้านคู่แข่งเปิดฝั่งตรงข้าม พร้อมโปรลด 50% ทั้งสัปดาห์ — สู้ยังไง?',
+    scenario: 'คู่แข่งเปิดตรงข้าม ลด 50% ทั้งสัปดาห์ — สู้ยังไง?',
     choices: [
-      { label: 'ไม่เล่นสงครามราคา — ย้ำจุดแข็งเรื่องรสชาติของเรา', persona: 'guardian' },
+      { label: 'ไม่ลดราคา — ขายรสชาติเหมือนเดิม', persona: 'guardian' },
       { label: 'อัดโปรสวนกลับวันนี้ ให้ดังกว่า', persona: 'pioneer' },
-      { label: 'ยังไม่ขยับ — นับก่อนว่าลูกค้าประจำหายไปจริงกี่คน', persona: 'analyst' },
-      { label: 'โปรเจาะจง: อัปไซส์ฟรีเฉพาะลูกค้าประจำ สัปดาห์นี้เท่านั้น', persona: 'sprinter' },
+      { label: 'ยังไม่ทำอะไร — นับก่อนว่าลูกค้าหายจริงไหม', persona: 'analyst' },
+      { label: 'ลองอัปไซส์ฟรีให้ลูกค้าประจำ 1 สัปดาห์', persona: 'sprinter' },
     ],
     smallTalk:
       'ในสงครามราคา คนชนะมักไม่ใช่คนลดเยอะสุด แต่เป็นคนที่รู้ว่าลูกค้าตัวเองมาเพราะอะไร — ' +
@@ -184,14 +220,12 @@ export const QUESTIONS: Question[] = [
       highlight: ['before6'],
       caption: `${AUDIENCE.wakeTime.before6} จาก ${N} คนตื่นก่อน 6 โมงเช้า`,
     },
-    scenario:
-      'ตอนนี้ร้านเปิด 8 โมง แต่ลูกค้าประจำหลายคนบ่นว่าอยากได้กาแฟก่อนเข้างาน ' +
-      'ถ้าขยับไปเปิด 6:30 ทีมต้องเข้ากะตั้งแต่ตี 5 ครึ่ง และมีค่ากะเช้าเพิ่มทุกวัน — เปิดไหม?',
+    scenario: 'ร้านเปิด 8 โมง จะขยับมา 6:30 เพื่อรับคนตื่นเช้า ทีมต้องมาเร็วขึ้น — เอาไหม?',
     choices: [
-      { label: 'ทดลองเปิดเช้า 2 สัปดาห์ เก็บตัวเลขจริง', persona: 'sprinter' },
-      { label: 'เอาข้อมูลเวลาตื่น × เวลาซื้อ มาไขว้ดูก่อนตัดสิน', persona: 'analyst' },
-      { label: 'เปิดเลยจันทร์หน้า เจ้าแรกที่เปิดคือเจ้าที่ได้ลูกค้า', persona: 'pioneer' },
-      { label: 'เปิดเวลาเดิม — ถนอมทีมไม่ให้ burnout', persona: 'guardian' },
+      { label: 'ลองเปิดเช้า 2 สัปดาห์ แล้วดูยอด', persona: 'sprinter' },
+      { label: 'ดูก่อนว่าคนมาเช้าเยอะพอจะคุ้มไหม', persona: 'analyst' },
+      { label: 'เปิดเลยจันทร์หน้า ใครเปิดก่อนได้ลูกค้า', persona: 'pioneer' },
+      { label: 'เปิดเวลาเดิม — ทีมรับไม่ไหว', persona: 'guardian' },
     ],
     smallTalk:
       'ชั่วโมงเปิดร้านคือทรัพยากรที่แพงที่สุดของทีม — เปิดเพิ่มหนึ่งชั่วโมงคือพลังงานของคนทั้งร้าน ' +

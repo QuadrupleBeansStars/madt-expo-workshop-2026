@@ -95,6 +95,10 @@ const HEADER_KEYS: Record<keyof BucketColumns, string[]> = {
   arrivalMode: ['b1', 'arrivalmode', 'how will you travel', 'เดินทางมางาน'],
   wakeTime: ['b2', 'waketime', 'what time do you usually wake', 'ตื่นกี่โมง'],
   firstDrink: ['b3', 'firstdrink', 'first thing you drink', 'ดื่มอะไรเป็นอย่างแรก'],
+  /* NOT ON THE FORM YET. Until it is, `content/audience.ts` carries a stand-in and names the field
+     in MOCK_FIELDS so the projector marks the chart. Add a column whose header contains any of
+     these and the import fills it for real — then delete the name from MOCK_FIELDS. */
+  firstBuy: ['b3b', 'firstbuy', 'first drink you buy', 'แก้วแรกที่คุณซื้อ'],
   buyTime: ['b4', 'buytime', 'when do you usually buy', 'แก้วแรกของวันตอนกี่โมง'],
   queuePatience: ['b5', 'queuepatience', 'wait in line', 'ต่อคิว'],
   spend: ['b6', 'spend', 'how much do you usually spend', 'ในราคาเท่าไหร่'],
@@ -105,6 +109,7 @@ type BucketColumns = {
   arrivalMode: number
   wakeTime: number
   firstDrink: number
+  firstBuy: number
   buyTime: number
   queuePatience: number
   spend: number
@@ -148,6 +153,24 @@ const WAKE_MAP: Record<string, keyof AudienceAggregate['wakeTime']> = {
   'after 10': 'after10',
   'หลัง 10 โมง': 'after10',
   'after 10 / หลัง 10 โมง': 'after10',
+}
+
+const FIRST_BUY_MAP: Record<string, keyof AudienceAggregate['firstBuy']> = {
+  'coffee': 'coffee',
+  'กาแฟ': 'coffee',
+  'coffee / กาแฟ': 'coffee',
+  'tea': 'tea',
+  'ชา': 'tea',
+  'tea / ชา': 'tea',
+  'juice': 'juice',
+  'น้ำผลไม้': 'juice',
+  'juice / น้ำผลไม้': 'juice',
+  'milk': 'milk',
+  'นม': 'milk',
+  'milk / นม': 'milk',
+  'none': 'none',
+  'ไม่ได้ซื้อ': 'none',
+  'i do not buy one / ไม่ได้ซื้อ': 'none',
 }
 
 const DRINK_MAP: Record<string, keyof AudienceAggregate['firstDrink']> = {
@@ -335,6 +358,13 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
   const colWake = findColumn(header, 'wakeTime (what time do you usually wake up?)', HEADER_KEYS.wakeTime)
   const colDrink = findColumn(header, 'firstDrink (first thing you drink)', HEADER_KEYS.firstDrink)
   const colBuy = findColumn(header, 'buyTime (when do you buy your first drink?)', HEADER_KEYS.buyTime)
+  /* OPTIONAL, unlike every other column: `findColumn` throws on a missing header by design — a
+     silently-zeroed bucket is the failure this importer exists to prevent — but this question is
+     not on the form yet, and an import that refused to run because of a column nobody has been
+     asked would be worse than the stand-in it is meant to replace. `-1` means "leave the mock
+     alone", and the moment the column appears this fills for real with no code change. */
+  const colFirstBuy = header.findIndex((h: string) =>
+    HEADER_KEYS.firstBuy.some((k: string) => h.toLowerCase().includes(k)))
   const colQueue = findColumn(header, 'queuePatience (how long would you wait in line?)', HEADER_KEYS.queuePatience)
   const colSpend = findColumn(header, 'spend (how much do you usually spend?)', HEADER_KEYS.spend)
   const colFactor = findColumn(header, 'mainFactor (what is the main factor?)', HEADER_KEYS.mainFactor)
@@ -348,6 +378,7 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
     arrivalMode: { walk: 0, bus: 0, car: 0, moto: 0 },
     wakeTime: { before6: 0, '6to8': 0, '8to10': 0, after10: 0 },
     firstDrink: { coffee: 0, tea: 0, water: 0, nothing: 0 },
+    firstBuy: { coffee: 0, tea: 0, juice: 0, milk: 0, none: 0 },
     buyTime: { before7: 0, '7to9': 0, '9to11': 0, after11: 0, never: 0 },
     queuePatience: { under5: 0, under10: 0, under15: 0, any: 0 },
     spend: { under50: 0, '50to100': 0, '101to200': 0 },
@@ -375,6 +406,9 @@ export function parseAudienceCsv(csv: string): AudienceAggregate {
     result.arrivalMode[arrival]++
     result.wakeTime[wake]++
     result.firstDrink[drink]++
+    if (colFirstBuy >= 0) {
+      result.firstBuy[matchLabel(fields[colFirstBuy], FIRST_BUY_MAP, rowNum, header[colFirstBuy])]++
+    }
     result.buyTime[buy]++
     result.queuePatience[queue]++
     result.spend[spend]++
@@ -421,6 +455,8 @@ export type AudienceAggregate = {
   arrivalMode: Record<'walk' | 'bus' | 'car' | 'moto', number>
   wakeTime: Record<'before6' | '6to8' | '8to10' | 'after10', number>
   firstDrink: Record<'coffee' | 'tea' | 'water' | 'nothing', number>
+  /** What they BUY first — the question a café actually has. */
+  firstBuy: Record<'coffee' | 'tea' | 'juice' | 'milk' | 'none', number>
   buyTime: Record<'before7' | '7to9' | '9to11' | 'after11' | 'never', number>
   /** Minutes they will stand in a queue before giving up. \`any\` never leaves. */
   queuePatience: Record<'under5' | 'under10' | 'under15' | 'any', number>
@@ -444,7 +480,7 @@ export type AudienceAggregate = {
 
 /** Single-choice fields, which must sum to \`respondents\`. \`mainFactor\` is deliberately absent. */
 export const SINGLE_CHOICE_FIELDS = [
-  'arrivalMode', 'wakeTime', 'firstDrink', 'buyTime', 'queuePatience', 'spend',
+  'arrivalMode', 'wakeTime', 'firstDrink', 'firstBuy', 'buyTime', 'queuePatience', 'spend',
 ] as const
 
 // Real registration data has been imported — the placeholder badge is off.
