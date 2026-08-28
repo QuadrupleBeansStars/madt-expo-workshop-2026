@@ -63,11 +63,14 @@ describe('expiry', () => {
     expect(shouldExpire(s, T0 + QUESTION_MS, 5, 0)).toBe(true)
   })
 
-  it('ends a question early once every active player has answered', () => {
+  /* A question runs its FULL window now. The old "everyone has answered, move on" exit handed the
+     room's fastest thumbs the power to cut short the thinking time the reading beat just bought
+     for everyone else. This is the assertion that would catch it being put back. */
+  it('never ends a question early, however fast the room answers', () => {
     const s = nextState(startedState(T0), T0) // past reading, so this is 'question'
-    expect(shouldExpire(s, T0 + 1, 5, 5)).toBe(true)
-    expect(shouldExpire(s, T0 + 1, 5, 4)).toBe(false)
-    expect(shouldExpire(s, T0 + 1, 0, 0)).toBe(false) // an empty room never auto-advances
+    expect(shouldExpire(s, T0 + 1, 5, 5)).toBe(false)
+    expect(shouldExpire(s, T0 + QUESTION_MS - 1, 100, 100)).toBe(false)
+    expect(shouldExpire(s, T0 + QUESTION_MS, 100, 100)).toBe(true)
   })
 
 
@@ -99,8 +102,8 @@ describe('the rules screen', () => {
     const rules = rulesState(T0)
     expect(rules.phaseDurationMs).toBe(0)
     expect(remainingMs(rules, T0 + 60 * 60 * 1000)).toBe(0)
-    // Not even a full room that has somehow "answered" can expire it: `shouldExpire`'s
-    // all-answered early exit belongs to `question` alone.
+    // Not even a full room that has somehow "answered" can expire it — and nothing else can
+    // either now that no phase has an all-answered exit left.
     expect(shouldExpire(rules, T0 + 60 * 60 * 1000, 100, 100)).toBe(false)
   })
 

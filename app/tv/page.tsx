@@ -20,6 +20,7 @@ import { Tally } from '@/components/game/Tally'
 import { Podium } from '@/components/game/Podium'
 import { ResetButton } from '@/components/host/ResetButton'
 import { Patrol } from '@/components/game/Patrol'
+import { RoomMusic } from '@/components/audio/RoomMusic'
 import { t } from '@/lib/i18n'
 
 // Locally declared to match /api/stats's payload shape (Task 6) — @/lib/stats is deleted.
@@ -567,6 +568,11 @@ export default function TvPage() {
           order is what stacks them, and the canvas paints its own opaque wall and floor over this
           on the two phases it runs. The gate keeps the flat wall it has now — it is not a screen
           of the game, and `tv.test.tsx` pins that nothing but the form renders there. */}
+      {/* The bed. `armed` is `token` becoming non-empty, which for a fresh login happens inside
+          the gate's own submit — the one user gesture this page gets, and the only thing that
+          buys us the right to start audio at all. See components/audio/RoomMusic.tsx. */}
+      <RoomMusic src="/audio/detective-spy-glass.mp3" armed={Boolean(token)} />
+
       {token ? <StageGround desk={!state || DESK_PHASES.has(state.phase)} /> : null}
 
       {token && state && ROOM_PHASES.has(state.phase) && (

@@ -24,8 +24,12 @@ export const QUESTION_MS = 8_000
  * the clock would have started ten seconds before anyone could act.
  *
  * 10s, up from v3.1's 5s. Five seconds is enough to READ a question line and a duck sentence and
- * not enough to think about either, which is the only thing this beat exists to buy. The cost is
- * 9 x 5s = 45s on a ~9 minute run.
+ * not enough to think about either, which is the only thing this beat exists to buy.
+ *
+ * It ran at 12s for one pass and the team brought it back to ten: the two extra seconds bought
+ * 20s across the ten cases and the room spent them waiting rather than thinking. The reading beat
+ * is not where a slow question gets rescued — a question that needs longer than ten seconds to
+ * take in is a question to shorten, not a clock to lengthen.
  */
 /**
  * How many ranked places the standings screen carries. Five was a v3 constraint written when the
@@ -164,15 +168,27 @@ export function remainingMs(s: GameState, now: number): number {
   return Math.max(0, s.phaseStartedAt + s.phaseDurationMs - now)
 }
 
-export function shouldExpire(s: GameState, now: number, activeCount: number, answeredCount: number): boolean {
+/**
+ * `activeCount` and `answeredCount` are still taken, and are deliberately unused.
+ *
+ * A QUESTION NOW RUNS ITS FULL WINDOW — the "everyone has answered, move on" early exit was
+ * removed. It rewarded the fastest thumbs in the room with a shorter question for everyone else:
+ * a player still weighing the duck's answer would have the screen pulled out from under them
+ * because ninety-nine people had already tapped, and the reading beat right before it exists to
+ * buy exactly that thinking time. The clock is now the only thing that ends a question, so every
+ * player gets the same window whatever the room does around them.
+ *
+ * The host keeps the escape hatch: `next` closes a question immediately from the projector, which
+ * is also how `scripts/check-projector-fit.mjs` walks the game without waiting out real clocks.
+ * The two arguments stay in the signature because the store already has both counts to hand and
+ * removing them would churn every call site for a behaviour that has been reverted once already.
+ */
+export function shouldExpire(s: GameState, now: number, _activeCount: number, _answeredCount: number): boolean {
   // Reading ends on its clock and only on its clock. There is nothing to answer, so an
   // "everyone has answered" early exit would fire immediately on a room that answered the
   // PREVIOUS question — `answeredCount` is not reset between phases.
   if (s.phase === 'reading') return now >= s.phaseStartedAt + s.phaseDurationMs
-  if (s.phase === 'question') {
-    if (now >= s.phaseStartedAt + s.phaseDurationMs) return true
-    return activeCount > 0 && answeredCount >= activeCount
-  }
+  if (s.phase === 'question') return now >= s.phaseStartedAt + s.phaseDurationMs
   // No reveal branch: the reveal is untimed and leaves only on a host press, so nothing here can
   // take it away while the host is still talking over it.
   return false

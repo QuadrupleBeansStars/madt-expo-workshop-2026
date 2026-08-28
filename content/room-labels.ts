@@ -34,8 +34,10 @@ export const UI: Record<string, LocalizedText> = {
 
 export const PHONE: Record<string, LocalizedText> = {
   joinTitle:    { th: 'Café Persona', en: 'Café Persona' },
-  joinBlurb:    { th: 'ตอบ 8 ข้อ แล้วดูว่าคุณเป็นกาแฟแก้วไหน', en: 'Answer 8 questions, find your coffee' },
-  namePrompt:   { th: 'ชื่อเล่นของคุณ', en: 'Your nickname' },
+  // No blurb under the title on the join screen. It used to read "ตอบ 8 ข้อ แล้วดูว่าคุณเป็นกาแฟแก้วไหน"
+  // and the team took it out: the host says that line out loud, and a phone that spells out the
+  // whole game before it starts spends the reveal it was supposed to save.
+  namePrompt:   { th: 'ชื่อร้านของคุณ', en: 'Your café name' },
   nameRequired: { th: 'ใส่ชื่อก่อนนะ', en: 'Name required' },
   joinButton:   { th: 'เข้าร่วม', en: 'Join' },
   joining:      { th: 'กำลังเข้าร่วม…', en: 'Joining…' },
@@ -43,7 +45,7 @@ export const PHONE: Record<string, LocalizedText> = {
   waitHost:     { th: 'รอผู้ดำเนินรายการเริ่ม', en: 'Waiting for the host' },
   pickOne:      { th: 'คุณจะทำยังไง?', en: 'What do you do?' },
   picked:       { th: 'บันทึกแล้ว — เปลี่ยนใจได้จนกว่าจะเฉลย', en: 'Saved — change your mind until reveal' },
-  watchScreen:  { th: 'ดูจอใหญ่ — คุยกันก่อน', en: 'Eyes on the big screen' },
+  watchScreen:  { th: 'ดูจอใหญ่', en: 'Eyes on the big screen' },
   youPicked:    { th: 'คุณเลือก', en: 'You picked' },
   tooLate:      { th: 'ข้อนี้ปิดแล้ว รอข้อถัดไปนะ', en: 'This one is closed — next question soon' },
   roomReset:    { th: 'ห้องถูกรีเซ็ต — เข้าร่วมใหม่อีกครั้ง', en: 'The room was reset — join again' },

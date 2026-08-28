@@ -56,16 +56,87 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex: none;
+}
+
+.phone-head__shop {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;   /* so a thirty-character shop name ellipses instead of shoving the counter off */
+}
+
+.phone-head__mark {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  color: var(--phone-clr);
 }
 
 .phone-head__name {
   font-weight: 700;
   font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* "3 / 8". The number of the question is the bold half; the total is context, not news. */
+.phone-head__step {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--phone-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.phone-head__step b {
+  font-size: 15px;
+  color: var(--phone-ink);
 }
 
 .phone-head__offline {
   font-size: 12px;
   color: var(--phone-clr);
+  flex: none;
+}
+
+/* The ask clock, drawn. A number in the corner has to be READ; a bar that is visibly shorter than
+   it was a moment ago is felt without looking away from the options. */
+.phone-bar {
+  flex: none;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--phone-line);
+  overflow: hidden;
+}
+
+.phone-bar__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--phone-clr);
+  /* Matches the phone's poll interval, so the bar glides between frames instead of stepping. */
+  transition: width 0.2s linear, background 0.3s ease;
+}
+
+/* The last third — ten seconds of a thirty-second ask. TECHIE's orange-red, already in the room's
+   palette, so this borrows no new colour to say "hurry". */
+.phone-bar__fill[data-low='1'] {
+  background: var(--phone-sprinter);
+}
+
+/* Kept for a screen reader and for anyone who wants the digit; the bar above is the same value. */
+.phone-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 .phone-notice {
@@ -89,21 +160,69 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   text-align: center;
 }
 
-.phone-yourpick {
+/* Three dots, breathing. Their whole job is to stop this screen reading as a page that has
+   finished loading — a player who thinks their phone is done watches it instead of the room. */
+.phone-hold__dots {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 6px;
 }
 
-.phone-yourpick__label {
+.phone-hold__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--phone-line);
+  animation: phone-dot 1.4s ease-in-out infinite;
+}
+
+.phone-hold__dots i:nth-child(2) { animation-delay: 0.18s; }
+.phone-hold__dots i:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes phone-dot {
+  0%, 100% { background: var(--phone-line); }
+  50% { background: var(--phone-clr); }
+}
+
+/* The player's own answer, handed back on a receipt. The two notches are the tell that this is a
+   till slip rather than another card, which is the one piece of café in the whole flow. */
+.phone-receipt {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  background: var(--phone-card);
+  border: 1px solid var(--phone-line);
+  border-radius: 14px;
+}
+
+.phone-receipt::before,
+.phone-receipt::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--phone-bg);
+  border: 1px solid var(--phone-line);
+  transform: translateY(-50%);
+}
+
+.phone-receipt::before { left: -8px; }
+.phone-receipt::after { right: -8px; }
+
+.phone-receipt__label {
   font-size: 17px;
   font-weight: 700;
+  line-height: 1.45;
 }
 
 .phone-late {
@@ -113,62 +232,84 @@
 
 /* ── ask ────────────────────────────────────────────────────────────────── */
 
+/* THE WHOLE ASK IS A COLUMN THAT FILLS THE SCREEN, and that is the change worth understanding.
+   It used to be a column at its content height: on a 844px phone the four options ended around
+   55% and the bottom 40% was empty — precisely the part of the screen a thumb reaches without
+   the hand moving. Everything here is `flex: none` except the option list, which takes the rest. */
 .phone-ask {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
-.phone-ask__head {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* The question on a ticket: it is the one thing on this screen that is NOT the player's to act
+   on, and a bordered card says so without spending a word of instruction on it. */
+.phone-ticket {
+  flex: none;
+  background: var(--phone-card);
+  border: 1px solid var(--phone-line);
+  border-left: 4px solid var(--phone-clr);
+  border-radius: 12px;
+  padding: 13px 14px;
 }
 
-.phone-ask__scenario {
+.phone-ticket__kicker {
+  margin-bottom: 5px;
+}
+
+.phone-ticket__q {
   font-size: 18px;
   font-weight: 700;
   line-height: 1.5;
-}
-
-.phone-clock {
-  align-self: flex-end;
-  font-size: 22px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--phone-clr);
 }
 
 .phone-options {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
+}
+
+/* BOTH the <li> and the button have to grow. The <li> is the flex child; growing only the button
+   inside it leaves every row at its content height and loses the whole point. */
+.phone-options > li {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
 .phone-option {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 14px;
+  padding: 0 13px;
   text-align: left;
   font: inherit;
   color: var(--phone-ink);
   background: var(--phone-card);
   border: 2px solid var(--phone-line);
   border-radius: 14px;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
 }
 
 .phone-option:active {
   transform: scale(0.985);
 }
 
+/* Filled, not outlined. A border swap is invisible at arm's length in a lit hall, and "did my tap
+   register" is the question this state exists to answer. */
 .phone-option[aria-pressed='true'] {
+  background: var(--phone-ink);
   border-color: var(--phone-ink);
-  box-shadow: 0 0 0 1px var(--phone-ink);
+  color: var(--phone-bg);
 }
 
 .phone-option__letter {
@@ -182,6 +323,13 @@
   border: 1px solid var(--phone-line);
   font-weight: 800;
   font-size: 14px;
+  transition: inherit;
+}
+
+.phone-option[aria-pressed='true'] .phone-option__letter {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.45);
+  color: var(--phone-bg);
 }
 
 .phone-option__label {
@@ -189,7 +337,24 @@
   line-height: 1.45;
 }
 
+.phone-option__tick {
+  margin-left: auto;
+  flex: none;
+  opacity: 0;
+  font-weight: 800;
+  color: var(--phone-bg);
+  transition: opacity 0.14s ease;
+}
+
+.phone-option[aria-pressed='true'] .phone-option__tick {
+  opacity: 1;
+}
+
+/* Always in the layout, empty until there is a pick — a line that appears would shove four
+   full-height buttons upward the instant a player taps one. */
 .phone-picked {
+  flex: none;
+  min-height: 20px;
   text-align: center;
 }
 
@@ -356,17 +521,55 @@
 
 /* ── join screen (app/play/page.tsx) ────────────────────────────────────── */
 
+/* CENTRED, as a group: mark, title, rule, then the form directly under them in the middle of the
+   screen. The team asked for the box in the middle and that is where it is.
+   The price, written down rather than argued: a phone keyboard slides up over the bottom half, so
+   on a short handset the field can end up under it and the page has to scroll to reach the join
+   button. Anchoring the form to the bottom avoids that and reads as a much emptier screen. If a
+   player ever reports having to scroll to press เข้าร่วม, this is the line to revisit. */
 .phone-join {
   justify-content: center;
   gap: 20px;
   text-align: center;
 }
 
+.phone-join__cup {
+  width: 70px;
+  height: 70px;
+  display: block;
+  margin: 0 auto 12px;
+  color: var(--phone-clr);
+}
+
+.phone-join__rule {
+  display: block;
+  width: 38px;
+  height: 3px;
+  margin: 13px auto 0;
+  border-radius: 99px;
+  background: var(--phone-clr);
+}
+
 .phone-join__form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 9px;
   text-align: left;
+}
+
+.phone-join__labelrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.phone-join__count {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--phone-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .phone-join__input {
@@ -397,4 +600,13 @@
 
 .phone-join__btn:disabled {
   opacity: 0.6;
+}
+
+/* The drain bar is INFORMATION, so its transition stays: without it the bar jumps a whole poll's
+   worth of width at a time, which is harder to read, not calmer. The dots are decoration. */
+@media (prefers-reduced-motion: reduce) {
+  .phone-hold__dots i {
+    animation: none;
+    background: var(--phone-clr);
+  }
 }

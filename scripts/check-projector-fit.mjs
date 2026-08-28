@@ -19,9 +19,26 @@
  */
 
 import { chromium } from 'playwright-core'
+import { readFileSync } from 'node:fs'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000'
 const TOKEN = process.env.FACILITATOR_TOKEN ?? ''
+
+/*
+ * The name cap, READ OUT OF lib/names.ts rather than copied.
+ *
+ * That file's own comment names this script as the thing that decides whether a cap is safe — so
+ * a number pasted here would let the two drift, and the drift would be silent in exactly the
+ * direction that matters: the check would keep measuring the OLD length and keep passing while
+ * the real lobby got longer names. It is a build script, so parsing a constant out of source is
+ * cheaper and truer than any of the alternatives.
+ */
+const NAME_MAX = (() => {
+  const src = readFileSync(new URL('../lib/names.ts', import.meta.url), 'utf8')
+  const m = src.match(/export const NAME_MAX = (\d+)/)
+  if (!m) throw new Error('could not read NAME_MAX out of lib/names.ts')
+  return Number(m[1])
+})()
 
 /*
  * The two shapes a venue projector actually is. 1366x768 is not a legacy concern — it is what
@@ -853,8 +870,12 @@ async function main() {
        * gets the room it expects.
        */
       {
+        /* Every name is EXACTLY NAME_MAX long. A hundred short names is not the case that breaks
+           a shelf-packed board — a hundred names at the cap is, and the cap is the number this
+           check exists to justify. Padding rather than slicing is what guarantees it. */
         for (let i = 0; i < 100; i++) {
-          await post('/api/room/join', { name: `ผู้ร่วมงานคนที่ ${i}`.slice(0, 20) })
+          const name = `ผู้ร่วมงานคนที่ ${i} ร้านกาแฟมุมถนนสายเก่า`.slice(0, NAME_MAX).padEnd(NAME_MAX, 'ก')
+          await post('/api/room/join', { name })
         }
         await page.waitForTimeout(2600)
         const full = await page.evaluate(() => {

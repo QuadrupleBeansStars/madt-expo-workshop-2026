@@ -1,6 +1,7 @@
 'use client'
 import { useRef, useState } from 'react'
 import { randomCodename } from '@/lib/codenames'
+import { NAME_MAX } from '@/lib/names'
 
 /**
  * How long the dice waits on the room before drawing locally instead.
@@ -117,7 +118,11 @@ export function CodenameScreen({
           /* Enter submits. On a phone keyboard the Go key is right under the thumb that just
              finished typing, and reaching past it to a button below is a step nobody needs. */
           onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
-          maxLength={40}
+          /* NAME_MAX, not a number of its own. This field allowed forty while the door
+             (app/api/join) truncated at the shared cap, so a long name came back on the board
+             shorter than the player typed it — and a player hunting a name that does not match
+             what they entered is exactly the failure lib/names.ts exists to prevent. */
+          maxLength={NAME_MAX}
           autoComplete="off"
           enterKeyHint="go"
         />

@@ -32,17 +32,19 @@ const askFrame: PhoneFrame = {
 
 function renderBody(frame: PhoneFrame, extra: Partial<Parameters<typeof PhoneBody>[0]> = {}) {
   const onVote = vi.fn()
-  render(
+  const body = (f: PhoneFrame) => (
     <PhoneBody
       name="สมชาย"
-      frame={frame}
-      remainingMs={frame.remainingMs}
+      frame={f}
+      remainingMs={f.remainingMs}
       picked={null}
       onVote={onVote}
       {...extra}
-    />,
+    />
   )
-  return { onVote }
+  const { rerender } = render(body(frame))
+  /** Re-render with a new frame, the way a poll would. */
+  return { onVote, update: (f: PhoneFrame) => rerender(body(f)) }
 }
 
 describe('lobby', () => {
@@ -72,13 +74,36 @@ describe('ask', () => {
     }
   })
 
-  it('shows the saved notice once a pick is confirmed, and buttons stay enabled at 0s', () => {
+  it('shows the saved notice once a pick is confirmed, and keeps voting open until the clock runs out', () => {
+    renderBody(
+      { ...askFrame, remainingMs: 1_000, you: { answeredCount: 1, pickedChoiceIndex: 1, persona: null } },
+    )
+    expect(screen.getByText(PHONE.picked.th)).toBeInTheDocument()
+    // A confirmed pick does not lock the phone: you may change your mind while time is left.
+    for (const btn of screen.getAllByRole('button')) expect(btn).toBeEnabled()
+  })
+
+  /* The phone leaves the question on ITS OWN clock rather than waiting for the poll to bring the
+     projector's advance. Before this, the last second of every question showed a countdown reading
+     0 above four buttons that still took a tap — open to the eye, closed in fact. */
+  it('leaves for the summary the moment the clock hits zero, without waiting for the poll', () => {
     renderBody(
       { ...askFrame, remainingMs: 0, you: { answeredCount: 1, pickedChoiceIndex: 1, persona: null } },
     )
-    expect(screen.getByText(PHONE.picked.th)).toBeInTheDocument()
-    // Display-only timer: 0 remaining must NOT disable voting (the host closes it, not the clock).
-    for (const btn of screen.getAllByRole('button')) expect(btn).toBeEnabled()
+    expect(screen.queryByTestId('phone-ask')).not.toBeInTheDocument()
+    expect(screen.getByTestId('phone-reveal')).toBeInTheDocument()
+    expect(screen.getByText(PHONE.watchScreen.th)).toBeInTheDocument()
+    // ...and it still tells you what you picked, which is the whole point of the summary.
+    expect(screen.getByText(QUESTIONS[0].choices[1].label)).toBeInTheDocument()
+  })
+
+  /* Derived, not stored: `back` re-opens the stage with a fresh countdown and the phone returns. */
+  it('comes back to the question if the host reopens the stage', () => {
+    const { update } = renderBody({ ...askFrame, remainingMs: 0 })
+    expect(screen.getByTestId('phone-reveal')).toBeInTheDocument()
+
+    update(askFrame)
+    expect(screen.getByTestId('phone-ask')).toBeInTheDocument()
   })
 })
 

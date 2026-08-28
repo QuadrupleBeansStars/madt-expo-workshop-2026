@@ -32,9 +32,11 @@ import type { LocalizedText } from '@/lib/types'
 const PLAYER_KEY = 'decisionroom.player'
 const PENDING_KEY = 'decisionroom.pending'
 const POLL_MS = 1000
-/** How often the countdown re-renders between polls, so 45s does not tick in 1s jumps. */
+/** How often the countdown re-renders between polls, so 30s does not tick in 1s jumps. */
 const CLOCK_TICK_MS = 200
 const REQ_TIMEOUT_MS = 5000
+/** How long "the host reset the room" stays on the join screen before it clears itself. */
+const RESET_NOTICE_MS = 2000
 
 /** Identity ONLY. The shop's numbers live on the server, never in this phone's storage. */
 type Identity = { playerId: string; name: string }
@@ -122,6 +124,24 @@ export default function PlayPage() {
     setOffline(false)
     setNotice(reason)
   }, [])
+
+  /*
+   * THE RESET LINE CLEARS ITSELF AFTER TWO SECONDS — and ONLY that line.
+   *
+   * It is news, not a state: it explains why this phone is suddenly back on the join screen, and
+   * once read it is a stale sentence sitting over the field the player is trying to type in. The
+   * other notices stay: `joinFailed` is about the button they just pressed, and `tooLate` is
+   * cleared by the stage it belongs to (see `stageKeyRef`), not by a clock.
+   *
+   * The match is on identity, which is exact here because `PHONE.roomReset` is a module constant
+   * and `returnToJoin` is handed that same object at all three call sites. app/page.tsx does the
+   * same for AI Detective — change one, change both.
+   */
+  useEffect(() => {
+    if (notice !== PHONE.roomReset) return
+    const id = setTimeout(() => setNotice(null), RESET_NOTICE_MS)
+    return () => clearTimeout(id)
+  }, [notice])
 
   const flushPending = useCallback(async (playerId: string) => {
     if (flushingRef.current) return
@@ -284,9 +304,18 @@ function JoinScreen({
 
   return (
     <main className="phone-root phone-join" data-testid="phone-join">
-      <div>
+      {/* The mark anchors the top. Taking the "ตอบ 8 ข้อ…" blurb out left a title, a label, a
+          field and a button floating in the middle of an otherwise blank screen with nothing
+          holding any of them anywhere. */}
+      <div className="phone-join__brand">
+        <svg className="phone-join__cup" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path d="M4 9h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M17 10.5h1.6a2.4 2.4 0 0 1 0 4.8H17" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M8 2.5c-.9 1.2-.9 2.3 0 3.5M12 2.5c-.9 1.2-.9 2.3 0 3.5"
+                stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+        </svg>
         <Bilingual text={PHONE.joinTitle} as="hero" />
-        <Bilingual text={PHONE.joinBlurb} as="body" />
+        <span className="phone-join__rule" aria-hidden />
       </div>
 
       {notice ? (
@@ -295,13 +324,23 @@ function JoinScreen({
         </p>
       ) : null}
 
+      {/* THE FORM SITS AT THE BOTTOM, and that is a keyboard decision rather than a taste one: a
+          form centred vertically is the one a phone keyboard slides up over. Pinned low, the
+          keyboard arrives underneath it and the button stays in reach. */}
       <form
         className="phone-join__form"
         onSubmit={(e) => { e.preventDefault(); onJoin(name) }}
       >
-        <label htmlFor="phone-name">
-          <Bilingual text={PHONE.namePrompt} as="label" />
-        </label>
+        <span className="phone-join__labelrow">
+          <label htmlFor="phone-name">
+            <Bilingual text={PHONE.namePrompt} as="label" />
+          </label>
+          {/* The cap is thirty now, and a shop name is long enough to reach it. Counting up in
+              front of the player beats a field that silently stops accepting letters. */}
+          <span className="phone-join__count" data-testid="name-count" aria-hidden>
+            {name.length} / {NAME_MAX}
+          </span>
+        </span>
         <input
           id="phone-name"
           data-testid="name-input"
@@ -310,6 +349,7 @@ function JoinScreen({
           value={name}
           maxLength={NAME_MAX}
           autoComplete="off"
+          enterKeyHint="go"
           onChange={(e) => setName(e.target.value)}
         />
         <button

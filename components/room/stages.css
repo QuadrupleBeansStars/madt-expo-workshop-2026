@@ -92,11 +92,60 @@
   font-weight: 800;
 }
 
+/*
+ * INK, NOT ALERT, until the last third.
+ *
+ * This was `--pp-alert` for the whole window. A red clock from 0:30 spends the room's one alarm
+ * colour on the fact that a clock exists — which everybody can see — and leaves nothing to say at
+ * 0:09, which is the only moment the colour was for. `data-low` is set in Stages.tsx off the same
+ * fraction the phone uses, so the wall and a hundred phones change together.
+ */
 .pp-strip__clock {
   font-size: 5.6vh;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+  color: var(--pp-ink);
+  transition: color 0.3s ease;
+}
+
+.pp-strip__clock[data-low='1'] {
   color: var(--pp-alert);
+}
+
+/*
+ * The clock as a bar. It is the same object every phone in the room is showing, which is the
+ * point: a player glancing up finds the shape they were just looking at rather than a number in
+ * a different unit. It introduces NO new hue — ink on line grey, red at the end — because the
+ * four persona colours are the only coloured things on this deck that mean anything, which is
+ * the same rule `.pp-strip__votes` below is written to protect.
+ */
+/* One block, one gap. The stage lays its children out with a 1.8vh gap; leaving the bar as a
+   second child spent that gap twice and cost the tallest ask stage its fit. */
+.pp-strip-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7vh;
+}
+
+.pp-drain {
+  height: 0.7vh;
+  min-height: 4px;
+  border-radius: 99px;
+  background: var(--pp-line);
+  overflow: hidden;
+  flex: none;
+}
+
+.pp-drain__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--pp-ink);
+  /* Matches the projector's poll interval, so it glides between frames instead of stepping. */
+  transition: width 0.2s linear, background 0.3s ease;
+}
+
+.pp-drain__fill[data-low='1'] {
+  background: var(--pp-alert);
 }
 
 /*
@@ -228,6 +277,16 @@
  * `min-height: 0` parent), so a short last page leaves empty space rather than pulling everything
  * below it upward.
  */
+/* Sized in vh like everything else on this deck: the venue projector is an unknown model, and a
+   px ceiling would shrink the mark relative to the title on the larger screens it is meant for. */
+.pp-lobby__cup {
+  display: block;
+  width: 8vh;
+  height: 8vh;
+  margin-bottom: 1.4vh;
+  color: var(--pp-clr, var(--deck-mango));
+}
+
 .pp-lobby__title {
   margin: 0;
   font-size: 6.4vh;

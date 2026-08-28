@@ -9,7 +9,8 @@
 
 Shared, and worth reading whichever workshop you are running: [Run it](#run-it) ·
 [the LAN gotcha](#the-lan-gotcha-blank-unclickable-pages) ·
-[the projector check](#the-projector-check) · [Deploying](#deploying)
+[the projector check](#the-projector-check) · [Background music](#background-music) ·
+[Deploying](#deploying)
 
 ---
 
@@ -20,9 +21,9 @@ Shared, and worth reading whichever workshop you are running: [Run it](#run-it) 
 A synchronized, **Kahoot-style** quiz about AI hallucination. One **TV** drives the room through
 **9 questions in 3 acts**; players follow on their **phones**. The duck sends one confident answer
 per question — one line, no storyboard, no evidence panel — and the player's only job is to tap
-**✓ ผ่าน** (let it through) or **✕ ตีกลับ** (send it back) before the 15-second window closes.
+**✓ ผ่าน** (let it through) or **✕ ตีกลับ** (send it back) before the 8-second window closes.
 
-Every question opens with a **five-second reading beat** first: the question and the duck's answer
+Every question opens with a **ten-second reading beat** first: the question and the duck's answer
 are on the projector in full, and both buttons are on the phone but **locked**. Nobody can answer
 yet — the server refuses an answer outside the answer window, so the beat holds against a crafted
 request and not merely a disabled button — and the speed bonus's clock does not start until it
@@ -49,12 +50,17 @@ bottom:
 | Phase | Length | The room |
 |---|---|---|
 | `lobby` | until **Start** | QR code, join URL, names pinning themselves to the board |
-| `reading` | **5s**, on its own clock | Question + the duck's answer on the case file. Buttons locked. |
-| `question` | 15s, or early once everyone has answered | Same scene, timer bar running, answers open |
-| `reveal` | 12s, auto-advancing (`Hold` freezes it) | The verdict stamped on the file, the truth, the room's split, top 5 |
-| `actcard` | untimed, host advances | The lesson, after every third question |
+| `rules` | untimed, host advances | How to play, once, before the first case |
+| `reading` | **10s**, on its own clock | Question + the duck's answer on the case file. Buttons locked. |
+| `question` | **8s**, on its own clock — never early | Same scene, timer bar running, answers open |
+| `reveal` | untimed, host advances | The verdict stamped on the file, the truth, the room's split, the standings |
 | `tally` | untimed, host advances | One number: how many times the room let a bad answer through |
 | `podium` | end | Top three |
+
+**A question always runs its full eight seconds.** It used to end the moment the last active player
+answered; it does not any more. That exit let the fastest thumbs in the room decide how long
+everyone else got to think — which is the one thing the reading beat in front of it exists to buy.
+`Next` on the projector still closes a question immediately when the host can see the room is done.
 
 🧠 **[What each question is doing to the player](docs/question-design.md)** — the design intent
 behind every question in **both** workshops: what we are trying to make a player think, why they
@@ -443,6 +449,32 @@ Known traps, each paid for:
   problem at all.
 - **Watch specificity.** Several rules in `stages.css` are 0,4,0. A new rule written the obvious way
   loses silently, and the only symptom is that a stage stays too tall.
+
+## Background music
+
+Both projectors run one instrumental loop, quietly, for the whole workshop — **Spy Glass** on
+`/tv` and **Bossa Antigua** on `/biz`, both by Kevin MacLeod ([incompetech.com](https://incompetech.com)),
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Instrumental on purpose:
+a lyric is a second voice competing with the host. Full credits and how to re-encode:
+**[`public/audio/CREDITS.md`](public/audio/CREDITS.md)**.
+
+Three things to know before the day:
+
+- **Press `M` to mute, from either projector, at any time.** There is also a small speaker button
+  in the bottom-left corner of the screen. Use it — a bed that fights the microphone is worse than
+  no bed.
+- **The music starts when you log in through the token gate, not when the game starts.** That is
+  deliberate: a browser will not play audio on a page that has never been clicked, and the gate is
+  the one click either projector gets. **If you reload `/tv` or `/biz` mid-session** the token is
+  already remembered, there is no click, and the browser refuses — the corner button turns **amber**
+  to say so, and one press on it starts the music again. Amber in the corner always means the room
+  is silent.
+- **Volume is set in the app at 12%** (`BED_VOLUME` in `components/audio/RoomMusic.tsx`) and the
+  rest is the hall's mixer. Set the hall level with the music playing *and someone talking into the
+  microphone*, never with the music alone — alone, it will always sound too quiet.
+
+Phones never play music, in either workshop. A hundred handsets a half-second out of sync is not a
+bed, it is noise.
 
 ## Deploying
 

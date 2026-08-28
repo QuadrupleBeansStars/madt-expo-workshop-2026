@@ -226,15 +226,21 @@ describe('store game state', () => {
     expect(s.getSeq()).toBeGreaterThan(before)         // a real advance does persist
   })
 
-  it('tick flips early when all active players answered', () => {
+  /* A ROOM THAT HAS ALL ANSWERED STILL WAITS OUT THE CLOCK. `tick` used to flip the moment the
+     last active player answered; it does not any more, because that let the fastest thumbs in the
+     room decide how long everyone else got to think. Only the question's own window ends it (or
+     the host's `next`). */
+  it('tick does not flip early, even once every active player has answered', () => {
     const s = new MemoryRoomStore()
     const a = s.join('Alice', 0)
     const b = s.join('Bob', 0)
     startToQuestion(s, 1000) // past rules and reading: the question is open at 1000
     s.recordAnswer({ playerId: a.id, questionId: Q0.id, verdict: 'pass' }, 1100)
-    expect(s.tick(1200)).toBe(false)                  // Bob hasn't answered
     s.recordAnswer({ playerId: b.id, questionId: Q0.id, verdict: 'pass' }, 1300)
-    expect(s.tick(1400)).toBe(true)                   // all active answered → flip
+    expect(s.tick(1400)).toBe(false)
+    expect(s.getGameState().phase).toBe('question')
+
+    expect(s.tick(1000 + QUESTION_MS)).toBe(true)     // the clock, and only the clock
     expect(s.getGameState().phase).toBe('reveal')
   })
 

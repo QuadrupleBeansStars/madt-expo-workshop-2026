@@ -25,6 +25,7 @@ import { PERSONAS, QUESTIONS } from '@/content/persona'
 import { UI } from '@/content/room-labels'
 import { Bilingual } from '@/components/deck/Bilingual'
 import { AXIS_LABELS } from '@/lib/room-types'
+import { ASK_MS } from '@/lib/room'
 import type { PersonaId, Question } from '@/lib/room-types'
 import type { PublicRoomState } from '@/lib/room-store'
 // LAST import, deliberately: under cssChunking:'strict' sheet order is import order, and this
@@ -163,6 +164,15 @@ function LobbyView({ frame, joinUrl, names, onStart }: {
         {/* LEFT: what a person has to act on — what this is, where to join, how many already did.
             It never changes while the board on the right cycles. */}
         <div className="pp-lobby__left">
+          {/* The same mark the phone wears on its join screen and in its counter strip. It is the
+              one thing carried across both surfaces, so a person looking up from the QR they just
+              scanned finds the wall showing what their hand is showing. */}
+          <svg className="pp-lobby__cup" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M4 9h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V9Z" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M17 10.5h1.6a2.4 2.4 0 0 1 0 4.8H17" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M8 2.5c-.9 1.2-.9 2.3 0 3.5M12 2.5c-.9 1.2-.9 2.3 0 3.5"
+                  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
           <h1 className="pp-lobby__title">{UI.title.th}</h1>
           <p className="pp-lobby__sub"><Bilingual text={UI.joinTitle} as="hero" /></p>
 
@@ -256,19 +266,54 @@ function AskView({
 }) {
   const total = Math.max(0, Math.ceil(remainingMs / 1000))
   const mmss = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+  /*
+   * The last third of the window — ten seconds of a thirty-second ask, and still ten seconds if
+   * ASK_MS moves, which a fixed millisecond threshold would not be. The phone draws its own bar
+   * off the same fraction (components/room/PhoneBody.tsx), so the wall and every phone in the
+   * room turn colour on the same beat rather than a second apart.
+   */
+  const low = remainingMs <= ASK_MS / 3
 
   return (
     <section className="pp-stage pp-ask" data-testid="stage-ask">
+      {/* The strip and its bar are ONE block. As siblings of the stage they each collected the
+          stage's own 1.8vh gap, and the second one was enough to push the tallest ask (q4) four
+          pixels past the fold on both projector shapes — caught by `npm run check:projector`,
+          invisible to every unit test in the repo. */}
+      <div className="pp-strip-block">
       <header className="pp-strip">
         <span className="pp-strip__q" data-testid="question-counter" lang="th">
           {UI.questionOf.th} {(frame.questionIndex ?? 0) + 1}/{QUESTIONS.length}
         </span>
-        {/* Display-only (spec §2): reaching 0:00 changes nothing — the host closes voting. */}
-        <span className="pp-strip__clock" data-testid="countdown">{mmss}</span>
+        {/*
+          * Display-only (spec §2): reaching 0:00 changes nothing — the host closes voting.
+          *
+          * IT IS NO LONGER RED THE WHOLE TIME. Alert red from the first second is a colour that
+          * means "a clock is running", which the room can already see; spent that way it has
+          * nothing left to say at the moment it matters. Ink until the last third, then red.
+          */}
+        <span className="pp-strip__clock" data-testid="countdown" data-low={low ? '1' : '0'}>
+          {mmss}
+        </span>
         <span className="pp-strip__votes" lang="th">
           <b data-testid="vote-count">{frame.voteCount}</b> {UI.votesIn.th}
         </span>
       </header>
+
+      {/*
+        * The clock, drawn. Same object as the bar on every phone in the room, and it borrows no
+        * new colour to be one — ink draining to red, against the line grey already on this deck.
+        * The four persona colours stay the only meaningful hues here, which is the rule the vote
+        * counter below is written to protect.
+        */}
+      <div className="pp-drain" data-testid="ask-drain" aria-hidden>
+        <div
+          className="pp-drain__fill"
+          data-low={low ? '1' : '0'}
+          style={{ width: `${Math.max(0, Math.min(1, remainingMs / ASK_MS)) * 100}%` }}
+        />
+      </div>
+      </div>
 
       {/*
         * TWO COLUMNS, and the order is the argument: EVIDENCE FIRST, then the decision it bears on.

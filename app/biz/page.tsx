@@ -25,6 +25,7 @@ import './deck.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { UI } from '@/content/room-labels'
 import { ResetButton } from '@/components/host/ResetButton'
+import { RoomMusic } from '@/components/audio/RoomMusic'
 import { Stages, type RoomFrame } from '@/components/room/Stages'
 
 const STATE_POLL_MS = 1000
@@ -266,6 +267,11 @@ export default function RoomPage() {
 
   return (
     <main className="room-root">
+      {/* The bed. Reached only past the gate, so `armed` is true from mount — the gate's submit is
+          the gesture that lets it play at all. It brings no stylesheet with it, deliberately: see
+          the deck.css note at the top of this file. */}
+      <RoomMusic src="/audio/cafe-bossa-antigua.mp3" armed={Boolean(token)} />
+
       <Stages frame={shown} joinUrl={joinUrl} remainingMs={remainingMs} names={names} onStart={() => void control('advance')} />
 
       {/* The bar is absolutely positioned over the top-right of the slide, in this workshop's own

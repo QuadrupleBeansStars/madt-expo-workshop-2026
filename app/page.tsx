@@ -9,6 +9,8 @@ const RUN_KEY = 'aidet.run'   // identity ONLY: { playerId, codename }
 const PENDING_KEY = 'aidet.pending'
 const POLL_MS = 1200
 const REQ_TIMEOUT_MS = 5000
+/** How long "the host reset the room" stays on the join screen before it clears itself. */
+const RESET_NOTICE_MS = 2000
 
 type Identity = { playerId: string; codename: string }
 type QueuedAnswer = { playerId: string; questionId: string; verdict: Verdict }
@@ -66,6 +68,25 @@ export default function PlayerPage() {
     lastSeqRef.current = -1
     setSessionWasReset(wasReset)
   }, [])
+
+  /*
+   * THE RESET LINE CLEARS ITSELF AFTER TWO SECONDS.
+   *
+   * It is news, not a state: "the host reset the room" explains why this phone is suddenly back on
+   * the join screen, and once the player has read that, it is a stale sentence sitting over the
+   * field they are trying to type in. Two seconds is long enough to read seven Thai words and
+   * short enough that it is gone before a thumb reaches the keyboard.
+   *
+   * Keyed on the flag rather than fired inside `returnToCodename` so React owns the timer: a phone
+   * that navigates away mid-countdown cancels it on unmount instead of setting state on a screen
+   * that no longer exists. app/play/page.tsx does the same for Café Persona — change one, change
+   * both, the way the README already asks for the reset behaviour itself.
+   */
+  useEffect(() => {
+    if (!sessionWasReset) return
+    const id = setTimeout(() => setSessionWasReset(false), RESET_NOTICE_MS)
+    return () => clearTimeout(id)
+  }, [sessionWasReset])
 
   // Poll the server heartbeat while we have an identity.
   useEffect(() => {
