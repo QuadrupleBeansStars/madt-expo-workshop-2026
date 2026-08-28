@@ -56,7 +56,7 @@ export type LeaderboardEntry = {
 
 type Snapshot = { players: Player[]; answers: Answer[]; game: GameState; seq: number }
 
-const validPhases = new Set(['lobby', 'rules', 'reading', 'question', 'reveal', 'actcard', 'tally', 'podium'])
+const validPhases = new Set(['lobby', 'rules', 'tutorial', 'reading', 'question', 'reveal', 'actcard', 'tally', 'podium'])
 
 /**
  * The stale-v2-file hazard: a `.room-state.json` written by the old build is NOT malformed JSON —
@@ -168,7 +168,7 @@ export class MemoryRoomStore implements RoomStore {
        * question has been asked yet, so a straggler gains nothing by arriving on it. The spec
        * added the screen without deciding this; the answer is that the game starts at the first
        * `reading`, not at the host's first press. */
-      spectator: this.game.phase !== 'lobby' && this.game.phase !== 'rules',
+      spectator: this.game.phase !== 'lobby' && this.game.phase !== 'rules' && this.game.phase !== 'tutorial',
     }
     this.players.push(player)
     this.seq++

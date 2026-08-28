@@ -10,6 +10,7 @@ import type { PublicGameState, Question } from '@/lib/types'
 import { NEXT_GUARD_MS, QUESTIONS_IN_ORDER, QUESTION_COUNT, QUESTION_MS, READING_MS } from '@/lib/game'
 import { scoreAnswer } from '@/lib/scoring'
 import { CLOSING_LINES } from '@/content/questions'
+import { TUTORIAL_CASE, TUTORIAL_SPLIT } from '@/content/tutorial'
 import { QRCodeSVG } from 'qrcode.react'
 import { Duck } from '@/components/game/Duck'
 import { Dossier } from '@/components/game/Dossier'
@@ -191,7 +192,7 @@ const LAMP_CONE =
    question. One ground throughout is what the team asked for, and it is the rules screen's ground
    they picked. Row and panel fills had to stop being translucent white to survive it. */
 const DESK_PHASES: ReadonlySet<PublicGameState['phase']> = new Set(
-  ['lobby', 'rules', 'reading', 'question', 'reveal', 'tally', 'podium'],
+  ['lobby', 'rules', 'tutorial', 'reading', 'question', 'reveal', 'tally', 'podium'],
 )
 
 /**
@@ -907,6 +908,18 @@ function Stage({
     })
   }
 
+  /* THE WORKED EXAMPLE, once, between the rules and the first case. The plate reads TUTORIAL and
+     NOT `CASE 00` on purpose: a case number here would put the example in the same series as the
+     ten the room is about to be scored on, and the one thing this screen has to say about itself
+     is that nothing on it counts. The status line says the same thing in words. */
+  if (state.phase === 'tutorial') {
+    return frame({
+      plate: 'TUTORIAL',
+      status: 'ตัวอย่าง — ยังไม่นับคะแนน',
+      children: <TutorialStage />,
+    })
+  }
+
   if (state.phase === 'reading' || state.phase === 'question') {
     if (!question) return null
     const reading = state.phase === 'reading'
@@ -1140,6 +1153,228 @@ const chips = [
   )
 }
 
+
+/**
+ * THE WORKED EXAMPLE (the tutorial phase) — one screen, three panels, nothing running.
+ *
+ * WHY IT IS NOT THREE SCREENS. The room meets the game's three beats — the case sheet, the two
+ * stamps on the phone, the reveal — for the first time on CASE 01, inside a ten-second reading
+ * beat and an eight-second answer window. The rules screen before this says what the beats are;
+ * this shows them. Side by side they are ONE picture the host can point across ("that, then that,
+ * then that"), and a player can look back at panel 1 while the host is on panel 3. Walked as three
+ * separate screens the comparison lives in the room's memory instead of on the wall, and it costs
+ * the host two more presses on the one screen where nothing is timed anyway.
+ *
+ * WHAT IT DRAWS IS THE REAL THING, not a picture of it: {@link SplitBar}, {@link Dossier},
+ * {@link Duck}, {@link DuckSaysLabel}, {@link HighlightedDuckLine} and the phone's own
+ * `.det-stamps` inks are the same objects the three real screens are built from, so the example
+ * cannot drift away from the game the way a screenshot or a hand-drawn diagram would.
+ *
+ * EVERYTHING IS SIZED IN vh AND NOTHING SITS UNDER THE 3.1vh FLOOR ({@link TYPE}). A miniature is
+ * exactly where that rule is easiest to break — a third of the screen's width invites a third of
+ * the type — and the room at the back has to read these panels as well as the full-size screens
+ * they stand for. So the panels are miniatures by CROP, not by type size: less fits in them.
+ */
+function TutorialStage() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col px-[4vh] pt-[0.6vh] pb-[0.4vh]">
+      <h2
+        className="det-thai shrink-0 text-center"
+        style={{ fontSize: '5vh', lineHeight: 1.05, color: 'var(--det-gold)', textShadow: '0.5vh 0.5vh 0 #705400' }}
+      >
+        เล่นยังไง
+      </h2>
+      <p
+        className="det-thai shrink-0 text-center"
+        style={{ fontSize: TYPE.floor, lineHeight: 1.3, color: '#f3e4c8', marginTop: '0.3vh' }}
+      >
+        ทุกคดีเดินสามจังหวะนี้เหมือนกันหมด
+      </p>
+
+      {/* `items-stretch` plus `min-h-0` on every child: the three panels are the same height and
+          each one's sheet fills whatever the caption under it leaves, so the row reads as one
+          object rather than as three cards of three different heights. */}
+      {/*
+        * THE CAPTIONS ARE WHAT DECIDES WHETHER THIS SCREEN FITS, and they are measured rather than
+        * reasoned about. `StageFrame` is `min-h-[95vh]` — a MINIMUM, not a height — so this row
+        * grows with its tallest panel and the status line is what falls off the bottom when it
+        * does. `minmax(0, 1fr)` on the row was tried and does not change that: with the frame free
+        * to grow there is no fixed height for the fraction to divide.
+        *
+        * So the fit is content-tuned, exactly like every other stage here: at TWO lines of caption
+        * it clears a 1366x768 projector by 17px and a 1600x900 one by 25px, measured. A third line
+        * on any of the three overflows. `npm run check:projector` is what catches that — it
+        * measures this phase's status line against the fold on both shapes — and it is the thing
+        * to run after editing any of the three captions or the example question.
+        */}
+      <div className="grid min-h-0 flex-1 grid-cols-3 items-stretch gap-[2.4vh] pt-[0.8vh]">
+        <TutorialPanel
+          step="1"
+          head="จอขึ้นคดี"
+          caption={<>อ่านคำถามกับคำตอบของเป็ดให้จบก่อน <b>{READING_MS / 1000} วิแรกยังกดไม่ได้</b></>}
+        >
+          <TutorialCase />
+        </TutorialPanel>
+
+        <TutorialPanel
+          step="2"
+          head="มือถือเปิดปุ่ม"
+          caption={<>เชื่อได้กด ผ่าน มีปัญหากด ตีกลับ — <b>ตัดสินภายใน {QUESTION_MS / 1000} วิ</b></>}
+        >
+          <TutorialPhone />
+        </TutorialPanel>
+
+        <TutorialPanel
+          step="3"
+          head="เฉลยพร้อมกัน"
+          caption={<>ห้องตอบยังไง เฉลยคืออะไร และ<b>บทเรียนของคดีนั้น</b></>}
+        >
+          <TutorialReveal />
+        </TutorialPanel>
+      </div>
+    </div>
+  )
+}
+
+/** One numbered panel: the step's number and name, the miniature, and one line saying what the
+ *  room does on that beat. The number is VT323 (Latin numerals only) and everything else is Thai —
+ *  the same split every other line on this projector makes. */
+function TutorialPanel({
+  step, head, caption, children,
+}: {
+  step: string
+  head: string
+  caption: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <section className="flex min-h-0 flex-col gap-[0.8vh]">
+      <h3 className="flex shrink-0 items-baseline gap-[1.2vh]">
+        <span className="det-term" style={{ fontSize: '4.2vh', color: 'var(--det-gold)', letterSpacing: '0.06em' }}>
+          {step}
+        </span>
+        <span className="det-thai" style={{ fontSize: '3.4vh', lineHeight: 1.1, color: '#fff6de' }}>{head}</span>
+      </h3>
+      <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+      <p className="det-thai shrink-0" style={{ fontSize: TYPE.floor, lineHeight: 1.32, color: '#f6ecd8' }}>
+        {caption}
+      </p>
+    </section>
+  )
+}
+
+/* Panel 1: the case sheet, cropped to the two things the room has to find on it — the question and
+   the duck's answer in its bubble. The full-size board carries a clock bar and a case plate as
+   well; both belong to the beat rather than to the sheet, and this panel is about the sheet. */
+function TutorialCase() {
+  return (
+    <Dossier
+      className="min-h-0 flex-1"
+      bodyClassName="det-dossier-mini flex min-h-0 flex-1 flex-col justify-center gap-[1.6vh]"
+      bodyStyle={{ padding: '2.2vh 2.4vh' }}
+    >
+      <p className="det-thai" style={{ fontSize: '4vh', lineHeight: 1.3 }}>{TUTORIAL_CASE.ask}</p>
+      <DuckSaysLabel />
+      {/* The duck at 11vh rather than the board's 23vh, and IN the flow rather than pinned to the
+          sheet's floor: the full-size scene stands him beside the paper with a 32vh lane of blank
+          sheet between him and the bubble (see `CaseBoard`), and a third of the width has no lane.
+
+          THE BUBBLE IS BUILT HERE RATHER THAN PASSED TO `Duck` AS ITS `bubble` PROP. That prop
+          renders `.duck-bubble` (app/globals.css), which sets no `font-size` at all — on this
+          screen it inherits the document's ~16px, which is under the 3.1vh floor at every
+          projector size and unreadable from the back. The case board builds its own bubble for the
+          same reason; this is that bubble, in the same inks, at this panel's scale. */}
+      <div className="flex items-end gap-[1.2vh]">
+        <Duck size="11vh" />
+        <p
+          className="det-thai flex-1"
+          style={{
+            background: '#eef4ff', border: '0.4vh solid var(--det-cyan)', borderRadius: '1.6vh',
+            padding: '1.4vh 1.8vh', fontSize: '3.4vh', lineHeight: 1.3,
+          }}
+        >
+          {TUTORIAL_CASE.duckSays}
+        </p>
+      </div>
+    </Dossier>
+  )
+}
+
+/*
+ * Panel 2: what is under every thumb in the room, drawn at the size the back of the hall can read.
+ *
+ * NOT THE PHONE'S OWN MARKUP SCALED DOWN, and that is a deliberate refusal. The phone's sheet
+ * sizes itself in `cqh` against `.det-ph`'s `container-type: size` box, so rendering it here at a
+ * third of the width means either a `transform: scale()` that takes the two stamps down to about
+ * fourteen pixels on the projector — illegible from the back, which is the one thing every size on
+ * this screen exists to prevent — or a container so small that the `max(16px, ...)` floor inside
+ * it inverts the sheet's own proportions.
+ *
+ * The two STAMPS are the real ones: `.det-stamps` / `.det-st` sit in no container of their own, so
+ * their `cqh` sizes resolve against the viewport here and land at the projector's scale by
+ * themselves. They are spans rather than buttons — nothing on the projector is pressable, and a
+ * disabled button would wear `.is-locked`'s grey, which is the phone's "not yet" state and the
+ * opposite of what this panel is showing.
+ */
+function TutorialPhone() {
+  return (
+    <div className="flex min-h-0 flex-1 items-stretch justify-center">
+      <div
+        className="det-paper flex min-h-0 flex-col"
+        style={{
+          width: '30vh',
+          border: '0.55vh solid #382c1f',
+          borderRadius: '0 1.2vh 1.2vh 1.2vh',
+          boxShadow: '0.6vh 0.6vh 0 rgba(0, 0, 0, 0.5)',
+          padding: '2.2vh 2vh',
+          fontFamily: 'var(--font-thai), system-ui, sans-serif',
+          /* The phone's own blue-book rules, in vh instead of cqh — the same picture, sized against
+             the projector rather than against a phone that is not in this room. */
+          backgroundImage: 'repeating-linear-gradient(180deg, transparent 0 2.5vh, rgba(30, 23, 19, 0.06) 2.5vh 2.65vh)',
+        }}
+      >
+        <p className="det-thai" style={{ fontSize: '3.4vh', lineHeight: 1.2 }}>ตัดสินเลย</p>
+        <div className="det-stamps">
+          <span className="det-st det-st-pass">✓ ผ่าน</span>
+          <span className="det-st det-st-reject">✗ ตีกลับ</span>
+        </div>
+        <p className="det-fcount">⏱ <span className="det-num">{QUESTION_MS / 1000}</span></p>
+      </div>
+    </div>
+  )
+}
+
+/* Panel 3: the reveal, cropped to the three objects that make it — the verdict, the room's own
+   split, and the marked-up sentence with what was actually true under it. The teaching line that
+   the full-size reveal rules top and bottom is this panel's CAPTION instead: at a third of the
+   width a second ruled band under the sheet reads as a footer rather than as the lesson. */
+function TutorialReveal() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-[1.2vh]">
+      <p
+        className="det-thai shrink-0 text-center"
+        style={{ fontSize: '4.8vh', lineHeight: 1.1, color: 'var(--det-pink)' }}
+      >
+        ตีกลับ
+      </p>
+      <div className="shrink-0">
+        <SplitBar split={TUTORIAL_SPLIT} verdict={TUTORIAL_CASE.verdict} />
+      </div>
+      <Dossier
+        className="min-h-0 flex-1"
+        bodyClassName="det-dossier-mini flex min-h-0 flex-1 flex-col justify-center gap-[1.2vh]"
+        bodyStyle={{ padding: '2.2vh 2.4vh' }}
+      >
+        <DuckSaysLabel />
+        <p className="det-thai" style={{ fontSize: '3.4vh', lineHeight: 1.35 }}>
+          <HighlightedDuckLine text={TUTORIAL_CASE.duckSays} highlight={TUTORIAL_CASE.highlight} />
+        </p>
+        <hr className="det-dossier-rule" />
+        <p className="det-thai" style={{ fontSize: '3.4vh', lineHeight: 1.3 }}>{TUTORIAL_CASE.truth}</p>
+      </Dossier>
+    </div>
+  )
+}
 
 /* ── The lobby board (spec §2) ────────────────────────────────────────────────────────────────
  *

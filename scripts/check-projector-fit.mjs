@@ -396,6 +396,26 @@ async function checkDetectiveTv(browser, failures) {
       }
 
       /*
+       * THE WORKED EXAMPLE, the second untimed pre-game screen, and the tallest thing on the
+       * projector that is not a full-bleed stage: three panels side by side, each with a sheet in
+       * it, under a title and over a caption. It is the phase most likely to overflow a 768px
+       * projector after a content edit — the captions and the example question are the only text
+       * on this screen that anyone will ever retype — so it is measured like any other.
+       *
+       * Same untimed hazard as `rules` above: no branch here and the walk spins on this phase
+       * until the cap runs out, reporting a clean bill of health for a game it never started.
+       */
+      if (state.phase === 'tutorial') {
+        await settle()
+        await measure('tutorial')
+        await checkHostControl('tutorial')
+        await checkStatusLine('tutorial')
+        await post('/api/control', { action: 'next' })
+        await screens[0].page.waitForTimeout(500)
+        continue
+      }
+
+      /*
        * THE READING BEAT (v3.1, lib/game.ts's READING_MS). The room reads the question and the
        * duck's answer with no button to press. It carries the same case-file scene as `question`
        * with the timer bar swapped for a dot countdown, so it can fail to fit in exactly the same
@@ -597,6 +617,17 @@ async function checkPhones(browser, failures) {
     const briefing = await fetch(`${BASE}/api/state`).then((r) => r.json())
     if (briefing.phase === 'rules') {
       await measureFill(page, '/  rules')
+      await post('/api/control', { action: 'next' })
+      await page.waitForTimeout(1600)
+    }
+
+    /* The tutorial, the same shape: the phone holds on it exactly as it holds on the rules sheet,
+     * and it is measured here rather than skipped for the same reason — otherwise every probe
+     * below reports a phase drift for a game that is working perfectly. Conditional, so this walk
+     * still measures the right screens if either pre-game screen is ever removed again. */
+    const tutorial = await fetch(`${BASE}/api/state`).then((r) => r.json())
+    if (tutorial.phase === 'tutorial') {
+      await measureFill(page, '/  tutorial')
       await post('/api/control', { action: 'next' })
       await page.waitForTimeout(1600)
     }

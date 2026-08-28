@@ -128,13 +128,19 @@ export type Player = { id: string; codename: string; joinedAt: number; spectator
 export type Answer = { playerId: string; questionId: string; verdict: Verdict; elapsedMs: number }
 
 /**
- * `rules` sits between `lobby` and the FIRST `reading` and is never entered again — question 2
- * onward goes straight from `reveal` back to `reading` (see `lib/game.ts#nextState`).
- * It is host-advanced with no countdown: `reading` and `question` have clocks because the room
- * has to move together; a hundred people read a rules screen at a hundred speeds, and it is the
- * one screen where spending an extra ten seconds costs the run nothing.
+ * `rules` and `tutorial` sit between `lobby` and the FIRST `reading`, in that order, and neither
+ * is ever entered again — question 2 onward goes straight from `reveal` back to `reading` (see
+ * `lib/game.ts#nextState`).
+ * Both are host-advanced with no countdown: `reading` and `question` have clocks because the room
+ * has to move together; a hundred people read a rules screen at a hundred speeds, and those are
+ * the two screens where spending an extra ten seconds costs the run nothing.
+ *
+ * They are TWO phases rather than two halves of one because they are two host presses. `rules`
+ * states the rules; `tutorial` shows the three beats those rules describe, as one screen of three
+ * panels (app/tv/page.tsx#TutorialStage). A room reads a rules sheet and looks at a worked example
+ * at different speeds, and the host needs to be able to leave one and stay on the other.
  */
-export type Phase = 'lobby' | 'rules' | 'reading' | 'question' | 'reveal' | 'tally' | 'podium'
+export type Phase = 'lobby' | 'rules' | 'tutorial' | 'reading' | 'question' | 'reveal' | 'tally' | 'podium'
 
 /** Server-authoritative. `phaseStartedAt`/`phaseDurationMs` are the ONLY clock. */
 export type GameState = {
@@ -142,7 +148,7 @@ export type GameState = {
   /** 0-based index into QUESTIONS_IN_ORDER. */
   qIndex: number
   phaseStartedAt: number
-  /** 0 for the host-advanced phases: lobby, rules, reveal, tally, podium. */
+  /** 0 for the host-advanced phases: lobby, rules, tutorial, reveal, tally, podium. */
   phaseDurationMs: number
   /** @deprecated The reveal is untimed and nothing freezes it. Kept so a persisted v3.1
    *  snapshot still parses; no code reads it. */

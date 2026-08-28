@@ -11,21 +11,24 @@ const Q0 = QUESTIONS_IN_ORDER[0]
 const Q1 = QUESTIONS_IN_ORDER[1]
 
 /**
- * v3.2 puts an untimed `rules` screen between the lobby and the first reading beat, so opening
- * question 0 is now START, a press to leave the rules, and a press to end the reading — where it
- * used to be START and one press.
+ * Two untimed screens sit between the lobby and the first reading beat — `rules`, then the
+ * `tutorial` worked example — so opening question 0 is START and THREE presses, where it used to
+ * be START and one.
  *
  * `startToReading(s, t)` leaves the room where `startGame(t)` used to: reading question 0 with
  * `phaseStartedAt === t`. `startToQuestion(s, t)` leaves it where `startGame(t); next(t)` used to:
  * the answer window open with `phaseStartedAt === t`, so every elapsedMs and speed-bonus
  * expectation below still means what it says.
  *
- * The rules press is dated a second before `t` on purpose. `next` swallows a press that lands
- * within NEXT_GUARD_MS (700ms) of the last one, so the rules press and the reading press cannot
- * share a timestamp — and a second is far inside READING_MS (10s), so no reading beat expires in
- * the gap.
+ * The pre-game presses are dated BEFORE `t` on purpose. `next` swallows a press that lands within
+ * NEXT_GUARD_MS (700ms) of the last one, so no two of them may share a timestamp — and the gaps
+ * are far inside READING_MS (10s), so no reading beat expires between them.
  */
-const startToReading = (s: MemoryRoomStore, now: number) => { s.startGame(now); s.next(now) }
+const startToReading = (s: MemoryRoomStore, now: number) => {
+  s.startGame(now - 800)
+  s.next(now - 800) // rules -> tutorial
+  s.next(now)       // tutorial -> reading, on the clock the caller asked for
+}
 const startToQuestion = (s: MemoryRoomStore, now: number) => { startToReading(s, now - 1000); s.next(now) }
 
 describe('MemoryRoomStore', () => {
@@ -141,8 +144,16 @@ describe('store game state', () => {
     expect(s.tick(2000 + 60 * 60 * 1000)).toBe(false)
     expect(s.getGameState().phase).toBe('rules')
 
-    // One press, and the reading beat for question 0 begins.
+    // One press reaches the worked example — which is pre-game in exactly the same way, and where
+    // a joiner is still a player rather than a spectator.
     s.next(3000)
+    expect(s.getGameState().phase).toBe('tutorial')
+    expect(s.getGameState().phaseDurationMs).toBe(0)
+    expect(s.join('Cara', 3200).spectator).toBe(false)
+    expect(s.tick(3000 + 60 * 60 * 1000)).toBe(false)
+
+    // The next one, and the reading beat for question 0 begins.
+    s.next(3800)
     expect(s.getGameState().phase).toBe('reading')
     expect(s.getGameState().qIndex).toBe(0)
 
@@ -548,6 +559,21 @@ describe('MemoryRoomStore persistence', () => {
     expect(store2.getGameState().phase).toBe('rules')
   })
 
+  // The same gate for the second untimed screen. `tutorial` is the phase a room sits on for the
+  // longest stretch of the pre-game — the host talks over it — so a `validPhases` that did not
+  // know the name would take the whole snapshot down on a restart at exactly the wrong moment.
+  it('round-trips a snapshot persisted while the room is on the tutorial', () => {
+    const store1 = new MemoryRoomStore(persistPath)
+    store1.join('Detective Ramen', 0)
+    store1.startGame(1000)
+    store1.next(2000)
+    expect(store1.getGameState().phase).toBe('tutorial')
+
+    const store2 = new MemoryRoomStore(persistPath)
+    expect(store2.getPlayers()).toHaveLength(1)
+    expect(store2.getGameState().phase).toBe('tutorial')
+  })
+
   it('writes atomically: no leftover temp file after a successful persist', () => {
     const store = new MemoryRoomStore(persistPath)
     store.join('D', 0)
@@ -575,16 +601,18 @@ const T0 = 2_000_000
  * `next(T0)` as a double-tap. `tick` drives the SAME clock-expiry path a real client's poll would,
  * and never touches `lastNextAt`.
  *
- * The v3.2 rules screen cannot be cleared that way — it is untimed, so no `tick` ever expires it
- * and only a host press moves it. That press is therefore dated NEXT_STEP_MS BEFORE `T0`, which
- * leaves `lastNextAt` far enough in the past that a caller's own `next(T0)` still lands.
+ * The two pre-game screens cannot be cleared that way — the rules sheet and the tutorial are both
+ * untimed, so no `tick` ever expires them and only a host press moves each one. Those presses are
+ * therefore dated NEXT_STEP_MS apart and BOTH before `T0`, which leaves `lastNextAt` far enough in
+ * the past that a caller's own `next(T0)` still lands.
  */
 const NEXT_STEP_MS = NEXT_GUARD_MS + 1
 function roomAt(qIndex: number, n = 3) {
   const store = new MemoryRoomStore()
   const players = Array.from({ length: n }, (_, i) => store.join(`p${i}`, T0))
-  store.startGame(T0 - NEXT_STEP_MS)
-  store.next(T0 - NEXT_STEP_MS) // rules -> reading, the one press no clock can make for the host
+  store.startGame(T0 - 2 * NEXT_STEP_MS)
+  store.next(T0 - 2 * NEXT_STEP_MS) // rules -> tutorial, the presses no clock can make for the host
+  store.next(T0 - NEXT_STEP_MS)     // tutorial -> reading
   store.tick(T0 + READING_MS) // reading -> question 0, on the reading clock, not the host's button
   let t = T0
   for (let i = 0; i < qIndex; i++) {

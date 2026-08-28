@@ -698,6 +698,14 @@ body {
    with it or it reads as a rounding bug. */
 .det-dossier-plain { border-radius: 1vh; }
 
+/* The tutorial's panels (app/tv/page.tsx#TutorialStage) draw the case sheet and the reveal sheet
+   at a THIRD of the screen's width, side by side. `.det-dossier::before`'s CLASSIFIED stamp is
+   pinned to the paper's top-right corner and sized as a fraction of the SCREEN, not of the sheet
+   it sits on — about 34vh of rotated type — so on a third-width sheet it covers the thing it is
+   decorating. Removed rather than shrunk: the stamp is a full-size object, and a miniature of one
+   reads as a smudge in the corner. */
+.det .det-dossier-mini::before { content: none; }
+
 /* The three ink tones the reference uses INSIDE its dossier: the file header (`#544132`), a
    field label (`#8c593b`) and the tinted block a field sits in (`#ebd9cc` at 60% over
    `#d4c1ad`). Nothing on the paper may use the screen palette — cyan and neon green are

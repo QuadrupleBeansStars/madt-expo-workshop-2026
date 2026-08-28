@@ -67,7 +67,8 @@ const startGame = async () => {
       body: JSON.stringify({ action: 'start' }),
     })
   )
-  getStore().next(Date.now() - 2000) // rules -> reading
+  getStore().next(Date.now() - 4000) // rules -> tutorial
+  getStore().next(Date.now() - 2000) // tutorial -> reading
   await controlPOST(
     new Request('http://localhost:3000/api/control', {
       method: 'POST',
@@ -364,9 +365,10 @@ describe('POST /api/control', () => {
     const store = getStore()
     store.reset() // this describe block never resets between tests; start from a known phase
     store.startGame(1000)
-    store.next(1000) // rules -> reading
-    store.next(2000) // reading -> question
-    store.next(3000) // question -> reveal
+    store.next(1000) // rules -> tutorial
+    store.next(2000) // tutorial -> reading
+    store.next(3000) // reading -> question
+    store.next(4000) // question -> reveal
     expect(store.getGameState().phase).toBe('reveal')
     const seqBefore = store.getSeq()
     const gameBefore = store.getGameState()
@@ -500,7 +502,12 @@ describe('/api/state and /api/control', () => {
     const afterStart = await (await stateGET(req('http://localhost/api/state'))).json()
     expect(afterStart.phase).toBe('rules')
     expect(afterStart.remainingMs).toBe(0) // untimed: no countdown for the room to race
-    // ...and the host's one forward control takes it to the first reading beat.
+    // ...one press reaches the worked example, still untimed...
+    getStore().next(Date.now() - 2000) // rules -> tutorial, dated in the past. See `startGame`.
+    const afterTutorial = await (await stateGET(req('http://localhost/api/state'))).json()
+    expect(afterTutorial.phase).toBe('tutorial')
+    expect(afterTutorial.remainingMs).toBe(0)
+    // ...and the host's one forward control takes it on to the first reading beat.
     const next = await controlPOST(req('http://localhost/api/control', { action: 'next' }, h))
     expect(next.status).toBe(200)
     const afterNext = await (await stateGET(req('http://localhost/api/state'))).json()
@@ -523,8 +530,9 @@ describe('/api/answer status contract', () => {
     getStore().reset()
     const joined = await (await join(req('http://localhost/api/join', { codename: 'Alice' }))).json()
     await controlPOST(req('http://localhost/api/control', { action: 'start' }, { 'x-facilitator-token': 'secret' }))
-    // Rules -> reading through the store, dated in the past: two route presses in the same
-    // millisecond would trip the double-tap guard and leave the room reading. See `startGame` above.
+    // Rules -> tutorial -> reading through the store, dated in the past: route presses in the same
+    // millisecond would trip the double-tap guard and leave the room short. See `startGame` above.
+    getStore().next(Date.now() - 4000)
     getStore().next(Date.now() - 2000)
     await controlPOST(req('http://localhost/api/control', { action: 'next' }, { 'x-facilitator-token': 'secret' })) // past reading, so the question is open
     const q0 = QUESTIONS_IN_ORDER[0]

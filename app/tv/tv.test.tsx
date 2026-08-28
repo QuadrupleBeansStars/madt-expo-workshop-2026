@@ -9,6 +9,7 @@ import '@testing-library/jest-dom/vitest'
 import TV from './page'
 import { QUESTIONS_IN_ORDER, QUESTION_MS, READING_MS } from '@/lib/game'
 import { CLOSING_LINES } from '@/content/questions'
+import { TUTORIAL_CASE } from '@/content/tutorial'
 import { scoreAnswer } from '@/lib/scoring'
 import { SplitBar } from '@/components/game/SplitBar'
 import { t } from '@/lib/i18n'
@@ -65,6 +66,35 @@ describe('the projector', () => {
     // lives — v3 rendered it in the corner panel on every phase, disabled outside the lobby, and
     // v3.1 renders it in the middle of the lobby and nowhere else (spec §4).
     expect(await screen.findByRole('button', { name: /เริ่มเกม/ })).toBeEnabled()
+  })
+
+  /*
+   * THE WORKED EXAMPLE. Two things have to be true of this screen and neither implies the other:
+   * it has to SHOW the three beats, and it has to spend none of the ten cases doing it.
+   *
+   * The second is the one worth a test. Drawing case 1 here would look perfectly correct on the
+   * projector and cost the room its first real case — it would arrive at CASE 01 already knowing
+   * the verdict — and nothing else in the suite would notice.
+   */
+  it('walks the three beats before the first case, on an example that is not one of the ten', async () => {
+    mockFetch({ ...base, phase: 'tutorial' })
+    render(<TV />)
+
+    expect(await screen.findByText(TUTORIAL_CASE.ask)).toBeInTheDocument()
+    expect(screen.getByText('จอขึ้นคดี')).toBeInTheDocument()
+    expect(screen.getByText('มือถือเปิดปุ่ม')).toBeInTheDocument()
+    expect(screen.getByText('เฉลยพร้อมกัน')).toBeInTheDocument()
+
+    // The pair the room is about to find under its thumb, drawn on the wall first. Exact strings:
+    // SplitBar's own labels in panel 3 carry a percentage, so they cannot match these.
+    expect(screen.getByText('✓ ผ่าน')).toBeInTheDocument()
+    expect(screen.getByText('✗ ตีกลับ')).toBeInTheDocument()
+
+    // Nothing here is scored, and the status line says so in the room's own words.
+    expect(screen.getByText(/ยังไม่นับคะแนน/)).toBeInTheDocument()
+
+    // ...and no case out of the real set has been spent.
+    expect(screen.queryByText(q0.ask)).toBeNull()
   })
 
   it('shows the question and the duck line during a question', async () => {

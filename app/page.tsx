@@ -296,6 +296,17 @@ function PhoneBody({
         )
       )}
 
+      {/* THE WORKED EXAMPLE, the second holding beat. The same sheet as `rules` above and for the
+          same reason: the three panels are on the projector, being pointed at, and a player reading
+          their own copy is a player not looking up. The stamps stay visible and locked here too, so
+          the pair the room is being SHOWN on the wall is the pair already sitting under their thumb.
+          A joiner who scans during this screen is still a player, not a spectator (lib/store.ts). */}
+      {phase === 'tutorial' && (
+        spectator ? <SpectatingSheet /> : (
+          <HoldingSheet head="TUTORIAL" line="ดูตัวอย่างที่จอใหญ่" foot={<>เดี๋ยวเริ่มคดีแรก</>} onPick={onSubmit} />
+        )
+      )}
+
       {phase === 'reading' && (
         spectator ? <SpectatingSheet /> : (
           <HoldingSheet

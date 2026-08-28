@@ -306,6 +306,24 @@ describe('the phone on the rules screen', () => {
   })
 })
 
+// The second holding beat. The tutorial is a projector screen — the phone's whole job on it is to
+// say so and stay out of the way — but the phase is ALSO the last one a walk-up player can join on
+// and still play (lib/store.ts), so the sheet a joiner lands on here must not be the spectator's.
+describe('the phone on the tutorial screen', () => {
+  const tutorialState = () => new Response(
+    JSON.stringify(state({ phase: 'tutorial', questionId: null, remainingMs: 0 })),
+    { headers: { 'content-type': 'application/json' } },
+  )
+
+  it('points at the projector and holds both stamps locked', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => tutorialState()))
+    render(<Page />)
+    expect(await screen.findByText('ดูตัวอย่างที่จอใหญ่')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /ผ่าน/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /ตีกลับ/ })).toBeDisabled()
+  })
+})
+
 // The other half of the lock: during `question` the same two controls must be LIVE. Without this,
 // "both stamps are disabled" passes just as happily on a screen that never enables them.
 describe('the stamps during a question', () => {

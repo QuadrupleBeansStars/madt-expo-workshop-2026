@@ -121,6 +121,22 @@ export function rulesState(now: number): GameState {
 }
 
 /**
+ * The worked example, entered ONCE, between the rules and the first case — the same shape as
+ * `rulesState` above and for the same reasons: `rules` is the only phase that leads here and
+ * nothing leads back, so "once per game" is a property of the graph rather than a flag.
+ *
+ * UNTIMED. It is the one screen in the game where the host can stand and point at things, which
+ * is the whole reason it is a screen and not a paragraph on the rules sheet.
+ *
+ * `qIndex: 0` because the game has not started. The example it draws is `content/tutorial.ts`'s
+ * `TUTORIAL_CASE`, which is NOT in `QUESTIONS_IN_ORDER` — `currentQuestion` returns null here, so
+ * no real case can leak onto this screen and be spent before the room reaches it.
+ */
+export function tutorialState(now: number): GameState {
+  return untimed('tutorial', 0, now)
+}
+
+/**
  * The state question 0 opens in — which is now exactly what `rules` advances to, not what leaving
  * the lobby produces. `startGame` puts the room on `rules` first.
  */
@@ -137,8 +153,10 @@ export function nextState(s: GameState, now: number): GameState {
     case 'lobby':
       return rulesState(now)
     // The ONLY edge out of `rules`, and nothing leads back into it: every later question reaches
-    // `reading` from `reveal` below, so the room sees this screen once.
+    // `reading` from `reveal` below, so the room sees these two screens once.
     case 'rules':
+      return tutorialState(now)
+    case 'tutorial':
       return startedState(now)
     case 'reading':
       return questionState(s.qIndex, now)

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState, shouldExpire, startedState,
+  LOBBY_STATE, QUESTION_COUNT, QUESTION_MS, READING_MS, QUESTIONS_IN_ORDER, currentQuestion, nextState, remainingMs, rulesState, shouldExpire, startedState, tutorialState,
 } from './game'
 import type { GameState, Phase } from './types'
 
@@ -17,7 +17,7 @@ function walk(): Phase[] {
   return seen
 }
 
-/** The same walk from the LOBBY — the only route through the rules screen. */
+/** The same walk from the LOBBY — the only route through the rules screen and the tutorial. */
 function walkFromLobby(): Phase[] {
   let s: GameState = LOBBY_STATE
   const seen: Phase[] = [s.phase]
@@ -87,7 +87,7 @@ describe('expiry', () => {
 describe('the rules screen', () => {
   it('is entered once, between the lobby and the first reading, and never again', () => {
     const seen = walkFromLobby()
-    expect(seen.slice(0, 3)).toEqual(['lobby', 'rules', 'reading'])
+    expect(seen.slice(0, 4)).toEqual(['lobby', 'rules', 'tutorial', 'reading'])
     expect(seen.filter((p) => p === 'rules')).toHaveLength(1)
     // The walk actually FINISHED. Without this, a machine that looped `rules -> rules` (or that
     // never reached the podium for any other reason) could still satisfy the two assertions
@@ -107,16 +107,51 @@ describe('the rules screen', () => {
     expect(shouldExpire(rules, T0 + 60 * 60 * 1000, 100, 100)).toBe(false)
   })
 
-  it('advances to the reading beat for question 0, on the reading clock', () => {
+  it('advances to the tutorial, not straight to the first case', () => {
     const after = nextState(rulesState(T0), T0)
+    expect(after.phase).toBe('tutorial')
+    expect(after.qIndex).toBe(0)
+  })
+
+  it('shows no question of its own — the room is reading rules, not evidence', () => {
+    expect(currentQuestion(rulesState(T0))).toBeNull()
+  })
+})
+
+describe('the tutorial', () => {
+  it('is entered once, between the rules and the first reading, and never again', () => {
+    const seen = walkFromLobby()
+    expect(seen.filter((p) => p === 'tutorial')).toHaveLength(1)
+    expect(seen[seen.indexOf('tutorial') - 1]).toBe('rules')
+    expect(seen[seen.indexOf('tutorial') + 1]).toBe('reading')
+    // The walk FINISHED. Without this, a machine that looped tutorial -> tutorial could satisfy
+    // everything above by exhausting the 100-step cap and this test would pass on a broken game.
+    expect(seen.at(-1)).toBe('podium')
+    // ...and every reading beat is still there: the worked example was inserted in FRONT of the
+    // game, not in place of its first case.
+    expect(seen.filter((p) => p === 'reading')).toHaveLength(QUESTION_COUNT)
+  })
+
+  it('has no countdown — only the host moves it', () => {
+    const tutorial = tutorialState(T0)
+    expect(tutorial.phaseDurationMs).toBe(0)
+    expect(remainingMs(tutorial, T0 + 60 * 60 * 1000)).toBe(0)
+    expect(shouldExpire(tutorial, T0 + 60 * 60 * 1000, 100, 100)).toBe(false)
+  })
+
+  it('advances to the reading beat for question 0, on the reading clock', () => {
+    const after = nextState(tutorialState(T0), T0)
     expect(after.phase).toBe('reading')
     expect(after.qIndex).toBe(0)
     expect(after.phaseDurationMs).toBe(READING_MS)
     expect(after.phaseStartedAt).toBe(T0) // the reading clock starts on the press, not at start-up
   })
 
-  it('shows no question of its own — the room is reading rules, not evidence', () => {
-    expect(currentQuestion(rulesState(T0))).toBeNull()
+  /* The example it draws is content/tutorial.ts's TUTORIAL_CASE, which is deliberately NOT one of
+     the ten. If this phase ever resolved a real question, case 1 would be spent on the screen that
+     exists to teach the buttons — and the room would meet it again, already knowing the answer. */
+  it('resolves no question out of the real set', () => {
+    expect(currentQuestion(tutorialState(T0))).toBeNull()
   })
 })
 
