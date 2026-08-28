@@ -21,9 +21,9 @@ export type PhoneFrame = PublicRoomState
 /**
  * When the drain bar turns from coffee brown to alarm orange, as a fraction of the whole window.
  *
- * A THIRD, so it is ten seconds of a thirty-second ask — and it stays ten seconds of a forty-five
- * second one if `ASK_MS` ever moves again, because a fixed millisecond threshold would silently
- * become "the last quarter" or "the last half" the moment that constant changed.
+ * A THIRD, so it is the last ~13 seconds of a forty-second ask — and it stays the last third if
+ * `ASK_MS` moves again, because a fixed millisecond threshold would silently become "the last
+ * quarter" or "the last half" the moment that constant changed.
  */
 const LOW_TIME_FRACTION = 1 / 3
 
@@ -174,7 +174,7 @@ function CupMark({ className }: { className?: string }) {
  *
  * `progress` is the ask clock as a fraction, drawn as a bar that drains. It replaces a bare number
  * floating off the right edge with something readable out of the corner of an eye, and it changes
- * colour under ten seconds so "hurry up" does not have to be read to be felt.
+ * colour for the last third so "hurry up" does not have to be read to be felt.
  */
 function Shell({
   name, notice, offline, testId, step, progress, children,

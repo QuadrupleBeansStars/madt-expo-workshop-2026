@@ -267,7 +267,7 @@ function AskView({
   const total = Math.max(0, Math.ceil(remainingMs / 1000))
   const mmss = `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
   /*
-   * The last third of the window — ten seconds of a thirty-second ask, and still ten seconds if
+   * The last third of the window — ~13 seconds of a forty-second ask, and still the last third if
    * ASK_MS moves, which a fixed millisecond threshold would not be. The phone draws its own bar
    * off the same fraction (components/room/PhoneBody.tsx), so the wall and every phone in the
    * room turn colour on the same beat rather than a second apart.

@@ -120,7 +120,7 @@
   transition: width 0.2s linear, background 0.3s ease;
 }
 
-/* The last third — ten seconds of a thirty-second ask. TECHIE's orange-red, already in the room's
+/* The last third — ~13 seconds of a forty-second ask. TECHIE's orange-red, already in the room's
    palette, so this borrows no new colour to say "hurry". */
 .phone-bar__fill[data-low='1'] {
   background: var(--phone-sprinter);
